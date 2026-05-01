@@ -5,8 +5,8 @@ width = 100
 height = 100
 
 if __name__ == "__main__":
-    game = GameManager()
     gameMap = GameMap(width, height)
+    game = GameManager(gameMap)
 
     input("按回车开始游戏...")  # “开始游戏按钮”
 

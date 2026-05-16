@@ -32,6 +32,13 @@ export class Preloader extends Scene
         //  Load the assets for the game - Replace with your own assets
         this.load.setPath('assets');
 
+        // player
+        this.load.spritesheet(
+            'player', 
+            '../../../public/assets/sprites/richele_sprite.png', 
+            { frameWidth: 32, frameHeight: 32 }
+        );
+
         this.load.image('logo', 'logo.png');
     }
 
@@ -39,8 +46,39 @@ export class Preloader extends Scene
     {
         //  When all the assets have loaded, it's often worth creating global objects here that the rest of the game can use.
         //  For example, you can define global animations here, so we can use them in other scenes.
+        //player animations
+        this.anims.create({
+            key: 'player_left',
+            frames: [{ key: 'player', frame: 1 }],
+            frameRate: 1,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'player_right',
+            frames: [{ key: 'player', frame: 0 }],
+            frameRate: 1,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'player_up',
+            frames: [{ key: 'player', frame: 0 }],
+            frameRate: 1,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'player_down',
+            frames: [{ key: 'player', frame: 1 }],
+            frameRate: 1,
+            repeat: -1
+        });
+
 
         //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.
         this.scene.start('MainMenu');
+
+
     }
 }

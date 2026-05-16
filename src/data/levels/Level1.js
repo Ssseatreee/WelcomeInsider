@@ -6,6 +6,7 @@ const level1 = {
     },
 
     npc: {
+        name: 'v2',
         x: 500,
         y: 300
     },

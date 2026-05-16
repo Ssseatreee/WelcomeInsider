@@ -1,8 +1,12 @@
 import Player from '../../gameObjects/Player.js';
-import NPC from '../../gameObjects/NPC.js';
+import NPC from '../../gameObjects/npcs/NPC.js';
 
 import levels from '../../data/levels';
 import DialogueManager from '../../systems/DialogueManager';
+import dialogues from '../../data/dialogues';
+import GameState from '../../systems/GameState.js';
+
+import npcMap from '../../gameObjects/npcs/npcs.js';
 
 import * as  Phaser from 'phaser';
 
@@ -52,7 +56,13 @@ export default class LevelScene extends Phaser.Scene
         this.player = new Player(this, levelData.playerSpawn.x, levelData.playerSpawn.y);
 
         // ===== NPC =====
-        this.npc = new NPC(this, levelData.npc.x, levelData.npc.y);
+        const NPCClass = npcMap[levelData.npc.name];
+        this.npc = new NPCClass(
+            this, levelData.npc.x, levelData.npc.y
+        );
+
+        // ===== 抓捕计数 =====
+        this.npcCatchCount = {};
 
         // ===== 对话管理器 =====
         this.dialogueManager = new DialogueManager(this);
@@ -89,48 +99,88 @@ export default class LevelScene extends Phaser.Scene
         this.dialogTriggered = false;
 
         // ===== 玩家和NPC碰撞 =====
-        this.physics.add.overlap(
-            this.player,
-            this.npc,
-            this.triggerDialog,
-            null,
-            this
-        );
+        // this.physics.add.overlap(
+        //     this.player,
+        //     this.npc,
+        //     this.triggerDialog,
+        //     null,
+        //     this
+        // );
 
         // ===== 空格键 =====
         this.spaceKey = this.input.keyboard.addKey(
             Phaser.Input.Keyboard.KeyCodes.SPACE
         );
+
+        // ===== 玩家与NPC交互状态 =====
+        this.isPlayerTouchingNPC = false;
     }
 
     update()
     {
         // ===== 对话期间按空格进入下一关 =====
-        // if (
-        //     this.dialogTriggered &&
-        //     Phaser.Input.Keyboard.JustDown(this.spaceKey)
-        // )
-        // {
-        //     this.nextLevel();
-        // }
 
         this.player.preUpdate();
         this.dialogueManager.update();
+        
+        const isOverlapping =
+        this.physics.overlap(
+            this.player,
+            this.npc
+        );
+
+        // 刚进入接触
+        if (
+            isOverlapping &&
+            !this.isPlayerTouchingNPC &&
+            !this.dialogueManager.isPlaying
+        )
+        {
+            this.isPlayerTouchingNPC = true;
+
+            this.triggerDialog();
+        }
+
+        // 离开接触
+        if (!isOverlapping)
+        {
+            this.isPlayerTouchingNPC = false;
+        }
     }
 
     triggerDialog()
     {
         // 防止重复触发
-        if (this.dialogTriggered)
-        {
-            return;
-        }
+        // if (this.dialogTriggered)
+        // {
+        //     return;
+        // }
 
         this.dialogTriggered = true;
 
         const levelData = levels[this.level];
 
-        this.dialogueManager.start(levelData.dialogue);
+        const npcName = levelData.npc.name;
+        // debug日志
+        console.log(`Player caught by ${npcName}`);
+
+        // 增加抓捕次数
+        this.npcCatchCount[npcName] = (this.npcCatchCount[npcName] || 0) + 1;
+        const catchCount = this.npcCatchCount[npcName];
+
+        let dialogueKey;
+        if (catchCount === 1)
+        {
+            dialogueKey = 'firstCatch';
+        }
+        else
+        {
+            dialogueKey = 'secondCatch';
+        }
+        const dialogue = dialogues[npcName][dialogueKey];
+
+
+        this.dialogueManager.start(dialogues[npcName][dialogueKey]);
     }
 
     nextLevel()
@@ -147,7 +197,12 @@ export default class LevelScene extends Phaser.Scene
 
     onDialogueEnd()
     {
-        // 对话结束后进入下一关
-        this.nextLevel();
+        // 对话结束后如果被抓捕超过2次进入下一关
+        const npcName = levels[this.level].npc.name;
+        const catchCount = this.npcCatchCount[npcName] || 0;
+        if (catchCount >= 2)
+        {
+            this.nextLevel();
+        }
     }
 }

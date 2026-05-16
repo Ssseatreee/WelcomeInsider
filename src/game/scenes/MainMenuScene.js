@@ -28,7 +28,7 @@ export default class MainMenuScene extends Scene
         this.add.text(
             this.scale.width / 2,
             180,
-            '没工作才是好员工啊',
+            '没在工作才是好员工啊',
             {
                 fontSize: '20px',
                 color: '#aaaaaa'

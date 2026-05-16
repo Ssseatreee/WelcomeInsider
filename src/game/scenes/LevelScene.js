@@ -1,6 +1,9 @@
 import Player from '../../gameObjects/Player.js';
 import NPC from '../../gameObjects/NPC.js';
 
+import levels from '../../data/levels';
+import DialogueManager from '../../systems/DialogueManager';
+
 import * as  Phaser from 'phaser';
 
 export default class LevelScene extends Phaser.Scene
@@ -31,6 +34,9 @@ export default class LevelScene extends Phaser.Scene
             }
         );
 
+        // ===== 加载当前关卡数据 =====
+        const levelData = levels[this.level];
+
         // ===== 提示文本 =====
         this.tipText = this.add.text(
             20,
@@ -43,10 +49,13 @@ export default class LevelScene extends Phaser.Scene
         );
 
         // ===== 玩家 =====
-        this.player = new Player(this, 100, 300);
+        this.player = new Player(this, levelData.playerSpawn.x, levelData.playerSpawn.y);
 
         // ===== NPC =====
-        this.npc = new NPC(this, 500, 300);
+        this.npc = new NPC(this, levelData.npc.x, levelData.npc.y);
+
+        // ===== 对话管理器 =====
+        this.dialogueManager = new DialogueManager(this);
 
         // ===== 对话框背景 =====
         this.dialogBox = this.add.rectangle(
@@ -97,21 +106,16 @@ export default class LevelScene extends Phaser.Scene
     update()
     {
         // ===== 对话期间按空格进入下一关 =====
-        
-        // const dx = this.player.x - this.npc.x;
-        // const dy = this.player.y - this.npc.y;
-        // const distance = Math.sqrt(dx * dx + dy * dy);
-
-        // if (!this.dialogTriggered && distance <= 0) { // 距离阈值，自己调
-        //     this.triggerDialog();
+        // if (
+        //     this.dialogTriggered &&
+        //     Phaser.Input.Keyboard.JustDown(this.spaceKey)
+        // )
+        // {
+        //     this.nextLevel();
         // }
-        if (
-            this.dialogTriggered &&
-            Phaser.Input.Keyboard.JustDown(this.spaceKey)
-        )
-        {
-            this.nextLevel();
-        }
+
+        this.player.preUpdate();
+        this.dialogueManager.update();
     }
 
     triggerDialog()
@@ -124,17 +128,9 @@ export default class LevelScene extends Phaser.Scene
 
         this.dialogTriggered = true;
 
-        this.dialogBox.setVisible(true);
+        const levelData = levels[this.level];
 
-        this.dialogText.setVisible(true);
-
-        this.dialogText.setText(
-            [
-                '“你终于来了。”',
-                '',
-                '按 SPACE 进入下一关'
-            ]
-        );
+        this.dialogueManager.start(levelData.dialogue);
     }
 
     nextLevel()
@@ -147,5 +143,11 @@ export default class LevelScene extends Phaser.Scene
         this.scene.restart({
             level: this.level + 1
         });
+    }
+
+    onDialogueEnd()
+    {
+        // 对话结束后进入下一关
+        this.nextLevel();
     }
 }

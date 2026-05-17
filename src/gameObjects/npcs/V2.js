@@ -4,7 +4,7 @@ export default class V2 extends NPC
 {
     constructor(scene, x, y)
     {
-        super(scene, x, y, 'v2');
+        super(scene, x, y, 'v2', 'v2');
 
         this.npcName = 'v2';
 

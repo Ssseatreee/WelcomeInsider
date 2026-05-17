@@ -4,7 +4,7 @@ export default class Federico extends NPC
 {
     constructor(scene, x, y)
     {
-        super(scene, x, y, 'federico');
+        super(scene, x, y, 'federico', 'federico');
 
         this.npcName = 'federico';
 

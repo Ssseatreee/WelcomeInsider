@@ -1,5 +1,9 @@
 import { Scene } from 'phaser';
 
+import createPlayerAnimations from '../../animations/playerAnimations';
+import createV2Animations from '../../animations/v2Animations';
+import createFedericoAnimations from '../../animations/federicoAnimations';
+
 export class Preloader extends Scene
 {
     constructor ()
@@ -39,6 +43,19 @@ export class Preloader extends Scene
             { frameWidth: 32, frameHeight: 32 }
         );
 
+        // npc
+        this.load.spritesheet(
+            'v2',
+            '../../../public/assets/sprites/v2_sprite.png',
+            { frameWidth: 32, frameHeight: 32 }
+        );
+        
+        this.load.spritesheet(
+            'federico',
+            '../../../public/assets/sprites/federico_sprite.png',
+            { frameWidth: 32, frameHeight: 32 }
+        );
+
         this.load.image('logo', 'logo.png');
     }
 
@@ -47,33 +64,11 @@ export class Preloader extends Scene
         //  When all the assets have loaded, it's often worth creating global objects here that the rest of the game can use.
         //  For example, you can define global animations here, so we can use them in other scenes.
         //player animations
-        this.anims.create({
-            key: 'player_left',
-            frames: [{ key: 'player', frame: 1 }],
-            frameRate: 1,
-            repeat: -1
-        });
-
-        this.anims.create({
-            key: 'player_right',
-            frames: [{ key: 'player', frame: 0 }],
-            frameRate: 1,
-            repeat: -1
-        });
-
-        this.anims.create({
-            key: 'player_up',
-            frames: [{ key: 'player', frame: 0 }],
-            frameRate: 1,
-            repeat: -1
-        });
-
-        this.anims.create({
-            key: 'player_down',
-            frames: [{ key: 'player', frame: 1 }],
-            frameRate: 1,
-            repeat: -1
-        });
+        createPlayerAnimations(this.anims);
+        //v2 animations
+        createV2Animations(this.anims);
+        //federico animations
+        createFedericoAnimations(this.anims);
 
 
         //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.

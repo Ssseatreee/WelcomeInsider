@@ -14,31 +14,50 @@ export default class DialogueManager
 
         // 背景
         this.box = scene.add.rectangle(
-            400,
-            520,
-            700,
-            100,
+            512,
+            650,
+            960,
+            180,
             0x000000,
-            0.8
+            0.85
         );
 
         this.box.setVisible(false);
 
         // 文本
         this.text = scene.add.text(
-            80,
-            485,
+            90,
+            620,
             '',
             {
-                fontSize: '24px',
+                fontSize: '30px',
                 color: '#ffffff',
                 wordWrap: {
-                    width: 640
+                    width: 840
                 }
             }
         );
 
         this.text.setVisible(false);
+
+        // 显示主角立绘
+        this.leftPortrait = scene.add.image(
+            220,
+            530,
+            ''
+        );
+        this.leftPortrait.setVisible(false);
+        this.leftPortrait.setScale(1.2);
+        this.leftPortrait.setDepth(-1);
+        // 显示NPC立绘
+        this.rightPortrait = scene.add.image(
+            804,
+            530,
+            ''
+        );
+        this.rightPortrait.setVisible(false);
+        this.rightPortrait.setScale(1.2);
+        this.rightPortrait.setDepth(-1);
 
         // SPACE继续
         this.spaceKey = scene.input.keyboard.addKey(
@@ -48,6 +67,9 @@ export default class DialogueManager
 
     start(dialogues)
     {
+        this.leftPortrait.setVisible(true);
+        this.rightPortrait.setVisible(true);
+
         this.dialogues = dialogues;
 
         this.dialogIndex = 0;
@@ -59,6 +81,17 @@ export default class DialogueManager
         this.text.setVisible(true);
 
         this.showCurrentDialogue();
+
+        this.currentNPC =
+            dialogues.find(
+                d => d.speaker !== 'richele'
+        )?.speaker;
+        this.leftPortrait.setTexture(
+            'portrait-richele-normal'
+        ); 
+        this.rightPortrait.setTexture(
+            `portrait-${this.currentNPC}-normal`
+        );
     }
 
     update()
@@ -85,10 +118,46 @@ export default class DialogueManager
 
     showCurrentDialogue()
     {
-        this.text.setText(
-            this.dialogues[this.dialogIndex]
-        );
+        const current = this.dialogues[this.dialogIndex];
+        this.text.setText(current.text);
+        this.updatePortrait(current);
     }
+
+    updatePortrait(dialogue)
+    {
+        const speaker = dialogue.speaker;
+
+        const expression = dialogue.expression;
+
+        const textureKey = `portrait-${speaker}-${expression}`;
+
+        // 主角固定左边，NPC固定右边
+        if (speaker === 'richele')
+        {
+            this.leftPortrait.setTexture(
+                textureKey
+            );
+
+            this.leftPortrait.setVisible(true);
+            this.leftPortrait.setAlpha(1);
+            this.rightPortrait.setAlpha(0.5);
+
+            this.leftPortrait.setDepth(-1);
+        }
+        else
+        {
+            this.rightPortrait.setTexture(
+                textureKey
+            );
+
+            this.rightPortrait.setVisible(true);
+            this.rightPortrait.setAlpha(1);
+            this.leftPortrait.setAlpha(0.5);
+
+            this.rightPortrait.setDepth(-1);
+        }
+    }
+
 
     end()
     {
@@ -97,6 +166,10 @@ export default class DialogueManager
         this.box.setVisible(false);
 
         this.text.setVisible(false);
+
+        // 隐藏立绘
+        this.leftPortrait.setVisible(false);
+        this.rightPortrait.setVisible(false);
 
         this.scene.onDialogueEnd();
     }

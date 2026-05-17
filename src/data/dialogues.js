@@ -3,13 +3,39 @@ const dialogues = {
     v2: {
 
         firstCatch: [
-            '“这事不归我管了”',
-            '“第一次的话，我还能当没看见。”'
+            {            
+                speaker: 'v2',
+                expression: 'normal',
+                text:'“这事不归我管了”'
+            },
+            {
+                speaker: 'v2',
+                expression: 'smile',
+                text:'“第一次的话，我还能当没看见。”'
+            },
+            {
+                speaker: 'richele',
+                expression: 'stress',
+                text:'“啊，哈哈......”'
+            }
         ],
 
         secondCatch: [
-            '“你是不是觉得我不会记你？”',
-            '“这已经是第二次了，这次不行了。”'
+            {   
+                speaker: 'v2',
+                expression: 'stress',         
+                text:'“你是不是觉得我不会记你？”'
+            },
+            {
+                speaker: 'richele',
+                expression: 'suprise',
+                text:'“......”'
+            },
+            {
+                speaker: 'v2',
+                expression: 'stress',
+                text:'“这已经是第二次了，这次不行了。”'
+            }
         ],
 
         normalTalk: [

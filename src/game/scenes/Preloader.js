@@ -64,6 +64,56 @@ export class Preloader extends Scene
         );
 
         this.load.image('logo', 'logo.png');
+        this.loadPortraits();
+
+    }
+
+    loadPortraits()
+    {
+        // richele
+        this.load.image(
+            'portrait-richele-normal',
+            '../../../public/assets/portraits/richele/normal.png'
+        );
+        this.load.image(
+            'portrait-richele-happy',
+            '../../../public/assets/portraits/richele/happy.png'
+        );
+        this.load.image(
+            'portrait-richele-stress',
+            '../../../public/assets/portraits/richele/stress.png'
+        );
+        this.load.image(
+            'portrait-richele-suprise',
+            '../../../public/assets/portraits/richele/suprise.png'
+        );
+        this.load.image(
+            'portrait-richele-strict',
+            '../../../public/assets/portraits/richele/strict.png'
+        );
+
+        // v2
+        this.load.image(
+            'portrait-v2-normal',
+            '../../../public/assets/portraits/v2/normal.png'
+        );
+        this.load.image(
+            'portrait-v2-smile',
+            '../../../public/assets/portraits/v2/smile.png'
+        );
+        this.load.image(
+            'portrait-v2-thinking',
+            '../../../public/assets/portraits/v2/thinking.png'
+        );
+        this.load.image(
+            'portrait-v2-stress',
+            '../../../public/assets/portraits/v2/stress.png'
+        );
+        this.load.image(
+            'portrait-v2-biyan_smile',
+            '../../../public/assets/portraits/v2/biyan_smile.png'
+        );
+
     }
 
     create ()

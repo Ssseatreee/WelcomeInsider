@@ -6,7 +6,7 @@ const level4 = {
     },
 
     npc: {
-        name: 'federico',
+        name: 'lemuen',
         x: 600,
         y: 200
     },

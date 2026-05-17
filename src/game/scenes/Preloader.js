@@ -3,6 +3,7 @@ import { Scene } from 'phaser';
 import createPlayerAnimations from '../../animations/playerAnimations';
 import createV2Animations from '../../animations/v2Animations';
 import createFedericoAnimations from '../../animations/federicoAnimations';
+import createLemuenAnimations from '../../animations/lemuenAnimations';
 
 export class Preloader extends Scene
 {
@@ -56,6 +57,12 @@ export class Preloader extends Scene
             { frameWidth: 32, frameHeight: 32 }
         );
 
+        this.load.spritesheet(
+            'lemuen',
+            '../../../public/assets/sprites/lemuen_sprite.png',
+            { frameWidth: 32, frameHeight: 32 }
+        );
+
         this.load.image('logo', 'logo.png');
     }
 
@@ -69,6 +76,8 @@ export class Preloader extends Scene
         createV2Animations(this.anims);
         //federico animations
         createFedericoAnimations(this.anims);
+        //lemuen animations
+        createLemuenAnimations(this.anims);
 
 
         //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.

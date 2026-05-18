@@ -66,6 +66,8 @@ export class Preloader extends Scene
         this.load.image('logo', 'logo.png');
         this.loadPortraits();
 
+        this.loadMap();
+
     }
 
     loadPortraits()
@@ -158,6 +160,71 @@ export class Preloader extends Scene
             '../../../public/assets/portraits/lemuen/thinking.png'
         );
 
+    }
+
+    loadMap()
+    {
+        // tilemap
+        this.load.tilemapTiledJSON(
+            'hall',
+            '../../../public/assets/maps/hall.json'
+        );
+
+        this.load.tilemapTiledJSON(
+            'office',
+            '../../../public/assets/maps/office.json'
+        );
+
+        this.load.tilemapTiledJSON(
+            'office_1',
+            '../../../public/assets/maps/office_1.json'
+        );
+
+        this.load.tilemapTiledJSON(
+            'left',
+            '../../../public/assets/maps/left.json'
+        );
+
+        this.load.tilemapTiledJSON(
+            'right',
+            '../../../public/assets/maps/right.json'
+        );
+
+        this.load.tilemapTiledJSON(
+            'drinkingroom',
+            '../../../public/assets/maps/drinkingroom.json'
+        );
+
+        this.load.tilemapTiledJSON(
+            'toilet',
+            '../../../public/assets/maps/toilet.json'
+        );
+
+        // tileset
+        this.load.image(
+            'hall',
+            '../../../public/assets/tilesets/hall.png'
+        );
+
+        this.load.image(
+            'drinkingroom',
+            '../../../public/assets/tilesets/drinkingroom.png'
+        );
+        
+        this.load.image(
+            'office',
+            '../../../public/assets/tilesets/office.png'
+        );
+
+        this.load.image(
+            'border',
+            '../../../public/assets/tilesets/border.png'
+        );
+
+        this.load.image(
+            'toilet',
+            '../../../public/assets/tilesets/toilet.png'
+        );
     }
 
     create ()

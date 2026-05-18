@@ -23,6 +23,7 @@ export default class DialogueManager
         );
 
         this.box.setVisible(false);
+        this.box.setDepth(200);
 
         // 文本
         this.text = scene.add.text(
@@ -39,6 +40,7 @@ export default class DialogueManager
         );
 
         this.text.setVisible(false);
+        this.text.setDepth(250);
 
         // 显示主角立绘
         this.leftPortrait = scene.add.image(
@@ -48,7 +50,7 @@ export default class DialogueManager
         );
         this.leftPortrait.setVisible(false);
         this.leftPortrait.setScale(1.2);
-        this.leftPortrait.setDepth(-1);
+        this.leftPortrait.setDepth(100);
         // 显示NPC立绘
         this.rightPortrait = scene.add.image(
             804,
@@ -57,7 +59,7 @@ export default class DialogueManager
         );
         this.rightPortrait.setVisible(false);
         this.rightPortrait.setScale(1.2);
-        this.rightPortrait.setDepth(-1);
+        this.rightPortrait.setDepth(100);
 
         // SPACE继续
         this.spaceKey = scene.input.keyboard.addKey(
@@ -144,7 +146,7 @@ export default class DialogueManager
             this.leftPortrait.setAlpha(1);
             this.rightPortrait.setAlpha(0.5);
 
-            this.leftPortrait.setDepth(-1);
+            this.leftPortrait.setDepth(100);
         }
         else
         {
@@ -156,7 +158,7 @@ export default class DialogueManager
             this.rightPortrait.setAlpha(1);
             this.leftPortrait.setAlpha(0.5);
 
-            this.rightPortrait.setDepth(-1);
+            this.rightPortrait.setDepth(100);
         }
     }
 

@@ -91,6 +91,14 @@ export class Preloader extends Scene
             'portrait-richele-strict',
             '../../../public/assets/portraits/richele/strict.png'
         );
+        this.load.image(
+            'portrait-richele-biyan_speak',
+            '../../../public/assets/portraits/richele/biyan_speak.png'
+        );
+        this.load.image(
+            'portrait-richele-smile',
+            '../../../public/assets/portraits/richele/smile.png'
+        );
 
         // v2
         this.load.image(
@@ -112,6 +120,42 @@ export class Preloader extends Scene
         this.load.image(
             'portrait-v2-biyan_smile',
             '../../../public/assets/portraits/v2/biyan_smile.png'
+        );
+
+        // federico
+        this.load.image(
+            'portrait-federico-normal',
+            '../../../public/assets/portraits/federico/normal.png'
+        );
+        this.load.image(
+            'portrait-federico-smile',
+            '../../../public/assets/portraits/federico/smile.png'
+        );
+        this.load.image(
+            'portrait-federico-stress',
+            '../../../public/assets/portraits/federico/stress.png'
+        );
+        this.load.image(
+            'portrait-federico-biyan',
+            '../../../public/assets/portraits/federico/biyan.png'
+        );
+
+        // lemuen
+        this.load.image(
+            'portrait-lemuen-normal',
+            '../../../public/assets/portraits/lemuen/normal.png'
+        );
+        this.load.image(
+            'portrait-lemuen-smile',
+            '../../../public/assets/portraits/lemuen/smile.png'
+        );
+        this.load.image(
+            'portrait-lemuen-strict',
+            '../../../public/assets/portraits/lemuen/strict.png'
+        );
+        this.load.image(
+            'portrait-lemuen-thinking',
+            '../../../public/assets/portraits/lemuen/thinking.png'
         );
 
     }

@@ -92,6 +92,8 @@ export default class DialogueManager
         this.rightPortrait.setTexture(
             `portrait-${this.currentNPC}-normal`
         );
+
+        this.updatePortrait(dialogues[0]);
     }
 
     update()

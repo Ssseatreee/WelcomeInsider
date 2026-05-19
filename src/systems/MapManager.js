@@ -7,10 +7,13 @@ export default class MapManager {
         this.currentMapKey = null;
         this.map = null;
         this.layers = {};
+        this.portals = [];
+        this.objects = [];
+        this.wallLayer = null;
+        this.topLayer = null;
     }
 
     loadMap(mapKey) {
-        
         // 防止重复加载
         if (this.currentMapKey === mapKey) return;
 
@@ -30,37 +33,34 @@ export default class MapManager {
             tilesets.push(tileset);
         });
 
+        // 计算偏移
+        this.offsetX = (this.scene.scale.width - this.map.widthInPixels) / 2;
+        this.offsetY = (this.scene.scale.height - this.map.heightInPixels) / 2;
+
         // 遍历 tilemap 中所有图层
         this.map.layers.forEach(layerData => {
             const name = layerData.name;
             // 使用第一个 tileset 创建图层
-            const layer = this.map.createLayer(name, tilesets, 0, 0);
+            const layer = this.map.createLayer(name, tilesets, this.offsetX, this.offsetY);
 
             // 自动保存到 this.layers，key = layer name
             this.layers[name] = layer;
 
-            // 设置碰撞逻辑
-            // if (layerData.properties) {
-            //     const collidesProp = layerData.properties.find(p => p.name === 'collides' && p.type === 'bool');
-            //     if (collidesProp && collidesProp.value === true) {
-            //         layer.setCollisionByProperty({ collides: true });
-            //         // 玩家与墙体碰撞
-            //         if (this.scene.player) {
-            //             this.scene.physics.add.collider(this.scene.player, layer);
-            //         }
-            //         // NPC也和墙碰撞
-            //         if (this.scene.npc) {
-            //             this.scene.physics.add.collider(this.scene.npc, layer);
-            //         }
-            //     }
-            // }
+            // Matter Physics：将 tilemap layer 的 collides=true tile 转为 Matter 碰撞体
+            layer.setCollisionByProperty({ collides: true });
+            this.scene.matter.world.convertTilemapLayer(layer);
+
+            // top层记录
+            if (name === 'top') this.topLayer = layer;
+            // if (name === 'Walls') this.wallLayer = layer;
         });
+        
+        // 平移所有 tilemap body
 
-        // // 摄像机和世界边界
-        // this.scene.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
-        // this.scene.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
 
-        // if (this.scene.player) this.scene.player.setCollideWorldBounds(true);
+        // 读取对象层
+        this.portals = this.getObjectLayer('portals')?.objects || [];
+        this.objects = this.getObjectLayer('objects')?.objects || [];
 
         console.log(`Loaded map: ${mapKey}`);
     }
@@ -72,6 +72,10 @@ export default class MapManager {
         });
         this.layers = {};
         this.map = null;
+        this.portals = [];
+        this.objects = [];
+        this.wallLayer = null;
+        this.topLayer = null;
     }
 
     getObjectLayer(layerName) {

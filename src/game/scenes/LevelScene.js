@@ -29,109 +29,313 @@ export default class LevelScene extends Phaser.Scene
         // ===== 背景 =====
         this.cameras.main.setBackgroundColor('#2d2d2d');
 
-        // ===== 加载当前关卡数据 =====
+        // ===== 当前关卡数据 =====
         const levelData = levels[this.level];
 
         // ===== 玩家 =====
-        this.player = new Player(this, levelData.playerSpawn.x, levelData.playerSpawn.y);
+        this.player = new Player(
+            this,
+            levelData.playerSpawn.x,
+            levelData.playerSpawn.y
+        );
 
         // ===== NPC =====
         const NPCClass = npcMap[levelData.npc.name];
-        this.npc = new NPCClass(this, levelData.npc.x, levelData.npc.y);
+
+        this.npc = new NPCClass(
+            this,
+            levelData.npc.x,
+            levelData.npc.y
+        );
+
+        // NPC不被撞飞
+        this.npc.setStatic(true);
+
+        // ===== 抓捕计数 =====
         this.npcCatchCount = {};
 
         // ===== 地图管理器 =====
         this.mapManager = new MapManager(this);
-        this.mapManager.loadMap('drinkingroom'); // 确保 key 与 preload 一致
 
-        // ===== 居中地图 =====
-        const offsetX = (this.game.config.width - this.mapManager.map.widthInPixels) / 2;
-        const offsetY = (this.game.config.height - this.mapManager.map.heightInPixels) / 2;
-
-        // 设置所有图层位置偏移
-        Object.values(this.mapManager.layers).forEach(layer => layer.setPosition(offsetX, offsetY));
-
-        // ===== 调整玩家和NPC坐标 =====
-        this.player.setPosition(this.player.x + offsetX, this.player.y + offsetY);
-        this.npc.setPosition(this.npc.x + offsetX, this.npc.y + offsetY);
+        this.mapManager.loadMap('drinkingroom');
 
         // ===== 图层深度 =====
         let depth = 0;
+
         Object.values(this.mapManager.layers).forEach(layer => {
+
+            if (layer.name === 'border')return; // border层单独设置深度 
             layer.setDepth(depth);
+
             depth += 1;
+
         });
+
+        // top层遮挡
+        if (this.mapManager.topLayer)
+        {
+            this.mapManager.topLayer.setDepth(
+                depth + 10
+            );
+        }
+        //border层遮挡
+        if (this.mapManager.layers['border'])
+        {
+            this.mapManager.layers['border'].setDepth(
+                depth + 10
+            );
+        }
+
+
         this.player.setDepth(depth + 1);
+
         this.npc.setDepth(depth + 1);
 
-        // ===== 摄像机 =====
-        this.cameras.main.startFollow(this.player);
-        this.cameras.main.setBounds(0, 0, this.mapManager.map.widthInPixels, this.mapManager.map.heightInPixels);
+        // ===== 玩家物理参数 =====
+        this.player.setFixedRotation();
 
-        // ===== 世界边界 =====
-        this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height);
-        this.player.setCollideWorldBounds(true);
-
-        // ===== 玩家与墙体碰撞 =====
-        // if (this.mapManager.wallLayer) {
-        //     this.physics.add.collider(this.player, this.mapManager.wallLayer);
-        //     this.physics.add.collider(this.npc, this.mapManager.wallLayer);
-        // }
+        this.player.setFrictionAir(0.15);
 
         // ===== 对话管理器 =====
-        this.dialogueManager = new DialogueManager(this);
+        this.dialogueManager =
+            new DialogueManager(this);
 
         // ===== 对话框 =====
-        this.dialogBox = this.add.rectangle(400, 520, 700, 100, 0x000000, 0.8).setVisible(false);
-        this.dialogText = this.add.text(100, 490, '', {
-            fontSize: '22px',
-            color: '#ffffff',
-            wordWrap: { width: 600 }
-        }).setVisible(false);
-        this.dialogBox.setDepth(200);
-        this.dialogText.setDepth(250);
+        this.dialogBox = this.add.rectangle(
+            512,
+            650,
+            900,
+            180,
+            0x000000,
+            0.8
+        );
 
-        this.dialogTriggered = false;
-        this.isPlayerTouchingNPC = false;
+        this.dialogBox.setScrollFactor(0);
+
+        this.dialogBox.setDepth(200);
+
+        this.dialogBox.setVisible(false);
+
+        // ===== 对话文本 =====
+        this.dialogText = this.add.text(
+            120,
+            590,
+            '',
+            {
+                fontSize: '24px',
+                color: '#ffffff',
+                wordWrap: {
+                    width: 760
+                }
+            }
+        );
+
+        this.dialogText.setScrollFactor(0);
+
+        this.dialogText.setDepth(210);
+
+        this.dialogText.setVisible(false);
+
+        // ===== 对话冷却 =====
+        this.dialogCooldown = 1000;
+
+        this.canTriggerDialog = true;
+
+        // ===== Matter碰撞监听 =====
+        this.matter.world.on(
+            'collisionstart',
+            (event) => {
+
+                event.pairs.forEach((pair) => {
+
+                    const bodyA = pair.bodyA;
+
+                    const bodyB = pair.bodyB;
+
+                    const playerBody =
+                        this.player.body;
+
+                    const npcBody =
+                        this.npc.body;
+
+                    const isPlayerNpcCollision =
+                        (
+                            bodyA === playerBody &&
+                            bodyB === npcBody
+                        )
+                        ||
+                        (
+                            bodyA === npcBody &&
+                            bodyB === playerBody
+                        );
+
+                    if (
+                        isPlayerNpcCollision &&
+                        this.canTriggerDialog &&
+                        !this.dialogueManager.isPlaying
+                    )
+                    {
+                        this.triggerDialog();
+
+                        this.canTriggerDialog = false;
+
+                        this.time.delayedCall(
+                            this.dialogCooldown,
+                            () => {
+
+                                this.canTriggerDialog = true;
+
+                            }
+                        );
+                    }
+                });
+            }
+        );
 
         // ===== 空格键 =====
-        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.spaceKey =
+            this.input.keyboard.addKey(
+                Phaser.Input.Keyboard.KeyCodes.SPACE
+            );
 
-        // ===== 关卡文本和提示 =====
-        this.levelText = this.add.text(20, 20, `Level ${this.level}`, { fontSize: '28px', color: '#ffffff' });
-        this.tipText = this.add.text(20, 60, '方向键移动', { fontSize: '18px', color: '#aaaaaa' });
+        // ===== UI =====
+        this.levelText = this.add.text(
+            20,
+            20,
+            `Level ${this.level}`,
+            {
+                fontSize: '28px',
+                color: '#ffffff'
+            }
+        );
+
+        this.levelText.setScrollFactor(0);
+
+        this.tipText = this.add.text(
+            20,
+            60,
+            '方向键移动',
+            {
+                fontSize: '18px',
+                color: '#aaaaaa'
+            }
+        );
+
+        this.tipText.setScrollFactor(0);
+
+        // ===== 地图居中偏移 =====
+        const offsetX = (this.game.config.width - this.mapManager.map.widthInPixels) / 2;
+        const offsetY = (this.game.config.height - this.mapManager.map.heightInPixels) / 2;
+
+        // 平移所有 tilemap layer 的 Matter 碰撞体
+        Object.values(this.mapManager.layers).forEach(layer => {
+            // // layer.tilemapLayer 可能不存在，遍历 Matter world 的 body
+            // this.matter.world.bodies.forEach(body => {
+            //     if (body.label === 'Tile Body') { 
+            //         // 只平移 tilemap body
+            //         Phaser.Physics.Matter.Matter.Body.translate(body, { x: offsetX, y: offsetY });
+            //     }
+            // });
+
+            // 同时平移渲染贴图
+            layer.setPosition(offsetX, offsetY);
+        });
+
+        // 平移玩家和 NPC（保持相对位置不变）
+        this.player.setPosition(this.player.x + offsetX, this.player.y + offsetY);
+        this.npc.setPosition(this.npc.x + offsetX, this.npc.y + offsetY);
+
+                // ===== 摄像机 =====
+        this.cameras.main.startFollow(
+            this.player,
+            true
+        );
+
+        this.cameras.main.setBounds(
+            0,
+            0,
+            this.mapManager.map.widthInPixels,
+            this.mapManager.map.heightInPixels
+        );
+
+        // // ===== Matter世界边界 =====
+        // this.matter.world.setBounds(
+        //     0,
+        //     0,
+        //     this.mapManager.map.widthInPixels,
+        //     this.mapManager.map.heightInPixels
+        // );
     }
 
     update()
     {
-        // ===== 对话期间按空格进入下一关 =====
-
         this.player.preUpdate();
+
         this.dialogueManager.update();
-        
-        const isOverlapping =
-        this.physics.overlap(
-            this.player,
-            this.npc
-        );
 
-        // 刚进入接触
-        if (
-            isOverlapping &&
-            !this.isPlayerTouchingNPC &&
-            !this.dialogueManager.isPlaying
-        )
-        {
-            this.isPlayerTouchingNPC = true;
+        // ===== 门交互 =====
+        this.mapManager.portals.forEach(portal => {
 
-            this.triggerDialog();
-        }
+            const rect =
+                new Phaser.Geom.Rectangle(
+                    portal.x,
+                    portal.y,
+                    portal.width,
+                    portal.height
+                );
 
-        // 离开接触
-        if (!isOverlapping)
-        {
-            this.isPlayerTouchingNPC = false;
-        }
+            if (
+                Phaser.Geom.Rectangle.Overlaps(
+                    rect,
+                    this.player.getBounds()
+                )
+            )
+            {
+                console.log(
+                    'Enter Portal:',
+                    portal.name
+                );
+            }
+        });
+
+        // ===== 可交互物体 =====
+        this.mapManager.objects.forEach(obj => {
+
+            const rect =
+                new Phaser.Geom.Rectangle(
+                    obj.x,
+                    obj.y,
+                    obj.width,
+                    obj.height
+                );
+
+            if (
+                Phaser.Geom.Rectangle.Overlaps(
+                    rect,
+                    this.player.getBounds()
+                )
+            )
+            {
+                if (
+                    Phaser.Input.Keyboard.JustDown(
+                        this.spaceKey
+                    )
+                )
+                {
+                    const dialogProp =
+                        obj.properties?.find(
+                            p => p.name === 'dialog'
+                        );
+
+                    if (dialogProp)
+                    {
+                        this.dialogueManager.start([
+                            dialogProp.value
+                        ]);
+                    }
+                }
+            }
+        });
     }
 
     triggerDialog()

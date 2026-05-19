@@ -20,12 +20,19 @@ const config = {
         mode: Scale.FIT,
         autoCenter: Scale.CENTER_BOTH
     },
+    // physics: {
+    //     default: 'arcade',
+    //     arcade: {
+    //         debug: true
+    //     }
+    // },  
     physics: {
-        default: 'arcade',
-        arcade: {
-            debug: true
+        default: 'matter',
+        matter: {
+            gravity: { y: 0 },  // 顶视角/2D RPG 一般重力设0
+            debug: true          // 调试碰撞形状
         }
-    },  
+    },
     scene: [
         Boot,
         Preloader,

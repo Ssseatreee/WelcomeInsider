@@ -44,6 +44,15 @@ export default class Player extends Phaser.Physics.Matter.Sprite
     {
         super.preUpdate(time, delta);
 
+        // 如果正在对话，禁止移动
+        if (this.scene.dialogueManager.isPlaying || 
+            this.scene.dialogueManager.isShowingObjectDialogue)
+        {
+            // 清空速度
+            this.setVelocity(0, 0);
+            return;
+        }
+
         // 清空速度
         this.setVelocity(0, 0);
 

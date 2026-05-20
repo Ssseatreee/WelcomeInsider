@@ -265,13 +265,37 @@ export default class LevelScene extends Phaser.Scene
         //     this.mapManager.map.widthInPixels,
         //     this.mapManager.map.heightInPixels
         // );
+
+        // ===== 交互提示 =====
+        this.interactHint = this.add.text(
+            0,
+            0,
+            '按 SPACE 查看',
+            {
+                fontSize: '18px',
+                color: '#ffffff',
+                backgroundColor: '#000000'
+            }
+        );
+
+        this.interactHint.setPadding(6);
+        this.interactHint.setDepth(500);
+        this.interactHint.setOrigin(0.5);
+        this.interactHint.setVisible(false);
     }
 
     update()
     {
-        this.player.preUpdate();
-
+        this.interactHint.setVisible(false);
         this.dialogueManager.update();
+
+        if (this.dialogueManager.isPlaying || 
+            this.dialogueManager.isShowingObjectDialogue)
+        {
+            return;
+        }
+
+        // this.dialogueManager.update();
 
         // ===== 门交互 =====
         this.mapManager.portals.forEach(portal => {
@@ -298,6 +322,15 @@ export default class LevelScene extends Phaser.Scene
             }
         });
 
+        // ===== 如果正在显示物品对话 =====
+        if (this.dialogueManager.isShowingObjectDialogue)
+        {
+            return;
+        }
+
+        // 默认隐藏交互提示
+        this.interactHint.setVisible(false);
+
         // ===== 可交互物体 =====
         this.mapManager.objects.forEach(obj => {
 
@@ -316,6 +349,18 @@ export default class LevelScene extends Phaser.Scene
                 )
             )
             {
+                console.log(
+                    'Near Object:',
+                    obj.name
+                );
+                // 显示交互提示
+                this.interactHint.setPosition(
+                    this.player.x,
+                    this.player.y - 48
+                );
+
+                this.interactHint.setVisible(true);
+
                 if (
                     Phaser.Input.Keyboard.JustDown(
                         this.spaceKey
@@ -327,15 +372,21 @@ export default class LevelScene extends Phaser.Scene
                             p => p.name === 'dialog'
                         );
 
-                    if (dialogProp)
+                    if (dialogProp &&
+                        !this.dialogueManager.isShowingObjectDialogue &&
+                        !this.dialogueManager.objectDialogCooldown
+                    )
                     {
-                        this.dialogueManager.start([
-                            dialogProp.value
-                        ]);
+                        // this.dialogueManager.start([
+                        //     dialogProp.value
+                        // ]);
+                        this.dialogueManager.showObjectDialogue(obj);
+                        return;
                     }
                 }
             }
         });
+
     }
 
     triggerDialog()

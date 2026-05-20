@@ -54,15 +54,24 @@ export default class MapManager {
             if (name === 'top') this.topLayer = layer;
             // if (name === 'Walls') this.wallLayer = layer;
         });
-        
-        // 平移所有 tilemap body
 
 
         // 读取对象层
         this.portals = this.getObjectLayer('portals')?.objects || [];
         this.objects = this.getObjectLayer('objects')?.objects || [];
 
+        // 平移所有对象层的对象
+        this.portals.forEach(obj => {
+            obj.x += this.offsetX;
+            obj.y += this.offsetY;
+        });
+        this.objects.forEach(obj => {
+            obj.x += this.offsetX;
+            obj.y += this.offsetY;
+        });
+
         console.log(`Loaded map: ${mapKey}`);
+        console.log('objects:', this.objects);
     }
 
     clearCurrentMap() {

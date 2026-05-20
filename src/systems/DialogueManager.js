@@ -1,4 +1,6 @@
+// import { use } from 'matter';
 import * as Phaser from 'phaser';
+// import { useActionState } from 'react';
 
 export default class DialogueManager
 {
@@ -11,6 +13,10 @@ export default class DialogueManager
         this.dialogues = [];
 
         this.isPlaying = false;
+
+        this.isShowingObjectDialogue = false;
+        this.objectDialogCooldown = false;
+        this.objectDialogCanClose = false;
 
         // 背景
         this.box = scene.add.rectangle(
@@ -38,6 +44,25 @@ export default class DialogueManager
                 }
             }
         );
+        this.objectDialogText = scene.add.text(
+            90,
+            620,
+            '',
+            {
+                fontSize: '30px',
+                color: '#ffffff',
+                wordWrap: {
+                    width: 840,
+                    useAdvancedWrap: true,
+                    // 自动换行
+                    useAdvancedWrap: true,
+                }, 
+                lineSpacing: 18
+            }
+        );
+        this.objectDialogText.setOrigin(0, 0);
+        this.objectDialogText.setVisible(false);
+        this.objectDialogText.setDepth(250);
 
         this.text.setVisible(false);
         this.text.setDepth(250);
@@ -100,6 +125,34 @@ export default class DialogueManager
 
     update()
     {
+        // ===== 物品对话 =====
+
+        if (this.isShowingObjectDialogue)
+        {
+            if (Phaser.Input.Keyboard.JustDown(this.spaceKey))
+            {
+                console.log('关闭物品对话');
+
+                this.box.setVisible(false);
+
+                this.objectDialogText.setVisible(false);
+
+                this.isShowingObjectDialogue = false;
+
+                this.objectDialogCooldown = true;
+
+                this.scene.time.delayedCall(300, () => {
+
+                    this.objectDialogCooldown = false;
+
+                });
+            }
+
+            return;
+        }
+
+        // ===== 普通剧情对话 =====
+
         if (!this.isPlaying)
         {
             return;
@@ -125,6 +178,73 @@ export default class DialogueManager
         const current = this.dialogues[this.dialogIndex];
         this.text.setText(current.text);
         this.updatePortrait(current);
+    }
+
+    showObjectDialogue(object)
+    {
+        console.log(
+            this.isPlaying,
+            this.isShowingObjectDialogue,
+            this.objectDialogCooldown
+        );
+
+        if (this.isPlaying || this.isShowingObjectDialogue || this.objectDialogCooldown)
+        {
+            return;
+        }
+
+        console.log('showObjectDialogue执行');
+
+        const dialogProp =
+            object.properties.find(
+                p => p.name === 'dialog'
+            );
+
+        if (!dialogProp)
+        {
+            return;
+        }
+
+        this.objectDialogText.setWordWrapWidth(840);
+
+        const wrappedText =
+            this.wrapChineseText(
+                dialogProp.value,
+                24
+            );
+
+        this.objectDialogText.setText(
+            wrappedText
+        );
+        this.box.setVisible(true);
+
+        this.objectDialogText.setVisible(true);
+
+        this.isShowingObjectDialogue = true;
+        this.objectDialogCanClose = false;
+
+        this.scene.time.delayedCall(150, () => {
+
+            this.objectDialogCanClose = true;
+
+        });
+    }
+
+    wrapChineseText(text, maxCharsPerLine = 24)
+    {
+        let result = '';
+
+        for (let i = 0; i < text.length; i++)
+        {
+            result += text[i];
+
+            if ((i + 1) % maxCharsPerLine === 0)
+            {
+                result += '\n';
+            }
+        }
+
+        return result;
     }
 
     updatePortrait(dialogue)

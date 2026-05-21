@@ -10,6 +10,8 @@ import MapManager from '../../systems/MapManager.js';
 
 import npcMap from '../../gameObjects/npcs/npcs.js';
 
+import mapDisplayNames from '../../data/mapDisplayNames.js';
+
 import * as  Phaser from 'phaser';
 
 export default class LevelScene extends Phaser.Scene
@@ -316,9 +318,26 @@ export default class LevelScene extends Phaser.Scene
             )
             {
                 console.log(
-                    'Enter Portal:',
+                    'Near Portal:',
                     portal.name
                 );
+                const targetMap =
+                    this.getProperty(
+                        portal,
+                        'targetMap'
+                    );
+
+                // 显示提示
+                this.interactHint.setText(
+                    `[SPACE] 前往 ${mapDisplayNames[targetMap]}`
+                );
+
+                this.interactHint.setPosition(
+                    this.player.x,
+                    this.player.y - 48
+                );
+
+                this.interactHint.setVisible(true);
             }
         });
 
@@ -329,7 +348,7 @@ export default class LevelScene extends Phaser.Scene
         }
 
         // 默认隐藏交互提示
-        this.interactHint.setVisible(false);
+        // this.interactHint.setVisible(false);
 
         // ===== 可交互物体 =====
         this.mapManager.objects.forEach(obj => {
@@ -359,6 +378,10 @@ export default class LevelScene extends Phaser.Scene
                     this.player.y - 48
                 );
 
+                // 显示提示
+                this.interactHint.setText(
+                    '[SPACE] 查看'
+                );
                 this.interactHint.setVisible(true);
 
                 if (
@@ -450,4 +473,14 @@ export default class LevelScene extends Phaser.Scene
             this.nextLevel();
         }
     }
+
+    getProperty(obj, propertyName)
+{
+    const prop =
+        obj.properties?.find(
+            p => p.name === propertyName
+        );
+
+    return prop ? prop.value : null;
+}
 }

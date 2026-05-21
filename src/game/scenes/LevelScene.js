@@ -76,8 +76,11 @@ export default class LevelScene extends Phaser.Scene
         // top层遮挡
         if (this.mapManager.topLayer)
         {
-            this.mapManager.topLayer.setDepth(
-                depth + 10
+            // this.mapManager.topLayer.setDepth(
+            //     depth + 10
+            // );
+            this.mapManager.topLayer.forEach(
+                layer=>layer.setDepth(depth+10)
             );
         }
         //border层遮挡
@@ -247,7 +250,7 @@ export default class LevelScene extends Phaser.Scene
         this.player.setPosition(this.player.x + offsetX, this.player.y + offsetY);
         this.npc.setPosition(this.npc.x + offsetX, this.npc.y + offsetY);
 
-                // ===== 摄像机 =====
+        // ===== 摄像机 =====
         this.cameras.main.startFollow(
             this.player,
             true
@@ -338,6 +341,13 @@ export default class LevelScene extends Phaser.Scene
                 );
 
                 this.interactHint.setVisible(true);
+
+                // 按下space前往targetMap
+                if(Phaser.Input.Keyboard.JustDown(this.spaceKey))
+                {
+                    const targetPortal = this.getProperty(portal,'targetPortal')
+                    this.switchMap(targetMap,targetPortal);
+                }
             }
         });
 
@@ -475,12 +485,73 @@ export default class LevelScene extends Phaser.Scene
     }
 
     getProperty(obj, propertyName)
-{
-    const prop =
-        obj.properties?.find(
-            p => p.name === propertyName
-        );
+    {
+        const prop =
+            obj.properties?.find(
+                p => p.name === propertyName
+            );
 
-    return prop ? prop.value : null;
-}
+        return prop ? prop.value : null;
+    }
+
+    switchMap(targetMap, targetPortalName)
+    {
+        // ===== 清除旧地图 =====
+        this.mapManager.clearCurrentMap();
+
+        // ===== 加载新地图 =====
+        this.mapManager.loadMap(targetMap);
+
+        // ===== 查找目标出生点 =====
+        const targetPortal =
+            this.mapManager.portals.find(
+                p => p.name === targetPortalName
+            );
+
+        if (targetPortal)
+        {
+            // 让玩家出生在 portal 中央
+            this.player.setPosition(
+                targetPortal.x + targetPortal.width / 2,
+                targetPortal.y + targetPortal.height / 2
+            );
+        }
+
+        // ===== 重新设置深度 =====
+        let depth = 0;
+
+        Object.values(this.mapManager.layers).forEach(layer => {
+
+            layer.setDepth(depth);
+
+            depth++;
+        });
+
+        this.player.setDepth(depth + 1);
+
+        this.npc.setDepth(depth + 1);
+
+        // top层最上
+        if (this.mapManager.topLayer)
+        {
+            // this.mapManager.topLayer.setDepth(
+            //     depth + 10
+            // );
+            this.mapManager.topLayer.forEach(
+                layer=>layer.setDepth(depth+10)
+            );
+        }
+
+        // border层最上
+        if (this.mapManager.layers.border)
+        {
+            this.mapManager.layers.border.setDepth(
+                depth + 20
+            );
+        }
+
+        console.log(
+            `Switch Map -> ${targetMap}`
+        );
+    }
 }

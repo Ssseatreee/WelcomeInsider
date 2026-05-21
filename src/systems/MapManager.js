@@ -10,7 +10,9 @@ export default class MapManager {
         this.portals = [];
         this.objects = [];
         this.wallLayer = null;
-        this.topLayer = null;
+        this.topLayer = [];
+
+        this.tileBodies = [];
     }
 
     loadMap(mapKey) {
@@ -39,6 +41,9 @@ export default class MapManager {
 
         // 遍历 tilemap 中所有图层
         this.map.layers.forEach(layerData => {
+            // if(layerData.type!=='tilelayer')
+            //     return;
+
             const name = layerData.name;
             // 使用第一个 tileset 创建图层
             const layer = this.map.createLayer(name, tilesets, this.offsetX, this.offsetY);
@@ -46,12 +51,45 @@ export default class MapManager {
             // 自动保存到 this.layers，key = layer name
             this.layers[name] = layer;
 
-            // Matter Physics：将 tilemap layer 的 collides=true tile 转为 Matter 碰撞体
-            layer.setCollisionByProperty({ collides: true });
-            this.scene.matter.world.convertTilemapLayer(layer);
+            // ===== 转换前记录 world bodies =====
+            const beforeBodies =
+                Phaser.Physics.Matter.Matter.Composite.allBodies(
+                    this.scene.matter.world.localWorld
+                );
+
+            // ===== Tilemap -> Matter =====
+            layer.setCollisionByProperty({
+                collides: true
+            });
+
+            this.scene.matter.world.convertTilemapLayer(
+                layer
+            );
+
+            // ===== 转换后记录新增 bodies =====
+            const afterBodies =
+                Phaser.Physics.Matter.Matter.Composite.allBodies(
+                    this.scene.matter.world.localWorld
+                );
+
+            // 新增的 body 就是 tilemap body
+            const newBodies =
+                afterBodies.filter(
+                    body => !beforeBodies.includes(body)
+                );
+
+            // 保存
+            this.tileBodies.push(...newBodies);
+            // );
 
             // top层记录
-            if (name === 'top') this.topLayer = layer;
+            // 初始化 topLayer 数组
+            if (!this.topLayer) this.topLayer = [];
+
+            // 所有以 top 开头的图层都加入 topLayer
+            if (/^top\d*$/.test(name)) {
+                this.topLayer.push(layer);
+            }
             // if (name === 'Walls') this.wallLayer = layer;
         });
 
@@ -74,17 +112,67 @@ export default class MapManager {
         console.log('objects:', this.objects);
     }
 
-    clearCurrentMap() {
-        // 销毁所有图层
-        Object.values(this.layers).forEach(layer => {
-            if (layer) layer.destroy();
+    clearCurrentMap()
+    {    
+        // ===== 删除 tilemap Matter bodies =====
+        this.tileBodies.forEach(body => {
+
+            Phaser.Physics.Matter.Matter.Composite.remove(
+                this.scene.matter.world.localWorld,
+                body
+            );
+
         });
+
+        this.tileBodies = [];
+        // ===== 删除 Tilemap Layer =====
+        Object.values(this.layers).forEach(layer => {
+
+            if (!layer)
+            {
+                return;
+            }
+
+            // ===== 移除 Matter Tilemap 碰撞 =====
+            // this.scene.matter.world.removeTilemapLayer(
+            //     layer
+            // );
+                    
+            // console.log(layer);
+            // ===== 删除 Tilemap Matter Bodies =====
+            if (layer.body)
+            {
+                Phaser.Physics.Matter.Matter.Composite.remove(
+                    this.scene.matter.world.localWorld,
+                    layer.body
+                );
+            }
+
+            // ===== 销毁图层 =====
+            layer.destroy();
+
+        });
+
+        // ===== 销毁 Tilemap =====
+        if (this.map)
+        {
+            this.map.destroy();
+
+            this.map = null;
+        }
+
+        // ===== 重置引用 =====
         this.layers = {};
-        this.map = null;
+
         this.portals = [];
+
         this.objects = [];
+
         this.wallLayer = null;
+
         this.topLayer = null;
+
+        this.currentMapKey = null;
     }
 
     getObjectLayer(layerName) {

@@ -225,6 +225,16 @@ export class Preloader extends Scene
             'toilet',
             '../../../public/assets/tilesets/toilet.png'
         );
+
+        this.load.image(
+            'Interiors_free_32x32',
+            '../../../public/assets/tilesets/Interiors_free_32x32.png'
+        )
+
+        this.load.image(
+            '../tilesets/coffee-maker.png',
+            '../../../public/assets/tilesets/coffee-maker.png'
+        )
     }
 
     create ()

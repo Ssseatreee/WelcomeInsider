@@ -34,6 +34,7 @@ export default class MapManager {
             const tileset = this.map.addTilesetImage(ts.name, ts.name);
             tilesets.push(tileset);
         });
+        
 
         // 计算偏移
         this.offsetX = (this.scene.scale.width - this.map.widthInPixels) / 2;

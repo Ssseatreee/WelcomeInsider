@@ -8,7 +8,11 @@ const mapDisplayNames = {
 
     left: '西侧走廊',
 
-    right: '东侧走廊'
+    right: '东侧走廊',
+
+    hall: '大厅',
+
+    toilet: '卫生间'
 
 };
 

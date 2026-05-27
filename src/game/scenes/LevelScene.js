@@ -105,41 +105,6 @@ export default class LevelScene extends Phaser.Scene
         this.dialogueManager =
             new DialogueManager(this);
 
-        // ===== 对话框 =====
-        this.dialogBox = this.add.rectangle(
-            512,
-            650,
-            900,
-            180,
-            0x000000,
-            0.8
-        );
-
-        this.dialogBox.setScrollFactor(0);
-
-        this.dialogBox.setDepth(200);
-
-        this.dialogBox.setVisible(false);
-
-        // ===== 对话文本 =====
-        this.dialogText = this.add.text(
-            120,
-            590,
-            '',
-            {
-                fontSize: '24px',
-                color: '#ffffff',
-                wordWrap: {
-                    width: 760
-                }
-            }
-        );
-
-        this.dialogText.setScrollFactor(0);
-
-        this.dialogText.setDepth(210);
-
-        this.dialogText.setVisible(false);
 
         // ===== 对话冷却 =====
         this.dialogCooldown = 1000;
@@ -227,42 +192,65 @@ export default class LevelScene extends Phaser.Scene
         );
 
         this.tipText.setScrollFactor(0);
+        this.levelText.setDepth(500);
+        this.tipText.setDepth(500);
 
         // ===== 地图居中偏移 =====
-        const offsetX = (this.game.config.width - this.mapManager.map.widthInPixels) / 2;
-        const offsetY = (this.game.config.height - this.mapManager.map.heightInPixels) / 2;
+        const padX = this.scale.width / 2;
+        const padY = this.scale.height / 2;
+        // const offsetX = Math.max(
+        //     0,
+        //     (this.scale.width - this.mapManager.map.widthInPixels) / 2
+        // );
 
+        // const offsetY = Math.max(
+        //     0,
+        //     (this.scale.height - this.mapManager.map.heightInPixels) / 2
+        // );
         // 平移所有 tilemap layer 的 Matter 碰撞体
-        Object.values(this.mapManager.layers).forEach(layer => {
-            // // layer.tilemapLayer 可能不存在，遍历 Matter world 的 body
-            // this.matter.world.bodies.forEach(body => {
-            //     if (body.label === 'Tile Body') { 
-            //         // 只平移 tilemap body
-            //         Phaser.Physics.Matter.Matter.Body.translate(body, { x: offsetX, y: offsetY });
-            //     }
-            // });
+        // Object.values(this.mapManager.layers).forEach(layer => {
+        //     // // layer.tilemapLayer 可能不存在，遍历 Matter world 的 body
+        //     // this.matter.world.bodies.forEach(body => {
+        //     //     if (body.label === 'Tile Body') { 
+        //     //         // 只平移 tilemap body
+        //     //         Phaser.Physics.Matter.Matter.Body.translate(body, { x: offsetX, y: offsetY });
+        //     //     }
+        //     // });
 
-            // 同时平移渲染贴图
-            layer.setPosition(offsetX, offsetY);
-        });
+        //     // 同时平移渲染贴图
+        //     layer.setPosition(padX, padY);
+        // });
 
         // 平移玩家和 NPC（保持相对位置不变）
-        this.player.setPosition(this.player.x + offsetX, this.player.y + offsetY);
-        this.npc.setPosition(this.npc.x + offsetX, this.npc.y + offsetY);
+        // this.player.setPosition(this.player.x + padX, this.player.y + padY);
+        // this.npc.setPosition(this.npc.x + padX, this.npc.y + padY);
 
         // ===== 摄像机 =====
+
+        // const worldW=this.mapManager.map.widthInPixels+padX*2;
+        // const worldY=this.mapManager.map.heightInPixels+padY*2;
+        // this.cameras.main.setBounds(
+        //     -padX,
+        //     -padY,
+        //     this.mapManager.map.widthInPixels + padX * 2,
+        //     this.mapManager.map.heightInPixels + padY * 3
+        // );
+
         this.cameras.main.startFollow(
             this.player,
-            true
+            true,
+            1,1
         );
 
-        this.cameras.main.setBounds(
-            0,
-            0,
-            this.mapManager.map.widthInPixels,
-            this.mapManager.map.heightInPixels
-        );
+        // this.cameras.main.setDeadzone(
+        //     this.scale.width*0.35,
+        //     this.scale.height*0.35
+        // )
 
+        // this.cameras.main.centerOn(
+        //     this.player.x,
+        //     this.player.y
+        // );
         // // ===== Matter世界边界 =====
         // this.matter.world.setBounds(
         //     0,

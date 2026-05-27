@@ -37,8 +37,10 @@ export default class MapManager {
         
 
         // 计算偏移
-        this.offsetX = (this.scene.scale.width - this.map.widthInPixels) / 2;
-        this.offsetY = (this.scene.scale.height - this.map.heightInPixels) / 2;
+        // this.offsetX = (this.scene.scale.width - this.map.widthInPixels) / 2;
+        // this.offsetY = (this.scene.scale.height - this.map.heightInPixels) / 2;
+        this.offsetX=this.scene.scale.width/2;
+        this.offsetY=this.scene.scale.height/2;
 
         // 遍历 tilemap 中所有图层
         this.map.layers.forEach(layerData => {
@@ -47,8 +49,8 @@ export default class MapManager {
 
             const name = layerData.name;
             // 使用第一个 tileset 创建图层
-            const layer = this.map.createLayer(name, tilesets, this.offsetX, this.offsetY);
-
+            // const layer = this.map.createLayer(name, tilesets, this.offsetX, this.offsetY);
+            const layer = this.map.createLayer(name, tilesets, 0, 0);
             // 自动保存到 this.layers，key = layer name
             this.layers[name] = layer;
 
@@ -100,17 +102,18 @@ export default class MapManager {
         this.objects = this.getObjectLayer('objects')?.objects || [];
 
         // 平移所有对象层的对象
-        this.portals.forEach(obj => {
-            obj.x += this.offsetX;
-            obj.y += this.offsetY;
-        });
-        this.objects.forEach(obj => {
-            obj.x += this.offsetX;
-            obj.y += this.offsetY;
-        });
+        // this.portals.forEach(obj => {
+        //     obj.x += this.offsetX;
+        //     obj.y += this.offsetY;
+        // });
+        // this.objects.forEach(obj => {
+        //     obj.x += this.offsetX;
+        //     obj.y += this.offsetY;
+        // });
 
         console.log(`Loaded map: ${mapKey}`);
         console.log('objects:', this.objects);
+        console.log(this.map.heightInPixels);
     }
 
     clearCurrentMap()

@@ -20,21 +20,28 @@ export default class DialogueManager
 
         // 背景
         this.box = scene.add.rectangle(
-            512,
-            650,
-            960,
+            // 512,
+            // 650,
+            scene.scale.width/2,
+            scene.scale.height-110,
+            900,
             180,
             0x000000,
-            0.85
+            0.8
         );
 
         this.box.setVisible(false);
         this.box.setDepth(200);
+        this.box.setScrollFactor(0);
 
         // 文本
         this.text = scene.add.text(
-            90,
-            620,
+            // 90,
+            // 620,
+            // 120,
+            // 590,
+            this.box.x-420,
+            this.box.y-70,
             '',
             {
                 fontSize: '30px',
@@ -45,8 +52,12 @@ export default class DialogueManager
             }
         );
         this.objectDialogText = scene.add.text(
-            90,
-            620,
+            // 90,
+            // 620,
+            // 120,
+            // 590,
+            this.box.x-420,
+            this.box.y-70,
             '',
             {
                 fontSize: '30px',
@@ -60,6 +71,8 @@ export default class DialogueManager
                 lineSpacing: 18
             }
         );
+        this.text.setScrollFactor(0);
+        this.objectDialogText.setScrollFactor(0);
         this.objectDialogText.setOrigin(0, 0);
         this.objectDialogText.setVisible(false);
         this.objectDialogText.setDepth(250);
@@ -69,22 +82,29 @@ export default class DialogueManager
 
         // 显示主角立绘
         this.leftPortrait = scene.add.image(
-            220,
-            530,
+            // 220,
+            // 530,
+            this.box.x-320,
+            this.box.y-50,
             ''
         );
         this.leftPortrait.setVisible(false);
-        this.leftPortrait.setScale(1.2);
+        this.leftPortrait.setScale(1.3);
         this.leftPortrait.setDepth(100);
         // 显示NPC立绘
         this.rightPortrait = scene.add.image(
-            804,
-            530,
+            // 804,
+            // 530,
+            this.box.x+320,
+            this.box.y-50,
             ''
         );
         this.rightPortrait.setVisible(false);
-        this.rightPortrait.setScale(1.2);
+        this.rightPortrait.setScale(1.3);
         this.rightPortrait.setDepth(100);
+
+        this.leftPortrait.setScrollFactor(0);
+        this.rightPortrait.setScrollFactor(0);
 
         // SPACE继续
         this.spaceKey = scene.input.keyboard.addKey(

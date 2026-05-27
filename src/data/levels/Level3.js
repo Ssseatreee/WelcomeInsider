@@ -5,15 +5,25 @@ const level3 = {
         y: 300
     },
 
-    npc: {
-        name: 'federico',
-        x: 600,
-        y: 200
-    },
+    npcs:
+    [
+        {
+            name:'v2',
+            x:500,
+            y:300
+        },
 
-    dialogue: [
-        '“主管今天心情不好。”',
-        '“小心一点。”'
+        {
+            name:'federico',
+            x:500,
+            y:200
+        },
+
+        {
+            name:'lemuen',
+            x:500,
+            y:300
+        }
     ]
 };
 

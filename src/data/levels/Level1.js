@@ -5,16 +5,27 @@ const level1 = {
         y: 300
     },
 
-    npc: {
-        name: 'v2',
-        x: 500,
-        y: 300
-    },
+    npcs:
+    [
+        {
+            name:'v2',
+            x:500,
+            y:300
+        },
 
-    dialogue: [
-        '“你终于来了。”',
-        '“今天也要努力摸鱼。”'
+        {
+            name:'federico',
+            x:500,
+            y:200
+        },
+
+        {
+            name:'lemuen',
+            x:500,
+            y:300
+        }
     ]
+
 };
 
 export default level1;

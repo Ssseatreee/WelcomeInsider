@@ -42,18 +42,26 @@ export default class LevelScene extends Phaser.Scene
         );
 
         // ===== NPC =====
-        const NPCClass = npcMap[levelData.npc.name];
+        this.npcs = [];
 
-        this.npc = new NPCClass(
-            this,
-            levelData.npc.x,
-            levelData.npc.y
-        );
+        levelData.npcs.forEach(npcData => {
 
-        // NPC不被撞飞
-        this.npc.setStatic(true);
+            const NPCClass =
+                npcMap[npcData.name];
 
-        // ===== 抓捕计数 =====
+            const npc = new NPCClass(
+                this,
+                npcData.x,
+                npcData.y
+            );
+
+            // 防止被撞飞
+            npc.setFixedRotation();
+
+            this.npcs.push(npc);
+
+        });
+
         this.npcCatchCount = {};
 
         // ===== 地图管理器 =====
@@ -94,7 +102,9 @@ export default class LevelScene extends Phaser.Scene
 
         this.player.setDepth(depth + 1);
 
-        this.npc.setDepth(depth + 1);
+        this.npcs.forEach(npc=>{
+            npc.setDepth(depth+1);
+        });
 
         // ===== 玩家物理参数 =====
         this.player.setFixedRotation();
@@ -112,55 +122,50 @@ export default class LevelScene extends Phaser.Scene
         this.canTriggerDialog = true;
 
         // ===== Matter碰撞监听 =====
-        this.matter.world.on(
-            'collisionstart',
-            (event) => {
+        this.npcDialogCooldown = new Set();
 
-                event.pairs.forEach((pair) => {
+        this.matter.world.on('collisionstart', (event) => {
 
-                    const bodyA = pair.bodyA;
+            event.pairs.forEach((pair) => {
 
-                    const bodyB = pair.bodyB;
+                const bodyA = pair.bodyA;
+                const bodyB = pair.bodyB;
 
-                    const playerBody =
-                        this.player.body;
+                const playerBody = this.player.body;
 
-                    const npcBody =
-                        this.npc.body;
+                // ===== 找到 NPC =====
+                const npc = this.npcs.find(n =>
+                    n.body === bodyA || n.body === bodyB
+                );
 
-                    const isPlayerNpcCollision =
-                        (
-                            bodyA === playerBody &&
-                            bodyB === npcBody
-                        )
-                        ||
-                        (
-                            bodyA === npcBody &&
-                            bodyB === playerBody
-                        );
+                if (!npc) return;
 
-                    if (
-                        isPlayerNpcCollision &&
-                        this.canTriggerDialog &&
-                        !this.dialogueManager.isPlaying
-                    )
-                    {
-                        this.triggerDialog();
+                // ===== 必须是玩家碰 NPC =====
+                const isPlayerNpc =
+                    (bodyA === playerBody && bodyB === npc.body) ||
+                    (bodyB === playerBody && bodyA === npc.body);
 
-                        this.canTriggerDialog = false;
+                if (!isPlayerNpc) return;
 
-                        this.time.delayedCall(
-                            this.dialogCooldown,
-                            () => {
+                // ===== NPC 冷却（关键）=====
+                if (this.npcDialogCooldown.has(npc)) return;
 
-                                this.canTriggerDialog = true;
+                this.npcDialogCooldown.add(npc);
 
-                            }
-                        );
-                    }
+                // ===== 触发对话 =====
+                if (!this.dialogueManager.isPlaying)
+                {
+                    this.triggerDialog(npc);
+                }
+
+                // ===== 冷却释放 =====
+                this.time.delayedCall(800, () => {
+                    this.npcDialogCooldown.delete(npc);
                 });
-            }
-        );
+
+            });
+
+        });
 
         // ===== 空格键 =====
         this.spaceKey =
@@ -408,33 +413,36 @@ export default class LevelScene extends Phaser.Scene
             }
         });
 
+        // ===== NPC移动 =====
+        this.npcs.forEach(npc => {
+            npc.update();
+        });
+
     }
 
-    triggerDialog()
+    triggerDialog(npc)
     {
+        this.currentDialogNPC = npc;
+        
         // 防止重复触发
-        // if (this.dialogTriggered)
-        // {
-        //     return;
-        // }
-
-
         this.dialogTriggered = true;
 
-        const levelData = levels[this.level];
+        const npcName = npc.npcName;
 
-        const npcName = levelData.npc.name;
         let dialogueKey;
-        // debug日志
-        console.log(`Player caught by ${npcName}`);
-        // console.log('NPC Name:', npcName);
-        // console.log('Dialogue data:', dialogues[npcName]);
-        // console.log('Dialogue key:', dialogueKey);
 
-        // 增加抓捕次数
-        this.npcCatchCount[npcName] = (this.npcCatchCount[npcName] || 0) + 1;
-        const catchCount = this.npcCatchCount[npcName];
+        console.log(
+            `Player caught by ${npcName}`
+        );
 
+        // ===== 抓捕次数 =====
+        this.npcCatchCount[npcName] =
+            (this.npcCatchCount[npcName] || 0) + 1;
+
+        const catchCount =
+            this.npcCatchCount[npcName];
+
+        // ===== 对话阶段 =====
         if (catchCount === 1)
         {
             dialogueKey = 'firstCatch';
@@ -443,10 +451,25 @@ export default class LevelScene extends Phaser.Scene
         {
             dialogueKey = 'secondCatch';
         }
-        const dialogue = dialogues[npcName][dialogueKey];
 
+        // ===== 读取对话 =====
+        const dialogue =
+            dialogues[npcName]?.[dialogueKey];
 
-        this.dialogueManager.start(dialogues[npcName][dialogueKey]);
+        // 防止没写对话时报错
+        if (!dialogue)
+        {
+            console.warn(
+                `Dialogue not found: ${npcName} -> ${dialogueKey}`
+            );
+
+            return;
+        }
+
+        // ===== 开始对话 =====
+        this.dialogueManager.start(
+            dialogue
+        );
     }
 
     nextLevel()
@@ -463,13 +486,32 @@ export default class LevelScene extends Phaser.Scene
 
     onDialogueEnd()
     {
-        // 对话结束后如果被抓捕超过2次进入下一关
-        const npcName = levels[this.level].npc.name;
-        const catchCount = this.npcCatchCount[npcName] || 0;
+        const npc = this.currentDialogNPC;
+
+        if (!npc)
+        {
+            this.dialogTriggered = false;
+            return;
+        }
+
+        const npcName = npc.npcName;
+
+        const catchCount =
+            this.npcCatchCount[npcName] || 0;
+
+        // ===== 结算逻辑 =====
         if (catchCount >= 2)
         {
             this.nextLevel();
         }
+
+        // ===== 清理状态 =====
+        this.dialogTriggered = false;
+        this.currentDialogNPC = null;
+
+        console.log('=== DIALOG END ===');
+        console.log(this.npcCatchCount);
+        console.log('level:', this.level);
     }
 
     getProperty(obj, propertyName)
@@ -541,5 +583,11 @@ export default class LevelScene extends Phaser.Scene
         console.log(
             `Switch Map -> ${targetMap}`
         );
+    }
+
+    getNPCFromBodies(bodyA, bodyB)
+    {
+        const npcBody = this.npcs.find(n => n.body === bodyA || n.body === bodyB);
+        return npcBody || null;
     }
 }

@@ -4,16 +4,26 @@ export default class V2 extends NPC
 {
     constructor(scene, x, y)
     {
-        super(scene, x, y, 'v2', 'v2');
+        super(
+            scene,
+            x,
+            y,
+            {
+                name: 'v2',
 
-        this.npcName = 'v2';
+                texture: 'v2',
 
-        this.speed = 120;
-    }
+                type: 'hunter',
 
-    update()
-    {
-        // 以后这里写AI
+                hasEmpathy: true,
+
+                moveSpeed: 2,
+
+                minimapColor: 0xff4444,
+
+                enableBubbleDialogue: false
+            }
+        );
     }
 
     onCatchPlayer(player)

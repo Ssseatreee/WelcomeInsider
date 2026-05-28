@@ -1,24 +1,35 @@
-export default class NPCManager {
-    constructor(game) {
-        this.game = game;
-
-        // 全局NPC数据（永不销毁）
+export default class NPCManager
+{
+    constructor()
+    {
         this.npcs = new Map();
     }
 
-    register(npc) {
-        this.npcs.set(npc.id, npc);
+    register(npc)
+    {
+        this.npcs.set(
+            npc.id,
+            npc
+        );
     }
 
-    update(player, delta) {
-        for (const npc of this.npcs.values()) {
-            npc.updateAI(player, delta);
+    update(player, delta)
+    {
+        for (const npc of this.npcs.values())
+        {
+            npc.update(
+                player,
+                delta
+            );
         }
     }
 
-    getVisibleNPCs(currentMapKey) {
-        return [...this.npcs.values()].filter(npc =>
-            npc.currentMap === currentMapKey
-        );
+    getNPCsInMap(mapKey)
+    {
+        return [...this.npcs.values()]
+            .filter(
+                npc =>
+                    npc.currentMap === mapKey
+            );
     }
 }

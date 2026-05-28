@@ -12,7 +12,13 @@ export default class NPC extends Phaser.Physics.Matter.Sprite
             0
         );
 
-        scene.add.existing(this);
+        // ===== 世界状态 =====
+        this.currentMap = config.mapKey || 'hall';
+        this.worldX = x;
+        this.worldY = y;
+        this.spriteActive = false;
+
+        // scene.add.existing(this);
 
         // ===== 基础信息 =====
         this.scene = scene;
@@ -60,15 +66,17 @@ export default class NPC extends Phaser.Physics.Matter.Sprite
         this.idleTimer = 0;
 
         // ===== 随机发言 =====
-        this.bubbleText = scene.add.text(
-            x,
-            y - 40,
-            '',
-            {
+        this.bubbleText = scene.make.text(
+        {            
+            x: x,
+            y: y - 40,
+            text: '',
+            style: {
                 fontSize: '16px',
                 color: '#ffffff',
                 backgroundColor: '#000000'
-            }
+            },
+            add: false}
         );
 
         this.bubbleText.setOrigin(0.5);
@@ -284,10 +292,12 @@ export default class NPC extends Phaser.Physics.Matter.Sprite
 
     update(time, delta)
     {
+        if(!this.spriteActive) return;
+
         // 更新气泡位置
         this.bubbleText.setPosition(
-            this.x,
-            this.y - 40
+            this.worldX,
+            this.worldY - 40
         );
 
         // Hunter
@@ -316,6 +326,90 @@ export default class NPC extends Phaser.Physics.Matter.Sprite
                     1000,
                     3000
                 );
+        }
+    }
+
+    spawn(scene)
+    {
+        if (this.spriteActive) return;
+
+        this.scene = scene;
+
+        scene.add.existing(this);
+        // scene.matter.world.add(this);
+
+        this.setActive(true);
+        this.setVisible(true);
+
+        this.setPosition(this.worldX, this.worldY);
+
+        this.spriteActive = true;
+
+        scene.add.existing(this.bubbleText);
+    }
+
+    despawn()
+    {
+        this.worldX = this.x;
+        this.worldY = this.y;
+
+        this.spriteActive = false;
+
+        this.setVelocity(0, 0);
+
+        this.setVisible(false);
+        this.setActive(false);
+
+        this.bubbleText.setVisible(false);
+
+        if (this.scene)
+        {
+            // this.scene.matter.world.remove(this);
+
+            this.scene.children.remove(this);
+
+            this.scene.children.remove(this.bubbleText);
+        }
+
+        this.scene = null;
+    }
+
+    updateWorld(player, delta)
+    {
+        // ===== 真正世界AI =====
+
+        if (
+            this.type === 'hunter'
+            &&
+            this.hasEmpathy
+        )
+        {
+            const dx =
+                player.worldX - this.worldX;
+
+            const dy =
+                player.worldY - this.worldY;
+
+            const len = Math.hypot(dx, dy);
+
+            if (len > 1)
+            {
+                this.worldX +=
+                    dx / len * this.moveSpeed;
+
+                this.worldY +=
+                    dy / len * this.moveSpeed;
+            }
+        }
+
+        // ===== 如果当前Scene存在 =====
+
+        if (this.spriteActive)
+        {
+            this.setPosition(
+                this.worldX,
+                this.worldY
+            );
         }
     }
 }

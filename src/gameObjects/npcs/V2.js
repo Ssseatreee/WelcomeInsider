@@ -1,3 +1,4 @@
+import mapDisplayNames from '../../data/mapDisplayNames';
 import NPC from './NPC';
 
 export default class V2 extends NPC
@@ -21,7 +22,9 @@ export default class V2 extends NPC
 
                 minimapColor: 0xff4444,
 
-                enableBubbleDialogue: false
+                enableBubbleDialogue: false,
+
+                mapKey: 'drinkingroom'
             }
         );
     }

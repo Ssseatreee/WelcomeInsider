@@ -1,5 +1,5 @@
 import Player from '../../gameObjects/Player.js';
-import NPC from '../../gameObjects/npcs/NPC.js';
+import NPCSprite from '../../gameObjects/NPCSprite.js';
 
 import levels from '../../data/levels';
 import DialogueManager from '../../systems/DialogueManager';
@@ -7,8 +7,6 @@ import dialogues from '../../data/dialogues';
 import GameState from '../../systems/GameState.js';
 
 import MapManager from '../../systems/MapManager.js';
-
-import npcMap from '../../gameObjects/npcs/npcs.js';
 
 import mapDisplayNames from '../../data/mapDisplayNames.js';
 
@@ -41,28 +39,34 @@ export default class LevelScene extends Phaser.Scene
             levelData.playerSpawn.y
         );
 
-        // ===== NPC =====
-        this.npcs = [];
-
-        levelData.npcs.forEach(npcData => {
-
-            const NPCClass =
-                npcMap[npcData.name];
-
-            const npc = new NPCClass(
-                this,
-                npcData.x,
-                npcData.y
-            );
-
-            // 防止被撞飞
-            npc.setFixedRotation();
-
-            this.npcs.push(npc);
-
-        });
+        // ===== 当前地图 =====
+        this.currentMap = 'drinkingroom';
 
         this.npcCatchCount = {};
+        // ===== NPCManager =====
+        this.npcManager =
+            this.game.npcManager;
+
+        // ===== 当前地图NPC实体 =====
+        this.npcEntities =
+            this.npcManager.getNPCsInMap(
+                this.currentMap
+            );
+
+        // ===== 当前Scene中的Sprite =====
+        this.npcSprites = [];
+
+        this.npcEntities.forEach(entity => {
+
+            const sprite =
+                new NPCSprite(
+                    this,
+                    entity,
+                    entity.npcName
+                );
+
+            this.npcSprites.push(sprite);
+        });
 
         // ===== 地图管理器 =====
         this.mapManager = new MapManager(this);
@@ -99,11 +103,10 @@ export default class LevelScene extends Phaser.Scene
             );
         }
 
-
         this.player.setDepth(depth + 1);
 
-        this.npcs.forEach(npc=>{
-            npc.setDepth(depth+1);
+        this.npcSprites.forEach(sprite=>{
+            sprite.setDepth(depth+1);
         });
 
         // ===== 玩家物理参数 =====
@@ -134,33 +137,37 @@ export default class LevelScene extends Phaser.Scene
                 const playerBody = this.player.body;
 
                 // ===== 找到 NPC =====
-                const npc = this.npcs.find(n =>
-                    n.body === bodyA || n.body === bodyB
-                );
+                const npcSprite =
+                    this.npcSprites.find(
+                        sprite =>
+                            sprite.body === bodyA
+                            ||
+                            sprite.body === bodyB
+                    );
 
-                if (!npc) return;
+                if (!npcSprite) return;
 
                 // ===== 必须是玩家碰 NPC =====
                 const isPlayerNpc =
-                    (bodyA === playerBody && bodyB === npc.body) ||
-                    (bodyB === playerBody && bodyA === npc.body);
+                    (bodyA === playerBody && bodyB === npcSprite.body) ||
+                    (bodyB === playerBody && bodyA === npcSprite.body);
 
                 if (!isPlayerNpc) return;
 
                 // ===== NPC 冷却（关键）=====
-                if (this.npcDialogCooldown.has(npc)) return;
+                if (this.npcDialogCooldown.has(npcSprite.entity)) return;
 
-                this.npcDialogCooldown.add(npc);
+                this.npcDialogCooldown.add(npcSprite.entity);
 
                 // ===== 触发对话 =====
                 if (!this.dialogueManager.isPlaying)
                 {
-                    this.triggerDialog(npc);
+                    this.triggerDialog(npcSprite.entity);
                 }
 
                 // ===== 冷却释放 =====
                 this.time.delayedCall(800, () => {
-                    this.npcDialogCooldown.delete(npc);
+                    this.npcDialogCooldown.delete(npcSprite.entity);
                 });
 
             });
@@ -203,43 +210,7 @@ export default class LevelScene extends Phaser.Scene
         // ===== 地图居中偏移 =====
         const padX = this.scale.width / 2;
         const padY = this.scale.height / 2;
-        // const offsetX = Math.max(
-        //     0,
-        //     (this.scale.width - this.mapManager.map.widthInPixels) / 2
-        // );
 
-        // const offsetY = Math.max(
-        //     0,
-        //     (this.scale.height - this.mapManager.map.heightInPixels) / 2
-        // );
-        // 平移所有 tilemap layer 的 Matter 碰撞体
-        // Object.values(this.mapManager.layers).forEach(layer => {
-        //     // // layer.tilemapLayer 可能不存在，遍历 Matter world 的 body
-        //     // this.matter.world.bodies.forEach(body => {
-        //     //     if (body.label === 'Tile Body') { 
-        //     //         // 只平移 tilemap body
-        //     //         Phaser.Physics.Matter.Matter.Body.translate(body, { x: offsetX, y: offsetY });
-        //     //     }
-        //     // });
-
-        //     // 同时平移渲染贴图
-        //     layer.setPosition(padX, padY);
-        // });
-
-        // 平移玩家和 NPC（保持相对位置不变）
-        // this.player.setPosition(this.player.x + padX, this.player.y + padY);
-        // this.npc.setPosition(this.npc.x + padX, this.npc.y + padY);
-
-        // ===== 摄像机 =====
-
-        // const worldW=this.mapManager.map.widthInPixels+padX*2;
-        // const worldY=this.mapManager.map.heightInPixels+padY*2;
-        // this.cameras.main.setBounds(
-        //     -padX,
-        //     -padY,
-        //     this.mapManager.map.widthInPixels + padX * 2,
-        //     this.mapManager.map.heightInPixels + padY * 3
-        // );
 
         this.cameras.main.startFollow(
             this.player,
@@ -247,22 +218,6 @@ export default class LevelScene extends Phaser.Scene
             1,1
         );
 
-        // this.cameras.main.setDeadzone(
-        //     this.scale.width*0.35,
-        //     this.scale.height*0.35
-        // )
-
-        // this.cameras.main.centerOn(
-        //     this.player.x,
-        //     this.player.y
-        // );
-        // // ===== Matter世界边界 =====
-        // this.matter.world.setBounds(
-        //     0,
-        //     0,
-        //     this.mapManager.map.widthInPixels,
-        //     this.mapManager.map.heightInPixels
-        // );
 
         // ===== 交互提示 =====
         this.interactHint = this.add.text(
@@ -280,9 +235,15 @@ export default class LevelScene extends Phaser.Scene
         this.interactHint.setDepth(500);
         this.interactHint.setOrigin(0.5);
         this.interactHint.setVisible(false);
+
+        // ===== 调试信息 =====
+        console.log('npcs:', this.npcEntities);
+        this.npcEntities.forEach(npc => {
+            console.log('NPC Map:', npc.currentMap);
+        });
     }
 
-    update()
+    update(time, delta)
     {
         this.interactHint.setVisible(false);
         this.dialogueManager.update();
@@ -414,10 +375,14 @@ export default class LevelScene extends Phaser.Scene
         });
 
         // ===== NPC移动 =====
-        this.npcs.forEach(npc => {
-            npc.update();
-        });
+        // ===== 更新世界AI =====
+        this.npcManager.update(
+            this.player,
+            delta
+        );
 
+        // ===== 更新Sprite显示 =====
+        this.npcSprites.forEach(sprite => sprite.syncFromEntity());
     }
 
     triggerDialog(npc)
@@ -526,63 +491,32 @@ export default class LevelScene extends Phaser.Scene
 
     switchMap(targetMap, targetPortalName)
     {
-        // ===== 清除旧地图 =====
-        this.mapManager.clearCurrentMap();
+        // 旧地图 NPC 消失
+        this.npcSprites.forEach(sprite => sprite.despawn());
+        this.npcSprites = [];
 
-        // ===== 加载新地图 =====
+        this.mapManager.clearCurrentMap();
+        this.currentMap = targetMap;
         this.mapManager.loadMap(targetMap);
 
-        // ===== 查找目标出生点 =====
-        const targetPortal =
-            this.mapManager.portals.find(
-                p => p.name === targetPortalName
-            );
-
-        if (targetPortal)
-        {
-            // 让玩家出生在 portal 中央
-            this.player.setPosition(
-                targetPortal.x + targetPortal.width / 2,
-                targetPortal.y + targetPortal.height / 2
-            );
-        }
-
-        // ===== 重新设置深度 =====
-        let depth = 0;
-
-        Object.values(this.mapManager.layers).forEach(layer => {
-
-            layer.setDepth(depth);
-
-            depth++;
+        // spawn 新地图 NPC
+        this.npcEntities = this.npcManager.getNPCsInMap(this.currentMap);
+        this.npcEntities.forEach(entity => {
+            const sprite = new NPCSprite(this, entity, entity.npcName);
+            sprite.spawn(this);
+            this.npcSprites.push(sprite);
         });
 
+        // 玩家出生点
+        const targetPortal = this.mapManager.portals.find(p => p.name === targetPortalName);
+        if (targetPortal)
+            this.player.setPosition(targetPortal.x + targetPortal.width/2, targetPortal.y + targetPortal.height/2);
+
+        // 设置深度
+        let depth = 0;
+        Object.values(this.mapManager.layers).forEach(layer => layer.setDepth(depth++));
         this.player.setDepth(depth + 1);
-
-        this.npc.setDepth(depth + 1);
-
-        // top层最上
-        if (this.mapManager.topLayer)
-        {
-            // this.mapManager.topLayer.setDepth(
-            //     depth + 10
-            // );
-            this.mapManager.topLayer.forEach(
-                layer=>layer.setDepth(depth+10)
-            );
-        }
-
-        // border层最上
-        if (this.mapManager.layers.border)
-        {
-            this.mapManager.layers.border.setDepth(
-                depth + 20
-            );
-        }
-
-        console.log(
-            `Switch Map -> ${targetMap}`
-        );
+        this.npcSprites.forEach(sprite => sprite.setDepth(depth + 1));
     }
 
     getNPCFromBodies(bodyA, bodyB)

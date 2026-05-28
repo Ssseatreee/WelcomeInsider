@@ -1,3 +1,5 @@
+import mapDisplayNames from "../mapDisplayNames";
+
 const level1 = {
 
     playerSpawn: {
@@ -10,19 +12,22 @@ const level1 = {
         {
             name:'v2',
             x:500,
-            y:300
+            y:300,
+            mapKey: 'drinkingroom'
         },
 
         {
             name:'federico',
             x:500,
-            y:200
+            y:200,
+            mapKey: 'hall'
         },
 
         {
             name:'lemuen',
             x:500,
-            y:300
+            y:300,
+            mapKey: 'hall'
         }
     ]
 

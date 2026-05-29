@@ -1,3 +1,5 @@
+// 已弃用
+
 export default class NPCEntity
 {
     constructor(config)
@@ -37,22 +39,30 @@ export default class NPCEntity
         )
         {
             const dx =
-                player.worldX - this.worldX;
+                player.x - this.worldX;
 
             const dy =
-                player.worldY - this.worldY;
+                player.y - this.worldY;
 
             const len =
                 Math.hypot(dx, dy);
 
             if (len > 1)
             {
+                const speed = this.moveSpeed * delta * 0.05;
                 this.worldX +=
-                    dx / len * this.moveSpeed;
+                    dx / len * speed;
 
                 this.worldY +=
-                    dy / len * this.moveSpeed;
+                    dy / len * speed;
             }
         }
+
+        // 检查与玩家的距离
+        console.log(
+            this.npcName,
+            this.worldX,
+            this.worldY
+        );
     }
 }

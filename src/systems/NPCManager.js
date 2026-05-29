@@ -13,12 +13,12 @@ export default class NPCManager
         );
     }
 
-    update(player, delta)
+    update(context, delta)
     {
         for (const npc of this.npcs.values())
         {
             npc.update(
-                player,
+                context,
                 delta
             );
         }
@@ -31,5 +31,10 @@ export default class NPCManager
                 npc =>
                     npc.currentMap === mapKey
             );
+    }
+
+    getNPC(id)
+    {
+        return this.npcs.get(id);
     }
 }

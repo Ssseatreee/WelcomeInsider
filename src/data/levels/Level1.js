@@ -13,7 +13,10 @@ const level1 = {
             name:'v2',
             x:500,
             y:300,
-            mapKey: 'drinkingroom'
+            mapKey: 'drinkingroom',
+            type: 'hunter',
+            hasEmpathy: true,
+            moveSpeed: 2
         },
 
         {

@@ -1,7 +1,8 @@
 import { Scene } from 'phaser';
 import NPCManager from '../../systems/NPCManager';
 import levels from '../../data/levels';
-import NPCEntity from '../../systems/entities/NPCEntity';
+// npc映射
+import npcMap from '../../gameObjects/npcs/npcs';
 
 export class Boot extends Scene
 {
@@ -20,47 +21,69 @@ export class Boot extends Scene
 
     create ()
     {
-        this.scene.start('Preloader');
+        // =========================
+        // 创建全局NPCManager
+        // =========================
+        this.game.npcManager =
+            new NPCManager();
 
-        this.game.npcManager = new NPCManager();
-
+        // =========================
+        // 当前关卡数据
+        // =========================
         const levelData =
             levels[1];
 
+        // =========================
+        // 创建全局NPC对象
+        // =========================
         levelData.npcs.forEach(
             (npcData, index) => {
 
+                const NPCClass =
+                    npcMap[npcData.name];
+
+                // 防止名字写错
+                if (!NPCClass)
+                {
+                    console.warn(
+                        `NPC class not found: ${npcData.name}`
+                    );
+
+                    return;
+                }
+
+                // 创建NPC逻辑对象
                 const npc =
-                    new NPCEntity({
+                    new NPCClass({
 
                         id: `npc_${index}`,
 
-                        name:
-                            npcData.name,
+                        name: npcData.name,
 
-                        mapKey:
-                            npcData.mapKey,
+                        x: npcData.x,
 
-                        x:
-                            npcData.x,
+                        y: npcData.y,
 
-                        y:
-                            npcData.y,
+                        mapKey: npcData.mapKey,
 
-                        type:
-                            npcData.type,
+                        type: npcData.type,
 
-                        moveSpeed:
-                            npcData.moveSpeed,
+                        moveSpeed: npcData.moveSpeed,
 
-                        hasEmpathy:
-                            npcData.hasEmpathy
+                        hasEmpathy: npcData.hasEmpathy
+
                     });
 
+                // 注册到全局Manager
                 this.game.npcManager
                     .register(npc);
 
             }
         );
+
+        // =========================
+        // 启动Preloader场景
+        // =========================
+        this.scene.start('Preloader');
     }
 }

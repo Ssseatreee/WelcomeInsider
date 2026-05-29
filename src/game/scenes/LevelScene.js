@@ -7,6 +7,7 @@ import dialogues from '../../data/dialogues';
 import GameState from '../../systems/GameState.js';
 
 import MapManager from '../../systems/MapManager.js';
+import PortalRegistry from '../../systems/PortalRegistry.js';
 
 import mapDisplayNames from '../../data/mapDisplayNames.js';
 
@@ -42,38 +43,22 @@ export default class LevelScene extends Phaser.Scene
         // ===== 当前地图 =====
         this.currentMap = 'drinkingroom';
 
+        this.portalRegistry = new PortalRegistry();
+
         this.npcCatchCount = {};
         // ===== NPCManager =====
         this.npcManager =
             this.game.npcManager;
 
-        // ===== 当前地图NPC实体 =====
-        this.npcEntities =
-            this.npcManager.getNPCsInMap(
-                this.currentMap
-            );
-
         // ===== 当前Scene中的Sprite =====
         this.npcSprites = [];
-
-        this.npcEntities.forEach(entity => {
-
-            const sprite =
-                new NPCSprite(
-                    this,
-                    entity,
-                    entity.npcName
-                );
-
-            this.npcSprites.push(sprite);
-        });
 
         // ===== 地图管理器 =====
         this.mapManager = new MapManager(this);
 
         this.mapManager.loadMap('drinkingroom');
 
-        // ===== 图层深度 =====
+        this.refreshNPCSprites();
         let depth = 0;
 
         Object.values(this.mapManager.layers).forEach(layer => {
@@ -237,10 +222,10 @@ export default class LevelScene extends Phaser.Scene
         this.interactHint.setVisible(false);
 
         // ===== 调试信息 =====
-        console.log('npcs:', this.npcEntities);
-        this.npcEntities.forEach(npc => {
-            console.log('NPC Map:', npc.currentMap);
-        });
+        console.log(
+            'npcs:',
+            this.npcManager.getNPCsInMap(this.currentMap)
+        );
     }
 
     update(time, delta)
@@ -375,14 +360,21 @@ export default class LevelScene extends Phaser.Scene
         });
 
         // ===== NPC移动 =====
-        // ===== 更新世界AI =====
         this.npcManager.update(
-            this.player,
+            {
+                player: this.player,
+                playerMap: this.currentMap,
+                sceneMap: this.currentMap,
+                portalRegistry: this.portalRegistry
+            },
             delta
         );
 
-        // ===== 更新Sprite显示 =====
-        this.npcSprites.forEach(sprite => sprite.syncFromEntity());
+        this.refreshNPCSprites();
+
+        this.npcSprites.forEach(
+            sprite => sprite.syncFromEntity()
+        );
     }
 
     triggerDialog(npc)
@@ -491,32 +483,91 @@ export default class LevelScene extends Phaser.Scene
 
     switchMap(targetMap, targetPortalName)
     {
-        // 旧地图 NPC 消失
-        this.npcSprites.forEach(sprite => sprite.despawn());
-        this.npcSprites = [];
-
         this.mapManager.clearCurrentMap();
         this.currentMap = targetMap;
         this.mapManager.loadMap(targetMap);
 
-        // spawn 新地图 NPC
-        this.npcEntities = this.npcManager.getNPCsInMap(this.currentMap);
-        this.npcEntities.forEach(entity => {
-            const sprite = new NPCSprite(this, entity, entity.npcName);
-            sprite.spawn(this);
+        const targetPortal =
+            this.mapManager.portals.find(
+                p => p.name === targetPortalName
+            );
+
+        if (targetPortal)
+        {
+            this.player.setPosition(
+                targetPortal.x + targetPortal.width / 2,
+                targetPortal.y + targetPortal.height / 2
+            );
+        }
+
+        let depth = 0;
+
+        Object.values(this.mapManager.layers).forEach(
+            layer => layer.setDepth(depth++)
+        );
+
+        this.player.setDepth(depth + 1);
+
+        this.refreshNPCSprites();
+
+        this.npcSprites.forEach(
+            sprite => sprite.setDepth(depth + 1)
+        );
+    }
+
+    refreshNPCSprites()
+    {
+        const entitiesOnMap =
+            this.npcManager.getNPCsInMap(
+                this.currentMap
+            );
+
+        const entityIds =
+            new Set(
+                entitiesOnMap.map(
+                    entity => entity.id
+                )
+            );
+
+        this.npcSprites =
+            this.npcSprites.filter(sprite => {
+
+                if (
+                    !entityIds.has(sprite.entity.id)
+                    ||
+                    sprite.entity.currentMap !== this.currentMap
+                )
+                {
+                    sprite.despawn();
+                    return false;
+                }
+
+                return true;
+            });
+
+        const hasSprite =
+            new Set(
+                this.npcSprites.map(
+                    sprite => sprite.entity.id
+                )
+            );
+
+        entitiesOnMap.forEach(entity => {
+
+            if (hasSprite.has(entity.id))
+            {
+                return;
+            }
+
+            const sprite =
+                new NPCSprite(
+                    this,
+                    entity,
+                    entity.npcName
+                );
+
             this.npcSprites.push(sprite);
         });
-
-        // 玩家出生点
-        const targetPortal = this.mapManager.portals.find(p => p.name === targetPortalName);
-        if (targetPortal)
-            this.player.setPosition(targetPortal.x + targetPortal.width/2, targetPortal.y + targetPortal.height/2);
-
-        // 设置深度
-        let depth = 0;
-        Object.values(this.mapManager.layers).forEach(layer => layer.setDepth(depth++));
-        this.player.setDepth(depth + 1);
-        this.npcSprites.forEach(sprite => sprite.setDepth(depth + 1));
     }
 
     getNPCFromBodies(bodyA, bodyB)

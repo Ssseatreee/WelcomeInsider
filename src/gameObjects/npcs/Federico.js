@@ -2,18 +2,12 @@ import NPC from './NPC';
 
 export default class Federico extends NPC
 {
-    constructor(scene, x, y)
+    constructor(config)
     {
-        super(scene, x, y, 'federico', 'federico');
-
-        this.npcName = 'federico';
-
-        this.speed = 80;
-    }
-
-    update()
-    {
-
+        super({
+            ...config,
+            name: 'federico'
+        });
     }
 
     onCatchPlayer(player)

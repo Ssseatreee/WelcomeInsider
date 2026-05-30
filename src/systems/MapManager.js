@@ -1,5 +1,6 @@
 // src/systems/MapManager.js
 import * as Phaser from 'phaser';
+import NavigationGrid from './NavigationGrid.js';
 
 export default class MapManager {
     constructor(scene) {
@@ -13,6 +14,7 @@ export default class MapManager {
         this.topLayer = [];
 
         this.tileBodies = [];
+        this.navigationGrid = null;
     }
 
     loadMap(mapKey) {
@@ -30,9 +32,45 @@ export default class MapManager {
         // 加载所有 tilesets
         const tilesets = [];
         this.map.tilesets.forEach(ts => {
-            // 假设 preload key 和 tileset name 一致
-            const tileset = this.map.addTilesetImage(ts.name, ts.name);
-            tilesets.push(tileset);
+
+            // 外部 .tsx 引用且未内嵌数据时跳过
+            if (ts.source && !ts.image && !ts.tiles?.length)
+            {
+                console.warn(
+                    `Skipping external tileset: ${ts.source}`
+                );
+                return;
+            }
+
+            let tileset = null;
+
+            if (this.isCollectionTileset(ts))
+            {
+                this.normalizeCollectionTileImages(ts);
+                tileset = this.map.addTilesetImage(ts.name);
+            }
+            else
+            {
+                const textureKey =
+                    this.resolveTilesetTextureKey(ts.name);
+
+                if (!this.scene.textures.exists(textureKey))
+                {
+                    console.warn(
+                        `Missing tileset texture "${textureKey}" for "${ts.name}"`
+                    );
+                }
+
+                tileset = this.map.addTilesetImage(
+                    ts.name,
+                    textureKey
+                );
+            }
+
+            if (tileset)
+            {
+                tilesets.push(tileset);
+            }
         });
         
 
@@ -64,6 +102,11 @@ export default class MapManager {
             layer.setCollisionByProperty({
                 collides: true
             });
+
+            if (typeof layer.setCollisionFromCollisionGroup === 'function')
+            {
+                layer.setCollisionFromCollisionGroup(true);
+            }
 
             this.scene.matter.world.convertTilemapLayer(
                 layer
@@ -111,72 +154,71 @@ export default class MapManager {
         //     obj.y += this.offsetY;
         // });
 
+        this.navigationGrid =
+            NavigationGrid.getOrCreate(
+                this.map,
+                this.layers
+            );
+
         console.log(`Loaded map: ${mapKey}`);
         console.log('objects:', this.objects);
         console.log(this.map.heightInPixels);
     }
 
     clearCurrentMap()
-    {    
-        // ===== 删除 tilemap Matter bodies =====
-        this.tileBodies.forEach(body => {
-
-            Phaser.Physics.Matter.Matter.Composite.remove(
-                this.scene.matter.world.localWorld,
-                body
-            );
-
-        });
-
-        this.tileBodies = [];
-        // ===== 删除 Tilemap Layer =====
-        Object.values(this.layers).forEach(layer => {
-
+    {
+        Object.values(this.layers).forEach(layer =>
+        {
             if (!layer)
             {
                 return;
             }
 
-            // ===== 移除 Matter Tilemap 碰撞 =====
-            // this.scene.matter.world.removeTilemapLayer(
-            //     layer
-            // );
-                    
-            // console.log(layer);
-            // ===== 删除 Tilemap Matter Bodies =====
+            if (typeof layer.forEachTile === 'function')
+            {
+                layer.forEachTile(tile =>
+                {
+                    const matterBody =
+                        tile.physics?.matterBody;
+
+                    if (matterBody)
+                    {
+                        matterBody.destroy();
+                    }
+                });
+            }
+
             if (layer.body)
             {
-                Phaser.Physics.Matter.Matter.Composite.remove(
-                    this.scene.matter.world.localWorld,
-                    layer.body
+                this.scene.matter.world.remove(
+                    layer.body,
+                    true
                 );
             }
 
-            // ===== 销毁图层 =====
             layer.destroy();
-
         });
 
-        // ===== 销毁 Tilemap =====
+        this.tileBodies.forEach(body =>
+        {
+            this.scene.matter.world.remove(body, true);
+        });
+
+        this.tileBodies = [];
+
         if (this.map)
         {
             this.map.destroy();
-
             this.map = null;
         }
 
-        // ===== 重置引用 =====
         this.layers = {};
-
         this.portals = [];
-
         this.objects = [];
-
         this.wallLayer = null;
-
         this.topLayer = null;
-
         this.currentMapKey = null;
+        this.navigationGrid = null;
     }
 
     getObjectLayer(layerName) {
@@ -190,5 +232,46 @@ export default class MapManager {
 
     getMapHeight() {
         return this.map ? this.map.heightInPixels : 0;
+    }
+
+    resolveTilesetTextureKey(name)
+    {
+        const prefixed = `tileset-${name}`;
+
+        if (this.scene.textures.exists(prefixed))
+        {
+            return prefixed;
+        }
+
+        if (this.scene.textures.exists(name))
+        {
+            return name;
+        }
+
+        return prefixed;
+    }
+
+    isCollectionTileset(ts)
+    {
+        return Boolean(
+            ts.tiles?.some(tile => tile.image)
+        );
+    }
+
+    normalizeCollectionTileImages(ts)
+    {
+        ts.tiles.forEach(tile => {
+
+            if (!tile.image)
+            {
+                return;
+            }
+
+            tile.image =
+                tile.image
+                    .replace(/\\/g, '/')
+                    .split('/')
+                    .pop();
+        });
     }
 }

@@ -5,7 +5,7 @@ export default function createFedericoAnimations(anims)
         key: 'federico-right',
 
         frames: [
-            { key: 'federico', frame: 0 }
+            { key: 'npc-federico', frame: 0 }
         ],
 
         frameRate: 1,
@@ -18,7 +18,7 @@ export default function createFedericoAnimations(anims)
         key: 'federico-left',
 
         frames: [
-            { key: 'federico', frame: 1 }
+            { key: 'npc-federico', frame: 1 }
         ],
 
         frameRate: 1,
@@ -30,7 +30,7 @@ export default function createFedericoAnimations(anims)
 
         key: 'federico-up',
         frames: [
-            { key: 'federico', frame: 0 }
+            { key: 'npc-federico', frame: 0 }
         ],
         frameRate: 1,
         repeat: -1
@@ -40,7 +40,7 @@ export default function createFedericoAnimations(anims)
 
         key: 'federico-down',
         frames: [
-            { key: 'federico', frame: 1 }
+            { key: 'npc-federico', frame: 1 }
         ],
         frameRate: 1,
         repeat: -1

@@ -37,4 +37,9 @@ export default class NPCManager
     {
         return this.npcs.get(id);
     }
+
+    getAllNPCs()
+    {
+        return [...this.npcs.values()];
+    }
 }

@@ -6,7 +6,10 @@ export default class Lemuen extends NPC
     {
         super({
             ...config,
-            name: 'lemuen'
+            name: 'lemuen',
+            type: 'hunter',
+            hasEmpathy: true,
+            moveSpeed: config.moveSpeed ?? 2
         });
     }
 

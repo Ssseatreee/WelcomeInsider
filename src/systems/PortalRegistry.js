@@ -157,6 +157,11 @@ export default class PortalRegistry
             entity.vx = 0;
             entity.vy = 0;
 
+            if (entity.pathing)
+            {
+                entity.pathing.reset();
+            }
+
             return true;
         }
 

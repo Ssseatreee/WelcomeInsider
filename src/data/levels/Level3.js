@@ -8,21 +8,33 @@ const level3 = {
     npcs:
     [
         {
-            name:'v2',
-            x:500,
-            y:300
+            name: 'v2',
+            x: 500,
+            y: 300,
+            mapKey: 'drinkingroom',
+            type: 'hunter',
+            hasEmpathy: true,
+            moveSpeed: 2
         },
 
         {
-            name:'federico',
-            x:500,
-            y:200
+            name: 'federico',
+            x: 500,
+            y: 200,
+            mapKey: 'hall',
+            type: 'hunter',
+            hasEmpathy: false,
+            moveSpeed: 3
         },
 
         {
-            name:'lemuen',
-            x:500,
-            y:300
+            name: 'lemuen',
+            x: 500,
+            y: 300,
+            mapKey: 'hall',
+            type: 'hunter',
+            hasEmpathy: true,
+            moveSpeed: 2
         }
     ]
 };

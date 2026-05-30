@@ -6,7 +6,10 @@ export default class Federico extends NPC
     {
         super({
             ...config,
-            name: 'federico'
+            name: 'federico',
+            type: 'hunter',
+            hasEmpathy: false,
+            moveSpeed: config.moveSpeed ?? 3
         });
     }
 

@@ -44,21 +44,21 @@ export class Preloader extends Scene
             { frameWidth: 32, frameHeight: 32 }
         );
 
-        // npc
+        // npc（使用 npc- 前缀，避免与地图 tileset 键冲突）
         this.load.spritesheet(
-            'v2',
+            'npc-v2',
             '../../../public/assets/sprites/v2_sprite.png',
             { frameWidth: 32, frameHeight: 32 }
         );
-        
+
         this.load.spritesheet(
-            'federico',
+            'npc-federico',
             '../../../public/assets/sprites/federico_sprite.png',
             { frameWidth: 32, frameHeight: 32 }
         );
 
         this.load.spritesheet(
-            'lemuen',
+            'npc-lemuen',
             '../../../public/assets/sprites/lemuen_sprite.png',
             { frameWidth: 32, frameHeight: 32 }
         );
@@ -202,39 +202,57 @@ export class Preloader extends Scene
 
         // tileset
         this.load.image(
-            'hall',
+            'tileset-hall',
             '../../../public/assets/tilesets/hall.png'
         );
 
         this.load.image(
-            'drinkingroom',
+            'tileset-drinkingroom',
             '../../../public/assets/tilesets/drinkingroom.png'
         );
-        
+
         this.load.image(
-            'office',
+            'tileset-office',
             '../../../public/assets/tilesets/office.png'
         );
 
         this.load.image(
-            'border',
+            'tileset-border',
             '../../../public/assets/tilesets/border.png'
         );
 
         this.load.image(
-            'toilet',
+            'tileset-toilet',
             '../../../public/assets/tilesets/toilet.png'
         );
 
         this.load.image(
-            'Interiors_free_32x32',
+            'tileset-Interiors_free_32x32',
             '../../../public/assets/tilesets/Interiors_free_32x32.png'
-        )
+        );
 
-        this.load.image(
-            '../tilesets/coffee-maker.png',
-            '../../../public/assets/tilesets/coffee-maker.png'
-        )
+        // office_essential 为 Tiled 图片集合，键名须与文件名一致
+        const officeEssentialImages = [
+            'cabinet.png',
+            'Chair.png',
+            'coffee-maker.png',
+            'desk.png',
+            'desk-with-pc.png',
+            'PC1.png',
+            'PC2.png',
+            'plant.png',
+            'printer.png',
+            'Trash.png',
+            'water-cooler.png'
+        ];
+
+        officeEssentialImages.forEach(fileName =>
+        {
+            this.load.image(
+                fileName,
+                `../../../public/assets/tilesets/office_essential/${fileName}`
+            );
+        });
     }
 
     create ()

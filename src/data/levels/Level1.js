@@ -23,14 +23,20 @@ const level1 = {
             name:'federico',
             x:500,
             y:200,
-            mapKey: 'hall'
+            mapKey: 'hall',
+            type: 'hunter',
+            hasEmpathy: false,
+            moveSpeed: 3
         },
 
         {
             name:'lemuen',
             x:500,
             y:300,
-            mapKey: 'hall'
+            mapKey: 'hall',
+            type: 'hunter',
+            hasEmpathy: true,
+            moveSpeed: 2
         }
     ]
 

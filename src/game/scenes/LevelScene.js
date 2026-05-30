@@ -50,8 +50,14 @@ export default class LevelScene extends Phaser.Scene
         this.npcManager =
             this.game.npcManager;
 
-        // ===== 当前Scene中的Sprite =====
-        this.npcSprites = [];
+        this.resetNPCsFromLevel(levelData);
+
+        // ===== 当前Scene中的Sprite（只创建一次，切图不销毁）=====
+        this.npcSprites =
+            this.npcManager.getAllNPCs().map(
+                entity =>
+                    new NPCSprite(this, entity)
+            );
 
         // ===== 地图管理器 =====
         this.mapManager = new MapManager(this);
@@ -59,39 +65,14 @@ export default class LevelScene extends Phaser.Scene
         this.mapManager.loadMap('drinkingroom');
 
         this.refreshNPCSprites();
-        let depth = 0;
 
-        Object.values(this.mapManager.layers).forEach(layer => {
-
-            if (layer.name === 'border')return; // border层单独设置深度 
-            layer.setDepth(depth);
-
-            depth += 1;
-
-        });
-
-        // top层遮挡
-        if (this.mapManager.topLayer)
-        {
-            // this.mapManager.topLayer.setDepth(
-            //     depth + 10
-            // );
-            this.mapManager.topLayer.forEach(
-                layer=>layer.setDepth(depth+10)
-            );
-        }
-        //border层遮挡
-        if (this.mapManager.layers['border'])
-        {
-            this.mapManager.layers['border'].setDepth(
-                depth + 10
-            );
-        }
+        const depth = this.applyMapLayerDepths();
 
         this.player.setDepth(depth + 1);
 
-        this.npcSprites.forEach(sprite=>{
-            sprite.setDepth(depth+1);
+        this.npcSprites.forEach(sprite =>
+        {
+            sprite.setDepth(depth + 1);
         });
 
         // ===== 玩家物理参数 =====
@@ -481,10 +462,51 @@ export default class LevelScene extends Phaser.Scene
         return prop ? prop.value : null;
     }
 
+    resetNPCsFromLevel(levelData)
+    {
+        levelData.npcs.forEach((npcData, index) =>
+        {
+            const npc =
+                this.npcManager.getNPC(
+                    `npc_${index}`
+                );
+
+            if (!npc)
+            {
+                return;
+            }
+
+            if (npcData.mapKey != null)
+            {
+                npc.currentMap = npcData.mapKey;
+            }
+
+            if (npcData.x != null)
+            {
+                npc.worldX = npcData.x;
+            }
+
+            if (npcData.y != null)
+            {
+                npc.worldY = npcData.y;
+            }
+
+            npc.vx = 0;
+            npc.vy = 0;
+            npc.facing = 'down';
+            npc.portalCooldown = 0;
+            npc.pathing?.reset();
+        });
+    }
+
     switchMap(targetMap, targetPortalName)
     {
-        this.mapManager.clearCurrentMap();
         this.currentMap = targetMap;
+
+        // 先更新 NPC 可见性/物理体，再卸载旧地图，避免残留碰撞体
+        this.refreshNPCSprites();
+
+        this.mapManager.clearCurrentMap();
         this.mapManager.loadMap(targetMap);
 
         const targetPortal =
@@ -500,73 +522,63 @@ export default class LevelScene extends Phaser.Scene
             );
         }
 
-        let depth = 0;
-
-        Object.values(this.mapManager.layers).forEach(
-            layer => layer.setDepth(depth++)
-        );
+        const depth = this.applyMapLayerDepths();
 
         this.player.setDepth(depth + 1);
 
         this.refreshNPCSprites();
 
-        this.npcSprites.forEach(
-            sprite => sprite.setDepth(depth + 1)
+        this.npcSprites.forEach(sprite =>
+        {
+            sprite.setDepth(depth + 1);
+        });
+
+        console.log(
+            'npcs:',
+            this.npcManager.getNPCsInMap(this.currentMap)
         );
     }
 
-    refreshNPCSprites()
+    applyMapLayerDepths()
     {
-        const entitiesOnMap =
-            this.npcManager.getNPCsInMap(
-                this.currentMap
-            );
+        let depth = 0;
 
-        const entityIds =
-            new Set(
-                entitiesOnMap.map(
-                    entity => entity.id
-                )
-            );
-
-        this.npcSprites =
-            this.npcSprites.filter(sprite => {
-
-                if (
-                    !entityIds.has(sprite.entity.id)
-                    ||
-                    sprite.entity.currentMap !== this.currentMap
-                )
-                {
-                    sprite.despawn();
-                    return false;
-                }
-
-                return true;
-            });
-
-        const hasSprite =
-            new Set(
-                this.npcSprites.map(
-                    sprite => sprite.entity.id
-                )
-            );
-
-        entitiesOnMap.forEach(entity => {
-
-            if (hasSprite.has(entity.id))
+        Object.values(this.mapManager.layers).forEach(layer =>
+        {
+            if (layer.name === 'border')
             {
                 return;
             }
 
-            const sprite =
-                new NPCSprite(
-                    this,
-                    entity,
-                    entity.npcName
-                );
+            layer.setDepth(depth);
+            depth += 1;
+        });
 
-            this.npcSprites.push(sprite);
+        if (this.mapManager.topLayer)
+        {
+            this.mapManager.topLayer.forEach(
+                layer => layer.setDepth(depth + 10)
+            );
+        }
+
+        if (this.mapManager.layers['border'])
+        {
+            this.mapManager.layers['border'].setDepth(
+                depth + 10
+            );
+        }
+
+        return depth;
+    }
+
+    refreshNPCSprites()
+    {
+        this.npcSprites.forEach(sprite =>
+        {
+            const onMap =
+                sprite.entity.currentMap === this.currentMap;
+
+            sprite.setOnMap(onMap);
         });
     }
 

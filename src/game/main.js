@@ -49,7 +49,11 @@ const config = {
 
 const StartGame = (parent) => {
 
-    return new Game({ ...config, parent });
+    const game = new Game({ ...config, parent });
+
+    window.game = game;
+
+    return game;
 
 }
 

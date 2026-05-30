@@ -7,15 +7,19 @@ import { MainMenu } from './scenes/MainMenu';
 import MainMenuScene from './scenes/MainMenuScene';
 import { Preloader } from './scenes/Preloader';
 import { AUTO, Game, Physics, Scale } from 'phaser';
+import {
+    GAME_HEIGHT,
+    TOTAL_WIDTH
+} from './layout.js';
 
 //  Find out more information about the Game Config at:
 //  https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
 const config = {
     type: AUTO,
-    width: 1024,
-    height: 768,
+    width: TOTAL_WIDTH,
+    height: GAME_HEIGHT,
     parent: 'game-container',
-    backgroundColor: '#028af8',
+    backgroundColor: '#000000',
     scale: {
         mode: Scale.FIT,
         autoCenter: Scale.CENTER_BOTH

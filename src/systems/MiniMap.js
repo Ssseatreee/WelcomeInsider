@@ -1,54 +1,238 @@
-class MiniMap {
-    constructor(scene, npcManager) {
+import miniMapLayout from '../data/miniMapLayout.js';
+import {
+    GAME_HEIGHT
+} from '../game/layout.js';
+
+export default class MiniMap
+{
+    constructor(scene, npcManager)
+    {
         this.scene = scene;
         this.npcManager = npcManager;
 
-        this.scale = 0.1;
+        const {
+            panelWidth,
+            panelHeight,
+            panelOffsetLeft = 0,
+            npcDotRadius = 6,
+            playerDotRadius = 5,
+            playerDotColor = 0xffff66
+        } = miniMapLayout;
 
-        this.icons = new Map();
-    }
+        this.npcDotRadius = npcDotRadius;
+        this.playerDotRadius = playerDotRadius;
+        this.playerDotColor = playerDotColor;
 
-    update(currentMap, hasRadar) 
-    {
-        const npcs = this.npcManager.getVisibleNPCs(
-            currentMap,
-            hasRadar
-        );
+        const panelLeft = panelOffsetLeft;
 
-        // 清理旧标记
-        this.icons.forEach(icon => icon.destroy());
-        this.icons.clear();
-
-        for (const npc of npcs) {
-
-            const icon = this.scene.add.circle(
-                0, 0, 3
+        const panelTop =
+            Math.max(
+                8,
+                (GAME_HEIGHT - panelHeight) / 2
             );
 
-            icon.setScrollFactor(0);
-            icon.setDepth(1000);
+        this.container =
+            scene.add.container(0, 0);
 
-            // 类型颜色
-            icon.fillColor = this.getColor(npc);
+        this.container.setScrollFactor(0);
+        this.container.setDepth(600);
 
-            // 映射坐标
-            icon.x = npc.x * this.scale;
-            icon.y = npc.y * this.scale;
+        const bg =
+            scene.add.rectangle(
+                panelLeft + panelWidth / 2,
+                panelTop + panelHeight / 2,
+                panelWidth,
+                panelHeight,
+                0x111111,
+                0.95
+            );
 
-            this.icons.set(npc.id, icon);
+        bg.setStrokeStyle(1, 0x444444);
+        bg.setScrollFactor(0);
+        this.container.add(bg);
+
+        this.mapGraphics =
+            scene.add.graphics();
+
+        this.mapGraphics.setScrollFactor(0);
+        this.container.add(this.mapGraphics);
+
+        this.dotGraphics =
+            scene.add.graphics();
+
+        this.dotGraphics.setScrollFactor(0);
+        this.container.add(this.dotGraphics);
+
+        this.layoutRects = this.buildLayoutRects(
+            panelLeft,
+            panelTop
+        );
+    }
+
+    buildLayoutRects(panelLeft, panelTop)
+    {
+        const rects = {};
+
+        for (const [mapKey, layout] of Object.entries(
+            miniMapLayout.maps
+        ))
+        {
+            rects[mapKey] = {
+                x: panelLeft + layout.x,
+                y: panelTop + layout.y,
+                w: layout.w,
+                h: layout.h
+            };
+        }
+
+        return rects;
+    }
+
+    getMapPixelSize(mapKey)
+    {
+        const entry =
+            this.scene.cache.tilemap.get(mapKey);
+
+        const mapData =
+            entry?.data ?? entry;
+
+        if (mapData)
+        {
+            const w =
+                mapData.widthInPixels
+                ?? mapData.width * mapData.tileWidth;
+
+            const h =
+                mapData.heightInPixels
+                ?? mapData.height * mapData.tileHeight;
+
+            if (w && h)
+            {
+                return { w, h };
+            }
+        }
+
+        return (
+            miniMapLayout.mapPixelSizes?.[mapKey]
+            ?? null
+        );
+    }
+
+    worldToMini(mapKey, worldX, worldY)
+    {
+        const layout =
+            miniMapLayout.maps[mapKey];
+
+        const rect =
+            this.layoutRects[mapKey];
+
+        const size =
+            this.getMapPixelSize(mapKey);
+
+        if (!layout || !rect || !size)
+        {
+            return null;
+        }
+
+        return {
+            x:
+                rect.x
+                + (worldX / size.w) * layout.w,
+            y:
+                rect.y
+                + (worldY / size.h) * layout.h
+        };
+    }
+
+    update(currentMap, player)
+    {
+        this.drawMapRegions(currentMap);
+        this.drawDots(currentMap, player);
+    }
+
+    drawMapRegions(currentMap)
+    {
+        const g = this.mapGraphics;
+
+        g.clear();
+
+        for (const [mapKey, rect] of Object.entries(
+            this.layoutRects
+        ))
+        {
+            const isCurrent =
+                mapKey === currentMap;
+
+            g.fillStyle(
+                isCurrent ? 0x3a5068 : 0x1e1e1e,
+                isCurrent ? 0.95 : 0.55
+            );
+
+            g.fillRect(rect.x, rect.y, rect.w, rect.h);
+
+            g.lineStyle(
+                1,
+                isCurrent ? 0x88aacc : 0x444444,
+                1
+            );
+
+            g.strokeRect(rect.x, rect.y, rect.w, rect.h);
         }
     }
 
-    getColor(npc) 
+    drawDots(currentMap, player)
     {
-        if (npc.type === 'catcher') {
-            return npc.hasSense ? 0xff0000 : 0xff8800;
+        const g = this.dotGraphics;
+
+        g.clear();
+
+        for (const npc of this.npcManager.getAllNPCs())
+        {
+            if (!npc.hasEmpathy)
+            {
+                continue;
+            }
+
+            const pos =
+                this.worldToMini(
+                    npc.currentMap,
+                    npc.worldX,
+                    npc.worldY
+                );
+
+            if (!pos)
+            {
+                continue;
+            }
+
+            g.fillStyle(
+                npc.minimapColor ?? 0xffffff,
+                1
+            );
+
+            g.fillCircle(
+                pos.x,
+                pos.y,
+                this.npcDotRadius
+            );
         }
 
-        if (npc.type === 'neutral') {
-            return 0x00ff00;
-        }
+        const playerPos =
+            this.worldToMini(
+                currentMap,
+                player.x,
+                player.y
+            );
 
-        return 0x999999;
+        if (playerPos)
+        {
+            g.fillStyle(this.playerDotColor, 1);
+
+            g.fillCircle(
+                playerPos.x,
+                playerPos.y,
+                this.playerDotRadius
+            );
+        }
     }
 }

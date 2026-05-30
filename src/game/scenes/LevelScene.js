@@ -8,8 +8,16 @@ import GameState from '../../systems/GameState.js';
 
 import MapManager from '../../systems/MapManager.js';
 import PortalRegistry from '../../systems/PortalRegistry.js';
+import MiniMap from '../../systems/MiniMap.js';
 
 import mapDisplayNames from '../../data/mapDisplayNames.js';
+
+import {
+    GAME_HEIGHT,
+    PLAY_AREA_WIDTH,
+    PLAY_AREA_X,
+    HUD_WIDTH
+} from '../layout.js';
 
 import * as  Phaser from 'phaser';
 
@@ -27,8 +35,7 @@ export default class LevelScene extends Phaser.Scene
 
     create()
     {
-        // ===== 背景 =====
-        this.cameras.main.setBackgroundColor('#2d2d2d');
+        this.setupPlayAreaCameras();
 
         // ===== 当前关卡数据 =====
         const levelData = levels[this.level];
@@ -146,7 +153,7 @@ export default class LevelScene extends Phaser.Scene
                 Phaser.Input.Keyboard.KeyCodes.SPACE
             );
 
-        // ===== UI =====
+        // ===== UI（位于右侧游戏区） =====
         this.levelText = this.add.text(
             20,
             20,
@@ -202,6 +209,15 @@ export default class LevelScene extends Phaser.Scene
         this.interactHint.setOrigin(0.5);
         this.interactHint.setVisible(false);
 
+        // ===== 小地图（左侧黑色 HUD 区） =====
+        this.miniMap =
+            new MiniMap(
+                this,
+                this.npcManager
+            );
+
+        this.applyCameraFilters();
+
         // ===== 调试信息 =====
         console.log(
             'npcs:',
@@ -209,10 +225,87 @@ export default class LevelScene extends Phaser.Scene
         );
     }
 
+    setupPlayAreaCameras()
+    {
+        this.hudCamera =
+            this.cameras.add(
+                0,
+                0,
+                HUD_WIDTH,
+                GAME_HEIGHT
+            );
+
+        this.hudCamera.setScroll(0, 0);
+        this.hudCamera.setBackgroundColor('#000000');
+
+        this.cameras.main.setViewport(
+            PLAY_AREA_X,
+            0,
+            PLAY_AREA_WIDTH,
+            GAME_HEIGHT
+        );
+
+        this.cameras.main.setBackgroundColor('#2d2d2d');
+    }
+
+    applyCameraFilters()
+    {
+        if (this.miniMap?.container)
+        {
+            this.cameras.main.ignore(
+                this.miniMap.container
+            );
+        }
+
+        const hudIgnore = (obj) =>
+        {
+            if (obj)
+            {
+                this.hudCamera.ignore(obj);
+            }
+        };
+
+        hudIgnore(this.player);
+
+        this.npcSprites?.forEach(hudIgnore);
+
+        hudIgnore(this.levelText);
+        hudIgnore(this.tipText);
+        hudIgnore(this.interactHint);
+
+        Object.values(
+            this.mapManager?.layers ?? {}
+        ).forEach(hudIgnore);
+
+        const debugGraphic =
+            this.matter.world.debugGraphic;
+
+        if (debugGraphic)
+        {
+            this.hudCamera.ignore(debugGraphic);
+        }
+
+        const dm = this.dialogueManager;
+
+        if (dm)
+        {
+            hudIgnore(dm.box);
+            hudIgnore(dm.text);
+            hudIgnore(dm.objectDialogText);
+            hudIgnore(dm.leftPortrait);
+            hudIgnore(dm.rightPortrait);
+        }
+    }
+
     update(time, delta)
     {
         this.interactHint.setVisible(false);
         this.dialogueManager.update();
+
+        this.miniMap?.update(
+            this.currentMap,
+            this.player
+        );
 
         if (this.dialogueManager.isPlaying || 
             this.dialogueManager.isShowingObjectDialogue)
@@ -532,6 +625,8 @@ export default class LevelScene extends Phaser.Scene
         {
             sprite.setDepth(depth + 1);
         });
+
+        this.applyCameraFilters();
 
         console.log(
             'npcs:',

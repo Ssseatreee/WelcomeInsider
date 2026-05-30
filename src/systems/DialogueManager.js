@@ -1,6 +1,9 @@
 // import { use } from 'matter';
 import * as Phaser from 'phaser';
-// import { useActionState } from 'react';
+import {
+    GAME_HEIGHT,
+    PLAY_AREA_UI_CENTER_X
+} from '../game/layout.js';
 
 export default class DialogueManager
 {
@@ -18,12 +21,12 @@ export default class DialogueManager
         this.objectDialogCooldown = false;
         this.objectDialogCanClose = false;
 
+        const boxY = GAME_HEIGHT - 110;
+
         // 背景
         this.box = scene.add.rectangle(
-            // 512,
-            // 650,
-            scene.scale.width/2,
-            scene.scale.height-110,
+            PLAY_AREA_UI_CENTER_X,
+            boxY,
             900,
             180,
             0x000000,
@@ -36,12 +39,8 @@ export default class DialogueManager
 
         // 文本
         this.text = scene.add.text(
-            // 90,
-            // 620,
-            // 120,
-            // 590,
-            this.box.x-420,
-            this.box.y-70,
+            this.box.x - 420,
+            this.box.y - 70,
             '',
             {
                 fontSize: '30px',
@@ -52,22 +51,16 @@ export default class DialogueManager
             }
         );
         this.objectDialogText = scene.add.text(
-            // 90,
-            // 620,
-            // 120,
-            // 590,
-            this.box.x-420,
-            this.box.y-70,
+            this.box.x - 420,
+            this.box.y - 70,
             '',
             {
                 fontSize: '30px',
                 color: '#ffffff',
                 wordWrap: {
                     width: 840,
-                    useAdvancedWrap: true,
-                    // 自动换行
-                    useAdvancedWrap: true,
-                }, 
+                    useAdvancedWrap: true
+                },
                 lineSpacing: 18
             }
         );
@@ -80,28 +73,23 @@ export default class DialogueManager
         this.text.setVisible(false);
         this.text.setDepth(250);
 
-        // 显示主角立绘
         this.leftPortrait = scene.add.image(
-            // 220,
-            // 530,
-            this.box.x-320,
-            this.box.y-50,
+            this.box.x - 320,
+            this.box.y - 50,
             ''
         );
         this.leftPortrait.setVisible(false);
         this.leftPortrait.setScale(1.3);
-        this.leftPortrait.setDepth(100);
-        // 显示NPC立绘
+        this.leftPortrait.setDepth(180);
+
         this.rightPortrait = scene.add.image(
-            // 804,
-            // 530,
-            this.box.x+320,
-            this.box.y-50,
+            this.box.x + 320,
+            this.box.y - 50,
             ''
         );
         this.rightPortrait.setVisible(false);
         this.rightPortrait.setScale(1.3);
-        this.rightPortrait.setDepth(100);
+        this.rightPortrait.setDepth(180);
 
         this.leftPortrait.setScrollFactor(0);
         this.rightPortrait.setScrollFactor(0);
@@ -286,7 +274,7 @@ export default class DialogueManager
             this.leftPortrait.setAlpha(1);
             this.rightPortrait.setAlpha(0.5);
 
-            this.leftPortrait.setDepth(100);
+            this.leftPortrait.setDepth(180);
         }
         else
         {
@@ -298,7 +286,7 @@ export default class DialogueManager
             this.rightPortrait.setAlpha(1);
             this.leftPortrait.setAlpha(0.5);
 
-            this.rightPortrait.setDepth(100);
+            this.rightPortrait.setDepth(180);
         }
     }
 

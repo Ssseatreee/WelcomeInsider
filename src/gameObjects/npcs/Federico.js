@@ -9,6 +9,7 @@ export default class Federico extends NPC
             name: 'federico',
             type: 'hunter',
             hasEmpathy: false,
+            minimapColor: 0xefe6d0,
             moveSpeed: config.moveSpeed ?? 3
         });
     }

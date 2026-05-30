@@ -31,6 +31,9 @@ export default class NPC
         this.hasEmpathy =
             config.hasEmpathy || false;
 
+        this.minimapColor =
+            config.minimapColor ?? 0xffffff;
+
         this.moveSpeed =
             config.moveSpeed || 1.5;
 

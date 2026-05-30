@@ -9,6 +9,7 @@ export default class Lemuen extends NPC
             name: 'lemuen',
             type: 'hunter',
             hasEmpathy: true,
+            minimapColor: 0xf2b1ba,
             moveSpeed: config.moveSpeed ?? 2
         });
     }

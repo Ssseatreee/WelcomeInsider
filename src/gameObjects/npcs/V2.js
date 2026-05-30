@@ -9,6 +9,7 @@ export default class V2 extends NPC
             name: 'v2',
             type: 'hunter',
             hasEmpathy: true,
+            minimapColor: 0x99759c,
             moveSpeed: config.moveSpeed ?? 2
         });
     }

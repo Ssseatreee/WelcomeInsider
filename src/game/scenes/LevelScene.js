@@ -9,14 +9,19 @@ import GameState from '../../systems/GameState.js';
 import MapManager from '../../systems/MapManager.js';
 import PortalRegistry from '../../systems/PortalRegistry.js';
 import MiniMap from '../../systems/MiniMap.js';
+import WorkBacklogBar from '../../systems/WorkBacklogBar.js';
+import HunterPathing from '../../systems/HunterPathing.js';
 
 import mapDisplayNames from '../../data/mapDisplayNames.js';
+import workBacklogConfig from '../../data/workBacklogConfig.js';
+import items from '../../data/items.js';
 
 import {
     GAME_HEIGHT,
     PLAY_AREA_WIDTH,
     PLAY_AREA_X,
-    HUD_WIDTH
+    HUD_WIDTH,
+    RIGHT_HUD_X
 } from '../layout.js';
 
 import * as  Phaser from 'phaser';
@@ -71,6 +76,18 @@ export default class LevelScene extends Phaser.Scene
 
         this.mapManager.loadMap('drinkingroom');
 
+        const npcMapKeys =
+            new Set(
+                levelData.npcs
+                    .map(npc => npc.mapKey)
+                    .filter(Boolean)
+            );
+
+        npcMapKeys.forEach(mapKey =>
+        {
+            this.mapManager.warmNavigationGrid(mapKey);
+        });
+
         this.refreshNPCSprites();
 
         const depth = this.applyMapLayerDepths();
@@ -87,6 +104,15 @@ export default class LevelScene extends Phaser.Scene
 
         this.player.setFrictionAir(0.15);
 
+        if (GameState.hasCollectedItem('azeCoffee'))
+        {
+            this.player.applySpeedBoost(
+                items.azeCoffee.speedMultiplier
+            );
+        }
+
+        this.pendingNeutralEffect = null;
+
         // ===== 对话管理器 =====
         this.dialogueManager =
             new DialogueManager(this);
@@ -100,7 +126,7 @@ export default class LevelScene extends Phaser.Scene
         // ===== Matter碰撞监听 =====
         this.npcDialogCooldown = new Set();
 
-        this.matter.world.on('collisionstart', (event) => {
+        this._onCollisionStart = (event) => {
 
             event.pairs.forEach((pair) => {
 
@@ -145,7 +171,12 @@ export default class LevelScene extends Phaser.Scene
 
             });
 
-        });
+        };
+
+        this.matter.world.on(
+            'collisionstart',
+            this._onCollisionStart
+        );
 
         // ===== 空格键 =====
         this.spaceKey =
@@ -216,6 +247,15 @@ export default class LevelScene extends Phaser.Scene
                 this.npcManager
             );
 
+        // ===== 待处理工作进度条（右侧黑色 HUD 区） =====
+        this.workBacklog =
+            new WorkBacklogBar(this);
+
+        this.workBacklog.onSpeedBoost =
+            () => this.applyHunterSpeedBoost();
+
+        this.currentCatchIsBusy = false;
+
         this.applyCameraFilters();
 
         // ===== 调试信息 =====
@@ -246,6 +286,17 @@ export default class LevelScene extends Phaser.Scene
         );
 
         this.cameras.main.setBackgroundColor('#2d2d2d');
+
+        this.rightHudCamera =
+            this.cameras.add(
+                RIGHT_HUD_X,
+                0,
+                HUD_WIDTH,
+                GAME_HEIGHT
+            );
+
+        this.rightHudCamera.setScroll(0, 0);
+        this.rightHudCamera.setBackgroundColor('#000000');
     }
 
     applyCameraFilters()
@@ -254,6 +305,21 @@ export default class LevelScene extends Phaser.Scene
         {
             this.cameras.main.ignore(
                 this.miniMap.container
+            );
+
+            this.rightHudCamera?.ignore(
+                this.miniMap.container
+            );
+        }
+
+        if (this.workBacklog?.container)
+        {
+            this.cameras.main.ignore(
+                this.workBacklog.container
+            );
+
+            this.hudCamera?.ignore(
+                this.workBacklog.container
             );
         }
 
@@ -265,17 +331,38 @@ export default class LevelScene extends Phaser.Scene
             }
         };
 
-        hudIgnore(this.player);
+        const rightHudIgnore = (obj) =>
+        {
+            if (obj)
+            {
+                this.rightHudCamera?.ignore(obj);
+            }
+        };
 
-        this.npcSprites?.forEach(hudIgnore);
+        hudIgnore(this.player);
+        rightHudIgnore(this.player);
+
+        this.npcSprites?.forEach(sprite =>
+        {
+            hudIgnore(sprite);
+            rightHudIgnore(sprite);
+        });
 
         hudIgnore(this.levelText);
         hudIgnore(this.tipText);
         hudIgnore(this.interactHint);
 
+        rightHudIgnore(this.levelText);
+        rightHudIgnore(this.tipText);
+        rightHudIgnore(this.interactHint);
+
         Object.values(
             this.mapManager?.layers ?? {}
-        ).forEach(hudIgnore);
+        ).forEach(layer =>
+        {
+            hudIgnore(layer);
+            rightHudIgnore(layer);
+        });
 
         const debugGraphic =
             this.matter.world.debugGraphic;
@@ -283,6 +370,7 @@ export default class LevelScene extends Phaser.Scene
         if (debugGraphic)
         {
             this.hudCamera.ignore(debugGraphic);
+            this.rightHudCamera?.ignore(debugGraphic);
         }
 
         const dm = this.dialogueManager;
@@ -294,7 +382,95 @@ export default class LevelScene extends Phaser.Scene
             hudIgnore(dm.objectDialogText);
             hudIgnore(dm.leftPortrait);
             hudIgnore(dm.rightPortrait);
+
+            rightHudIgnore(dm.box);
+            rightHudIgnore(dm.text);
+            rightHudIgnore(dm.objectDialogText);
+            rightHudIgnore(dm.leftPortrait);
+            rightHudIgnore(dm.rightPortrait);
+
+            dm.choiceTexts?.forEach(text =>
+            {
+                hudIgnore(text);
+                rightHudIgnore(text);
+            });
+
+            hudIgnore(dm.choiceHint);
+            rightHudIgnore(dm.choiceHint);
         }
+    }
+
+    revertHunterSpeedBoost()
+    {
+        this.npcManager.getAllNPCs().forEach(npc =>
+        {
+            if (
+                npc.type !== 'hunter'
+                ||
+                !npc._speedBoosted
+            )
+            {
+                return;
+            }
+
+            npc.moveSpeed = npc.baseMoveSpeed;
+            npc._speedBoosted = false;
+        });
+    }
+
+    grantAzeCoffee()
+    {
+        GameState.addCollectedItem('azeCoffee');
+
+        this.player.applySpeedBoost(
+            items.azeCoffee.speedMultiplier
+        );
+    }
+
+    clearWorkBacklog()
+    {
+        this.workBacklog?.reset();
+        this.revertHunterSpeedBoost();
+    }
+
+    despawnNeutralNpc(npc)
+    {
+        if (npc.npcName === 'aze')
+        {
+            GameState.setFlag('azeGone', true);
+        }
+
+        npc.removed = true;
+
+        const sprite =
+            this.npcSprites.find(
+                s => s.entity === npc
+            );
+
+        if (sprite?.scene)
+        {
+            sprite.setOnMap(false);
+        }
+    }
+
+    applyHunterSpeedBoost()
+    {
+        this.npcManager.getAllNPCs().forEach(npc =>
+        {
+            if (npc.type !== 'hunter' || npc._speedBoosted)
+            {
+                return;
+            }
+
+            npc.baseMoveSpeed =
+                npc.baseMoveSpeed ?? npc.moveSpeed;
+
+            npc.moveSpeed =
+                npc.baseMoveSpeed
+                * workBacklogConfig.speedBoostMultiplier;
+
+            npc._speedBoosted = true;
+        });
     }
 
     update(time, delta)
@@ -307,131 +483,127 @@ export default class LevelScene extends Phaser.Scene
             this.player
         );
 
-        if (this.dialogueManager.isPlaying || 
-            this.dialogueManager.isShowingObjectDialogue)
+        // NPC 对话期间不累积待处理工作
+        if (!this.dialogueManager.isPlaying)
+        {
+            this.workBacklog?.update(delta);
+        }
+
+        // 剧情/抓捕对话：全局暂停
+        if (this.dialogueManager.isPlaying)
         {
             return;
         }
 
-        // this.dialogueManager.update();
+        // 物品介绍：玩家不可操作，但 NPC 仍可移动
+        if (!this.dialogueManager.isShowingObjectDialogue)
+        {
+            // ===== 门交互 =====
+            this.mapManager.portals.forEach(portal => {
 
-        // ===== 门交互 =====
-        this.mapManager.portals.forEach(portal => {
-
-            const rect =
-                new Phaser.Geom.Rectangle(
-                    portal.x,
-                    portal.y,
-                    portal.width,
-                    portal.height
-                );
-
-            if (
-                Phaser.Geom.Rectangle.Overlaps(
-                    rect,
-                    this.player.getBounds()
-                )
-            )
-            {
-                console.log(
-                    'Near Portal:',
-                    portal.name
-                );
-                const targetMap =
-                    this.getProperty(
-                        portal,
-                        'targetMap'
+                const rect =
+                    new Phaser.Geom.Rectangle(
+                        portal.x,
+                        portal.y,
+                        portal.width,
+                        portal.height
                     );
 
-                // 显示提示
-                this.interactHint.setText(
-                    `[SPACE] 前往 ${mapDisplayNames[targetMap]}`
-                );
-
-                this.interactHint.setPosition(
-                    this.player.x,
-                    this.player.y - 48
-                );
-
-                this.interactHint.setVisible(true);
-
-                // 按下space前往targetMap
-                if(Phaser.Input.Keyboard.JustDown(this.spaceKey))
-                {
-                    const targetPortal = this.getProperty(portal,'targetPortal')
-                    this.switchMap(targetMap,targetPortal);
-                }
-            }
-        });
-
-        // ===== 如果正在显示物品对话 =====
-        if (this.dialogueManager.isShowingObjectDialogue)
-        {
-            return;
-        }
-
-        // 默认隐藏交互提示
-        // this.interactHint.setVisible(false);
-
-        // ===== 可交互物体 =====
-        this.mapManager.objects.forEach(obj => {
-
-            const rect =
-                new Phaser.Geom.Rectangle(
-                    obj.x,
-                    obj.y,
-                    obj.width,
-                    obj.height
-                );
-
-            if (
-                Phaser.Geom.Rectangle.Overlaps(
-                    rect,
-                    this.player.getBounds()
-                )
-            )
-            {
-                console.log(
-                    'Near Object:',
-                    obj.name
-                );
-                // 显示交互提示
-                this.interactHint.setPosition(
-                    this.player.x,
-                    this.player.y - 48
-                );
-
-                // 显示提示
-                this.interactHint.setText(
-                    '[SPACE] 查看'
-                );
-                this.interactHint.setVisible(true);
-
                 if (
-                    Phaser.Input.Keyboard.JustDown(
-                        this.spaceKey
+                    Phaser.Geom.Rectangle.Overlaps(
+                        rect,
+                        this.player.getBounds()
                     )
                 )
                 {
-                    const dialogProp =
-                        obj.properties?.find(
-                            p => p.name === 'dialog'
+                    console.log(
+                        'Near Portal:',
+                        portal.name
+                    );
+                    const targetMap =
+                        this.getProperty(
+                            portal,
+                            'targetMap'
                         );
 
-                    if (dialogProp &&
-                        !this.dialogueManager.isShowingObjectDialogue &&
-                        !this.dialogueManager.objectDialogCooldown
-                    )
+                    // 显示提示
+                    this.interactHint.setText(
+                        `[SPACE] 前往 ${mapDisplayNames[targetMap]}`
+                    );
+
+                    this.interactHint.setPosition(
+                        this.player.x,
+                        this.player.y - 48
+                    );
+
+                    this.interactHint.setVisible(true);
+
+                    // 按下space前往targetMap
+                    if(Phaser.Input.Keyboard.JustDown(this.spaceKey))
                     {
-                        // this.dialogueManager.start([
-                        //     dialogProp.value
-                        // ]);
-                        this.dialogueManager.showObjectDialogue(obj);
-                        return;
+                        const targetPortal = this.getProperty(portal,'targetPortal')
+                        this.switchMap(targetMap,targetPortal);
                     }
                 }
-            }
-        });
+            });
+
+            // ===== 可交互物体 =====
+            this.mapManager.objects.forEach(obj => {
+
+                const rect =
+                    new Phaser.Geom.Rectangle(
+                        obj.x,
+                        obj.y,
+                        obj.width,
+                        obj.height
+                    );
+
+                if (
+                    Phaser.Geom.Rectangle.Overlaps(
+                        rect,
+                        this.player.getBounds()
+                    )
+                )
+                {
+                    console.log(
+                        'Near Object:',
+                        obj.name
+                    );
+                    // 显示交互提示
+                    this.interactHint.setPosition(
+                        this.player.x,
+                        this.player.y - 48
+                    );
+
+                    // 显示提示
+                    this.interactHint.setText(
+                        '[SPACE] 查看'
+                    );
+                    this.interactHint.setVisible(true);
+
+                    if (
+                        Phaser.Input.Keyboard.JustDown(
+                            this.spaceKey
+                        )
+                    )
+                    {
+                        const dialogProp =
+                            obj.properties?.find(
+                                p => p.name === 'dialog'
+                            );
+
+                        if (dialogProp &&
+                            !this.dialogueManager.isShowingObjectDialogue &&
+                            !this.dialogueManager.objectDialogCooldown
+                        )
+                        {
+                            this.dialogueManager.showObjectDialogue(obj);
+                            return;
+                        }
+                    }
+                }
+            });
+        }
 
         // ===== NPC移动 =====
         this.npcManager.update(
@@ -463,29 +635,80 @@ export default class LevelScene extends Phaser.Scene
         let dialogueKey;
 
         console.log(
-            `Player caught by ${npcName}`
+            `Player collided with ${npcName}`
         );
 
-        // ===== 抓捕次数 =====
-        this.npcCatchCount[npcName] =
-            (this.npcCatchCount[npcName] || 0) + 1;
-
-        const catchCount =
-            this.npcCatchCount[npcName];
-
-        // ===== 对话阶段 =====
-        if (catchCount === 1)
+        if (npc.type === 'neutral')
         {
-            dialogueKey = 'firstCatch';
+            if (
+                npc.npcName === 'aze'
+                &&
+                GameState.getFlag('azeGone')
+            )
+            {
+                this.dialogTriggered = false;
+                this.currentDialogNPC = null;
+                return;
+            }
+
+            dialogueKey = 'talk';
+
+            const dialogue =
+                dialogues[npcName]?.[dialogueKey];
+
+            if (!dialogue)
+            {
+                console.warn(
+                    `Dialogue not found: ${npcName} -> ${dialogueKey}`
+                );
+                this.dialogTriggered = false;
+                this.currentDialogNPC = null;
+                return;
+            }
+
+            this.currentCatchIsBusy = false;
+            this.dialogueManager.start(dialogue);
+            return;
+        }
+
+        const isBusy =
+            this.workBacklog?.isFull() ?? false;
+
+        this.currentCatchIsBusy = isBusy;
+
+        if (isBusy)
+        {
+            dialogueKey = 'busyCatch';
         }
         else
         {
-            dialogueKey = 'secondCatch';
+            // ===== 抓捕次数 =====
+            this.npcCatchCount[npcName] =
+                (this.npcCatchCount[npcName] || 0) + 1;
+
+            const catchCount =
+                this.npcCatchCount[npcName];
+
+            // ===== 对话阶段 =====
+            if (catchCount === 1)
+            {
+                dialogueKey = 'firstCatch';
+            }
+            else
+            {
+                dialogueKey = 'secondCatch';
+            }
         }
 
         // ===== 读取对话 =====
-        const dialogue =
+        let dialogue =
             dialogues[npcName]?.[dialogueKey];
+
+        if (!dialogue && isBusy)
+        {
+            dialogue =
+                dialogues[npcName]?.secondCatch;
+        }
 
         // 防止没写对话时报错
         if (!dialogue)
@@ -510,9 +733,27 @@ export default class LevelScene extends Phaser.Scene
             this.scene.start('MainMenuScene');
             return;
         }
-        this.scene.restart({
-            level: this.level + 1
+
+        const nextLevel = this.level + 1;
+
+        // 避免在 update / 对话回调中同步 restart 导致场景状态异常
+        this.time.delayedCall(0, () =>
+        {
+            this.scene.restart({
+                level: nextLevel
+            });
         });
+    }
+
+    shutdown()
+    {
+        if (this._onCollisionStart)
+        {
+            this.matter.world.off(
+                'collisionstart',
+                this._onCollisionStart
+            );
+        }
     }
 
     onDialogueEnd()
@@ -530,14 +771,39 @@ export default class LevelScene extends Phaser.Scene
         const catchCount =
             this.npcCatchCount[npcName] || 0;
 
-        // ===== 结算逻辑 =====
-        if (catchCount >= 2)
+        // ===== 结算逻辑（仅追捕者）=====
+        if (npc.type === 'neutral')
         {
-            this.nextLevel();
+            const effect = this.pendingNeutralEffect;
+
+            this.pendingNeutralEffect = null;
+
+            if (effect === 'azeCoffee')
+            {
+                this.grantAzeCoffee();
+            }
+            else if (effect === 'clearWork')
+            {
+                this.clearWorkBacklog();
+            }
+
+            this.despawnNeutralNpc(npc);
+        }
+        else
+        {
+            if (this.currentCatchIsBusy)
+            {
+                this.nextLevel();
+            }
+            else if (catchCount >= 2)
+            {
+                this.nextLevel();
+            }
         }
 
         // ===== 清理状态 =====
         this.dialogTriggered = false;
+        this.currentCatchIsBusy = false;
         this.currentDialogNPC = null;
 
         console.log('=== DIALOG END ===');
@@ -584,12 +850,44 @@ export default class LevelScene extends Phaser.Scene
                 npc.worldY = npcData.y;
             }
 
+            HunterPathing.clampEntity(
+                npc,
+                npc.currentMap
+            );
+
+            if (npcData.moveSpeed != null)
+            {
+                npc.moveSpeed = npcData.moveSpeed;
+                npc.baseMoveSpeed = npcData.moveSpeed;
+            }
+
+            npc._speedBoosted = false;
             npc.vx = 0;
             npc.vy = 0;
             npc.facing = 'down';
             npc.portalCooldown = 0;
             npc.pathing?.reset();
+
+            if (
+                npc.npcName === 'aze'
+                &&
+                GameState.getFlag('azeGone')
+            )
+            {
+                npc.removed = true;
+            }
+            else
+            {
+                npc.removed = false;
+            }
+
+            if (npc.resetWander)
+            {
+                npc.resetWander();
+            }
         });
+
+        this.workBacklog?.reset();
     }
 
     switchMap(targetMap, targetPortalName)
@@ -670,6 +968,20 @@ export default class LevelScene extends Phaser.Scene
     {
         this.npcSprites.forEach(sprite =>
         {
+            if (
+                sprite.entity.removed
+                ||
+                (
+                    sprite.entity.npcName === 'aze'
+                    &&
+                    GameState.getFlag('azeGone')
+                )
+            )
+            {
+                sprite.setOnMap(false);
+                return;
+            }
+
             const onMap =
                 sprite.entity.currentMap === this.currentMap;
 

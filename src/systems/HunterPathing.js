@@ -344,4 +344,39 @@ export default class HunterPathing
             dy
         };
     }
+
+    /**
+     * 离屏模拟步进 — 与 Matter setVelocity 的体感速度对齐（按 60fps 帧步进）
+     */
+    static applyOffSceneStep(entity, movement, delta)
+    {
+        const frameScale = delta / (1000 / 60);
+
+        entity.worldX += movement.vx * frameScale;
+        entity.worldY += movement.vy * frameScale;
+
+        HunterPathing.clampEntity(
+            entity,
+            entity.currentMap
+        );
+    }
+
+    static clampEntity(entity, mapKey)
+    {
+        const grid = NavigationGrid.get(mapKey);
+
+        if (!grid)
+        {
+            return;
+        }
+
+        const clamped =
+            grid.clampWorldPosition(
+                entity.worldX,
+                entity.worldY
+            );
+
+        entity.worldX = clamped.x;
+        entity.worldY = clamped.y;
+    }
 }

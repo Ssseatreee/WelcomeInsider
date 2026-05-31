@@ -37,7 +37,18 @@ export default class Player extends Phaser.Physics.Matter.Sprite
             scene.input.keyboard.createCursorKeys();
 
         // 移速
-        this.speed = 3.5;
+        this.baseSpeed = 3.5;
+        this.speed = this.baseSpeed;
+    }
+
+    applySpeedBoost(multiplier)
+    {
+        this.speed = this.baseSpeed * multiplier;
+    }
+
+    resetSpeed()
+    {
+        this.speed = this.baseSpeed;
     }
 
     preUpdate(time, delta)

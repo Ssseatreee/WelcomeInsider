@@ -12,6 +12,10 @@ export const PLAY_AREA_X = HUD_WIDTH;
 export const TOTAL_WIDTH =
     HUD_WIDTH + PLAY_AREA_WIDTH + RIGHT_MARGIN;
 
+/** 右侧 HUD 区在画布上的起始 x */
+export const RIGHT_HUD_X =
+    PLAY_AREA_X + PLAY_AREA_WIDTH;
+
 /** 主相机 viewport 内的 UI 坐标（不含 HUD 偏移） */
 export const PLAY_AREA_UI_CENTER_X =
     PLAY_AREA_WIDTH / 2;

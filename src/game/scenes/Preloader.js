@@ -4,6 +4,7 @@ import createPlayerAnimations from '../../animations/playerAnimations';
 import createV2Animations from '../../animations/v2Animations';
 import createFedericoAnimations from '../../animations/federicoAnimations';
 import createLemuenAnimations from '../../animations/lemuenAnimations';
+import createAzeAnimations from '../../animations/azeAnimations';
 
 export class Preloader extends Scene
 {
@@ -60,6 +61,12 @@ export class Preloader extends Scene
         this.load.spritesheet(
             'npc-lemuen',
             '../../../public/assets/sprites/lemuen_sprite.png',
+            { frameWidth: 32, frameHeight: 32 }
+        );
+
+        this.load.spritesheet(
+            'npc-aze',
+            '../../../public/assets/sprites/aze_sprite.png',
             { frameWidth: 32, frameHeight: 32 }
         );
 
@@ -158,6 +165,24 @@ export class Preloader extends Scene
         this.load.image(
             'portrait-lemuen-thinking',
             '../../../public/assets/portraits/lemuen/thinking.png'
+        );
+
+        // aze
+        this.load.image(
+            'portrait-aze-normal',
+            '../../../public/assets/portraits/aze/normal.png'
+        );
+        this.load.image(
+            'portrait-aze-smile',
+            '../../../public/assets/portraits/aze/smile.png'
+        );
+        this.load.image(
+            'portrait-aze-strict',
+            '../../../public/assets/portraits/aze/strict.png'
+        );
+        this.load.image(
+            'portrait-aze-suprise',
+            '../../../public/assets/portraits/aze/suprise.png'
         );
 
     }
@@ -267,6 +292,7 @@ export class Preloader extends Scene
         createFedericoAnimations(this.anims);
         //lemuen animations
         createLemuenAnimations(this.anims);
+        createAzeAnimations(this.anims);
 
 
         //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.

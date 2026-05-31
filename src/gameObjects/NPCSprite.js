@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import HunterPathing from '../systems/HunterPathing.js';
 
 export default class NPCSprite
 extends Phaser.Physics.Matter.Sprite
@@ -6,6 +7,15 @@ extends Phaser.Physics.Matter.Sprite
     static textureKey(npcName)
     {
         return `npc-${npcName}`;
+    }
+
+    static usesPhysicsMovement(entity)
+    {
+        return (
+            entity.type === 'hunter'
+            ||
+            entity.type === 'neutral'
+        );
     }
 
     constructor(scene, entity)
@@ -35,7 +45,7 @@ extends Phaser.Physics.Matter.Sprite
             height: 24
         });
 
-        if (entity.type === 'hunter')
+        if (NPCSprite.usesPhysicsMovement(entity))
         {
             this.setFrictionAir(0.15);
         }
@@ -77,6 +87,14 @@ extends Phaser.Physics.Matter.Sprite
 
         if (onMap)
         {
+            if (this.entity.type === 'hunter')
+            {
+                HunterPathing.clampEntity(
+                    this.entity,
+                    this.entity.currentMap
+                );
+            }
+
             this.setPosition(
                 this.entity.worldX,
                 this.entity.worldY
@@ -102,7 +120,7 @@ extends Phaser.Physics.Matter.Sprite
 
             if (world.has(this.body))
             {
-                world.remove(this.body, true);
+                world.remove(this.body);
             }
         }
     }
@@ -116,16 +134,17 @@ extends Phaser.Physics.Matter.Sprite
             return;
         }
 
-        if (this.entity.type !== 'hunter')
+        if (!NPCSprite.usesPhysicsMovement(this.entity))
         {
+            this.setPosition(
+                this.entity.worldX,
+                this.entity.worldY
+            );
+            this.applyFrame();
             return;
         }
 
-        if (
-            this.scene.dialogueManager?.isPlaying
-            ||
-            this.scene.dialogueManager?.isShowingObjectDialogue
-        )
+        if (this.scene.dialogueManager?.isPlaying)
         {
             this.setVelocity(0, 0);
             return;
@@ -139,21 +158,34 @@ extends Phaser.Physics.Matter.Sprite
         this.entity.worldX = this.x;
         this.entity.worldY = this.y;
 
-        if (
-            this.entity.portalCooldown <= 0
-            &&
-            this.scene.portalRegistry?.tryPortalTransition(
-                this.entity
-            )
-        )
+        if (this.entity.type === 'hunter')
         {
-            this.entity.portalCooldown = 600;
-            this.entity.pathing?.reset();
+            HunterPathing.clampEntity(
+                this.entity,
+                this.entity.currentMap
+            );
 
             this.setPosition(
                 this.entity.worldX,
                 this.entity.worldY
             );
+
+            if (
+                this.entity.portalCooldown <= 0
+                &&
+                this.scene.portalRegistry?.tryPortalTransition(
+                    this.entity
+                )
+            )
+            {
+                this.entity.portalCooldown = 600;
+                this.entity.pathing?.reset();
+
+                this.setPosition(
+                    this.entity.worldX,
+                    this.entity.worldY
+                );
+            }
         }
 
         this.applyFrame();
@@ -166,7 +198,19 @@ extends Phaser.Physics.Matter.Sprite
             return;
         }
 
-        if (this.entity.type !== 'hunter')
+        const dm = this.scene.dialogueManager;
+
+        if (NPCSprite.usesPhysicsMovement(this.entity))
+        {
+            if (!dm?.isPlaying)
+            {
+                this.setVelocity(
+                    this.entity.vx,
+                    this.entity.vy
+                );
+            }
+        }
+        else
         {
             this.setPosition(
                 this.entity.worldX,

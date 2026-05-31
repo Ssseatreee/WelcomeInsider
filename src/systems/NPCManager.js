@@ -17,6 +17,11 @@ export default class NPCManager
     {
         for (const npc of this.npcs.values())
         {
+            if (npc.removed)
+            {
+                continue;
+            }
+
             npc.update(
                 context,
                 delta

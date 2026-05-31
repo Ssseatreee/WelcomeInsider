@@ -37,6 +37,15 @@ const level1 = {
             type: 'hunter',
             hasEmpathy: true,
             moveSpeed: 2
+        },
+
+        {
+            name: 'aze',
+            x: 350,
+            y: 260,
+            mapKey: 'drinkingroom',
+            type: 'neutral',
+            moveSpeed: 0.7
         }
     ]
 

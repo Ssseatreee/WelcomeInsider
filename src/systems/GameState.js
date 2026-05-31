@@ -6,6 +6,19 @@ const GameState = {
 
     flags: {},
 
+    addCollectedItem(itemId)
+    {
+        if (!this.collectedItems.includes(itemId))
+        {
+            this.collectedItems.push(itemId);
+        }
+    },
+
+    hasCollectedItem(itemId)
+    {
+        return this.collectedItems.includes(itemId);
+    },
+
     // npcCatchCount: {},
 
     increaseCatchCount(npcName)

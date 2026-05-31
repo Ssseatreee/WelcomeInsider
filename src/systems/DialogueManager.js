@@ -21,6 +21,11 @@ export default class DialogueManager
         this.objectDialogCooldown = false;
         this.objectDialogCanClose = false;
 
+        this.isShowingChoices = false;
+        this.currentChoices = [];
+        this.selectedChoiceIndex = 0;
+        this.choiceTexts = [];
+
         const boxY = GAME_HEIGHT - 110;
 
         // 背景
@@ -94,14 +99,77 @@ export default class DialogueManager
         this.leftPortrait.setScrollFactor(0);
         this.rightPortrait.setScrollFactor(0);
 
+        const choiceStyle = {
+            fontSize: '26px',
+            color: '#ffffff',
+            backgroundColor: '#333333',
+            padding: { left: 12, right: 12, top: 6, bottom: 6 }
+        };
+
+        for (let i = 0; i < 2; i++)
+        {
+            const choiceText =
+                scene.add.text(
+                    this.box.x - 420,
+                    this.box.y + 10 + i * 42,
+                    '',
+                    choiceStyle
+                );
+
+            choiceText.setScrollFactor(0);
+            choiceText.setDepth(260);
+            choiceText.setVisible(false);
+            choiceText.setInteractive({ useHandCursor: true });
+
+            const index = i;
+
+            choiceText.on('pointerover', () =>
+            {
+                if (this.isShowingChoices)
+                {
+                    this.selectedChoiceIndex = index;
+                    this.updateChoiceHighlight();
+                }
+            });
+
+            choiceText.on('pointerdown', () =>
+            {
+                if (this.isShowingChoices)
+                {
+                    this.selectChoice(index);
+                }
+            });
+
+            this.choiceTexts.push(choiceText);
+        }
+
+        this.choiceHint = scene.add.text(
+            this.box.x - 420,
+            this.box.y + 95,
+            '↑↓ 选择  ·  空格确认',
+            {
+                fontSize: '18px',
+                color: '#888888'
+            }
+        );
+
+        this.choiceHint.setScrollFactor(0);
+        this.choiceHint.setDepth(260);
+        this.choiceHint.setVisible(false);
+
         // SPACE继续
         this.spaceKey = scene.input.keyboard.addKey(
             Phaser.Input.Keyboard.KeyCodes.SPACE
         );
+
+        this.cursors =
+            scene.input.keyboard.createCursorKeys();
     }
 
     start(dialogues)
     {
+        this.hideChoices();
+
         this.leftPortrait.setVisible(true);
         this.rightPortrait.setVisible(true);
 
@@ -119,16 +187,19 @@ export default class DialogueManager
 
         this.currentNPC =
             dialogues.find(
-                d => d.speaker !== 'richele'
-        )?.speaker;
+                d => d.speaker && d.speaker !== 'richele'
+            )?.speaker;
+
         this.leftPortrait.setTexture(
             'portrait-richele-normal'
-        ); 
-        this.rightPortrait.setTexture(
-            `portrait-${this.currentNPC}-normal`
         );
 
-        this.updatePortrait(dialogues[0]);
+        if (this.currentNPC)
+        {
+            this.rightPortrait.setTexture(
+                `portrait-${this.currentNPC}-normal`
+            );
+        }
     }
 
     update()
@@ -159,6 +230,46 @@ export default class DialogueManager
             return;
         }
 
+        // ===== 选项 =====
+
+        if (this.isShowingChoices)
+        {
+            if (
+                Phaser.Input.Keyboard.JustDown(
+                    this.cursors.up
+                )
+            )
+            {
+                this.selectedChoiceIndex = Math.max(
+                    0,
+                    this.selectedChoiceIndex - 1
+                );
+
+                this.updateChoiceHighlight();
+            }
+
+            if (
+                Phaser.Input.Keyboard.JustDown(
+                    this.cursors.down
+                )
+            )
+            {
+                this.selectedChoiceIndex = Math.min(
+                    this.currentChoices.length - 1,
+                    this.selectedChoiceIndex + 1
+                );
+
+                this.updateChoiceHighlight();
+            }
+
+            if (Phaser.Input.Keyboard.JustDown(this.spaceKey))
+            {
+                this.selectChoice(this.selectedChoiceIndex);
+            }
+
+            return;
+        }
+
         // ===== 普通剧情对话 =====
 
         if (!this.isPlaying)
@@ -184,8 +295,104 @@ export default class DialogueManager
     showCurrentDialogue()
     {
         const current = this.dialogues[this.dialogIndex];
+
+        if (current.choices)
+        {
+            this.showChoices(current.choices);
+            return;
+        }
+
+        this.hideChoices();
         this.text.setText(current.text);
         this.updatePortrait(current);
+    }
+
+    showChoices(choices)
+    {
+        this.isShowingChoices = true;
+        this.currentChoices = choices;
+        this.selectedChoiceIndex = 0;
+
+        choices.forEach((choice, index) =>
+        {
+            const text =
+                this.choiceTexts[index];
+
+            text.setText(`${index + 1}. ${choice.label}`);
+            text.setVisible(true);
+        });
+
+        for (
+            let i = choices.length;
+            i < this.choiceTexts.length;
+            i++
+        )
+        {
+            this.choiceTexts[i].setVisible(false);
+        }
+
+        this.choiceHint.setVisible(true);
+        this.updateChoiceHighlight();
+    }
+
+    updateChoiceHighlight()
+    {
+        this.choiceTexts.forEach((text, index) =>
+        {
+            if (!text.visible)
+            {
+                return;
+            }
+
+            const selected =
+                index === this.selectedChoiceIndex;
+
+            text.setStyle({
+                color: selected ? '#ffffaa' : '#ffffff',
+                backgroundColor: selected ? '#555555' : '#333333'
+            });
+        });
+    }
+
+    hideChoices()
+    {
+        this.isShowingChoices = false;
+        this.currentChoices = [];
+
+        this.choiceTexts.forEach(text =>
+        {
+            text.setVisible(false);
+        });
+
+        this.choiceHint.setVisible(false);
+    }
+
+    selectChoice(index)
+    {
+        const choice = this.currentChoices[index];
+
+        if (!choice)
+        {
+            return;
+        }
+
+        this.hideChoices();
+
+        if (choice.effect)
+        {
+            this.scene.pendingNeutralEffect = choice.effect;
+        }
+
+        if (choice.lines?.length)
+        {
+            this.dialogues = choice.lines;
+            this.dialogIndex = 0;
+            this.showCurrentDialogue();
+        }
+        else
+        {
+            this.end();
+        }
     }
 
     showObjectDialogue(object)
@@ -293,6 +500,8 @@ export default class DialogueManager
 
     end()
     {
+        this.hideChoices();
+
         this.isPlaying = false;
 
         this.box.setVisible(false);

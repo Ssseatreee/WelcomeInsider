@@ -53,8 +53,17 @@ const dialogues = {
             }
         ],
 
-        normalTalk: [
-            '“今天事情很多。”'
+        busyCatch: [
+            {
+                speaker: 'v2',
+                expression: 'stress',
+                text:'“我也不想管，不过你积压的工作也太多了吧。”'
+            },
+            {
+                speaker: 'richele',
+                expression: 'stress',
+                text:'“......”'
+            }
         ]
     },
 
@@ -104,6 +113,19 @@ const dialogues = {
                 expression: 'stress',
                 text:'“哈哈...”'
             }
+        ],
+
+        busyCatch: [
+            {
+                speaker: 'federico',
+                expression: 'strict',
+                text:'“执行者里凯莱，你今日对工作的懈怠已明显超出标准。”'
+            },
+            {
+                speaker: 'richele',
+                expression: 'stress',
+                text:'“...”'
+            }
         ]
     },
 
@@ -152,6 +174,86 @@ const dialogues = {
                 speaker: 'richele',
                 expression: 'stress',
                 text:'“...”'
+            }
+        ],
+
+        busyCatch: [
+            {
+                speaker: 'lemuen',
+                expression: 'strict',
+                text:'“今天事情很多。执行者先生。”'
+            },
+            {
+                speaker: 'richele',
+                expression: 'stress',
+                text:'“...好的，马上。”'
+            }
+        ]
+    },
+
+    aze: {
+
+        talk: [
+            {
+                speaker: 'aze',
+                expression: 'normal',
+                text:'“啊，里凯莱前辈。”'
+            },
+            {
+                speaker: 'richele',
+                expression: 'normal',
+                text:'“你好啊艾泽尔。”'
+            },
+            {
+                speaker: 'aze',
+                expression: 'normal',
+                text:'“我正在泡咖啡，前辈要来一杯吗？”'
+            },
+            {
+                choices: [
+                    {
+                        label: '接受艾泽尔的咖啡',
+                        effect: 'azeCoffee',
+                        lines: [
+                            {
+                                speaker: 'richele',
+                                expression: 'smile',
+                                text:'“谢谢啦。”'
+                            },
+                            {
+                                speaker: 'aze',
+                                expression: 'smile',
+                                text:'“请慢用，前辈。我先走了。”'
+                            }
+                        ]
+                    },
+                    {
+                        label: '向艾泽尔寻求帮助',
+                        effect: 'clearWork',
+                        lines: [
+                            {
+                                speaker: 'richele',
+                                expression: 'normal',
+                                text:'“谢谢，不过咖啡就先不了。比起这个...”'
+                            },
+                            {
+                                speaker: 'richele',
+                                expression: 'stress',
+                                text:'“呃...能帮我分担一下工作吗？实在是忙不过来呢。”'
+                            },
+                            {
+                                speaker: 'aze',
+                                expression: 'suprise',
+                                text:'“原来如此，我明白了。”'
+                            },
+                            {
+                                speaker: 'aze',
+                                expression: 'smile',
+                                text:'“交给我吧，前辈。”'
+                            }
+                        ]
+                    }
+                ]
             }
         ]
     }

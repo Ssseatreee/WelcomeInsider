@@ -17,23 +17,12 @@ export default class MapManager {
         this.navigationGrid = null;
     }
 
-    loadMap(mapKey) {
-        // 防止重复加载
-        if (this.currentMapKey === mapKey) return;
-
-        // 清理旧地图
-        this.clearCurrentMap();
-
-        this.currentMapKey = mapKey;
-
-        // 创建 tilemap
-        this.map = this.scene.make.tilemap({ key: mapKey });
-
-        // 加载所有 tilesets
+    collectTilesets(map)
+    {
         const tilesets = [];
-        this.map.tilesets.forEach(ts => {
 
-            // 外部 .tsx 引用且未内嵌数据时跳过
+        map.tilesets.forEach(ts =>
+        {
             if (ts.source && !ts.image && !ts.tiles?.length)
             {
                 console.warn(
@@ -47,7 +36,7 @@ export default class MapManager {
             if (this.isCollectionTileset(ts))
             {
                 this.normalizeCollectionTileImages(ts);
-                tileset = this.map.addTilesetImage(ts.name);
+                tileset = map.addTilesetImage(ts.name);
             }
             else
             {
@@ -61,7 +50,7 @@ export default class MapManager {
                     );
                 }
 
-                tileset = this.map.addTilesetImage(
+                tileset = map.addTilesetImage(
                     ts.name,
                     textureKey
                 );
@@ -72,6 +61,73 @@ export default class MapManager {
                 tilesets.push(tileset);
             }
         });
+
+        return tilesets;
+    }
+
+    /**
+     * 为离屏 NPC 预建导航网格（不渲染、不生成 Matter 碰撞体）
+     */
+    warmNavigationGrid(mapKey)
+    {
+        if (NavigationGrid.get(mapKey))
+        {
+            return;
+        }
+
+        const map =
+            this.scene.make.tilemap({ key: mapKey });
+
+        const tilesets = this.collectTilesets(map);
+        const layers = {};
+
+        map.layers.forEach(layerData =>
+        {
+            const layer =
+                map.createLayer(
+                    layerData.name,
+                    tilesets,
+                    0,
+                    0
+                );
+
+            if (layer)
+            {
+                layer.setCollisionByProperty({
+                    collides: true
+                });
+
+                if (
+                    typeof layer.setCollisionFromCollisionGroup
+                    === 'function'
+                )
+                {
+                    layer.setCollisionFromCollisionGroup(true);
+                }
+
+                layers[layerData.name] = layer;
+            }
+        });
+
+        NavigationGrid.getOrCreate(map, layers);
+
+        Object.values(layers).forEach(layer => layer.destroy());
+        map.destroy();
+    }
+
+    loadMap(mapKey) {
+        // 防止重复加载
+        if (this.currentMapKey === mapKey) return;
+
+        // 清理旧地图
+        this.clearCurrentMap();
+
+        this.currentMapKey = mapKey;
+
+        // 创建 tilemap
+        this.map = this.scene.make.tilemap({ key: mapKey });
+
+        const tilesets = this.collectTilesets(this.map);
         
 
         // 计算偏移
@@ -157,7 +213,8 @@ export default class MapManager {
         this.navigationGrid =
             NavigationGrid.getOrCreate(
                 this.map,
-                this.layers
+                this.layers,
+                true
             );
 
         console.log(`Loaded map: ${mapKey}`);

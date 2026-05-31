@@ -37,6 +37,9 @@ export default class NPC
         this.moveSpeed =
             config.moveSpeed || 1.5;
 
+        this.baseMoveSpeed = this.moveSpeed;
+        this._speedBoosted = false;
+
         // ===== 状态 =====
 
         this.state = 'idle';
@@ -51,6 +54,8 @@ export default class NPC
         this.vy = 0;
 
         this.portalCooldown = 0;
+
+        this.removed = false;
 
         if (this.type === 'hunter')
         {
@@ -124,6 +129,11 @@ export default class NPC
     {
         const { sceneMap } = context;
 
+        if (this.portalCooldown > 0)
+        {
+            this.portalCooldown -= delta;
+        }
+
         const onSceneMap =
             this.currentMap === sceneMap;
 
@@ -142,8 +152,11 @@ export default class NPC
             }
             else
             {
-                this.worldX += movement.vx;
-                this.worldY += movement.vy;
+                HunterPathing.applyOffSceneStep(
+                    this,
+                    movement,
+                    delta
+                );
                 this.vx = 0;
                 this.vy = 0;
             }
@@ -207,12 +220,17 @@ export default class NPC
         }
 
         const movement =
-            this.pathing.getVelocity(
-                targetX,
-                targetY,
-                this.currentMap,
-                delta
-            );
+            onSceneMap
+                ? this.pathing.getVelocity(
+                    targetX,
+                    targetY,
+                    this.currentMap,
+                    delta
+                )
+                : this.pathing.directVelocity(
+                    targetX,
+                    targetY
+                );
 
         if (movement.vx !== 0 || movement.vy !== 0)
         {
@@ -223,8 +241,11 @@ export default class NPC
             }
             else
             {
-                this.worldX += movement.vx;
-                this.worldY += movement.vy;
+                HunterPathing.applyOffSceneStep(
+                    this,
+                    movement,
+                    delta
+                );
                 this.vx = 0;
                 this.vy = 0;
             }

@@ -15,11 +15,11 @@ export default class NavigationGrid
         this._buildFromLayers(layers);
     }
 
-    static getOrCreate(map, layers)
+    static getOrCreate(map, layers, force = false)
     {
         const key = map.key;
 
-        if (gridCache.has(key))
+        if (!force && gridCache.has(key))
         {
             return gridCache.get(key);
         }
@@ -87,6 +87,47 @@ export default class NavigationGrid
         }
 
         return false;
+    }
+
+    clampWorldPosition(x, y, margin = 10)
+    {
+        if (this.isPositionWalkable(x, y, margin))
+        {
+            return { x, y };
+        }
+
+        const { tx, ty } = this.worldToTile(x, y);
+        const nearest = this.findNearestWalkable(tx, ty);
+
+        if (!nearest)
+        {
+            return { x, y };
+        }
+
+        return this.tileToWorld(nearest.tx, nearest.ty);
+    }
+
+    isPositionWalkable(x, y, margin = 10)
+    {
+        const points = [
+            [x, y],
+            [x - margin, y],
+            [x + margin, y],
+            [x, y - margin],
+            [x, y + margin]
+        ];
+
+        for (const [px, py] of points)
+        {
+            const tile = this.worldToTile(px, py);
+
+            if (!this.isWalkable(tile.tx, tile.ty))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     index(tx, ty)

@@ -44,6 +44,15 @@ const level5 = {
             mapKey: 'drinkingroom',
             type: 'neutral',
             moveSpeed: 0.7
+        },
+
+        {
+            name: 'oren',
+            x: 420,
+            y: 280,
+            mapKey: 'drinkingroom',
+            type: 'neutral',
+            moveSpeed: 1.8
         }
     ]
 };

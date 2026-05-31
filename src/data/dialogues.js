@@ -64,6 +64,29 @@ const dialogues = {
                 expression: 'stress',
                 text:'“......”'
             }
+        ],
+
+        aboutOren: [
+            {
+                speaker: 'v2',
+                expression: 'thinking',
+                text:'“奥伦啊...”'
+            },
+            {
+                speaker: 'v2',
+                expression: 'normal',
+                text:'“我会提醒蕾缪安。”'
+            },
+            {
+                speaker: 'v2',
+                expression: 'stress',
+                text:'“不过你嘛...小心点。”'
+            },
+            {
+                speaker: 'richele',
+                expression: 'stress',
+                text:'“好。”'
+            }
         ]
     },
 
@@ -125,6 +148,24 @@ const dialogues = {
                 speaker: 'richele',
                 expression: 'stress',
                 text:'“...”'
+            }
+        ],
+
+        aboutOren: [
+            {
+                speaker: 'federico',
+                expression: 'biyan',
+                text:'“前万国信使奥伦。”'
+            },
+            {
+                speaker: 'federico',
+                expression: 'normal',
+                text:'“我会去查明情况。”'
+            },
+            {
+                speaker: 'richele',
+                expression: 'biyan_speak',
+                text:'“害。真是辛苦你了费德里科。”'
             }
         ]
     },
@@ -188,6 +229,29 @@ const dialogues = {
                 expression: 'stress',
                 text:'“...好的，马上。”'
             }
+        ],
+
+        aboutOren: [
+            {
+                speaker: 'lemuen',
+                expression: 'thinking',
+                text:'“原来还有这事。”'
+            },
+            {
+                speaker: 'lemuen',
+                expression: 'normal',
+                text:'“那这次就先这样吧。”'
+            },
+            {
+                speaker: 'lemuen',
+                expression: 'smile',
+                text:'“下次可要注意了哦。”'
+            },
+            {
+                speaker: 'richele',
+                expression: 'stress',
+                text:'“呃...哈哈好的。”'
+            }
         ]
     },
 
@@ -250,10 +314,114 @@ const dialogues = {
                                 speaker: 'aze',
                                 expression: 'smile',
                                 text:'“交给我吧，前辈。”'
+                            },
+                            {
+                                speaker: 'richele',
+                                expression: 'happy',
+                                text:'“真是太谢谢你了！”'
                             }
                         ]
                     }
                 ]
+            }
+        ]
+    },
+
+    oren: {
+
+        talk: [
+            {
+                speaker: 'oren',
+                expression: 'normal',
+                text:'“哟，里凯莱。”'
+            },
+            {
+                speaker: 'richele',
+                expression: 'strict',
+                text:'“哟，奥伦。”'
+            },
+            {
+                speaker: 'oren',
+                expression: 'smile',
+                text:'“怎么，又在偷懒？”'
+            },
+            {
+                speaker: 'richele',
+                expression: 'biyan_speak',
+                text:'“少栽赃我。”'
+            },
+            {
+                speaker: 'oren',
+                expression: 'smile',
+                text:'“哈！我懒得管。”'
+            },
+            {
+                speaker: 'oren',
+                expression: 'normal',
+                text:'“我是想问你，上次和你要的文件，你找到了吗？”'
+            },
+            {
+                speaker: 'richele',
+                expression: 'strict',
+                text:'“文件？”'
+            },
+            {
+                speaker: 'richele',
+                expression: 'happy',
+                text:'“嗨呀，你不说我都忘了。”'
+            },
+            {
+                speaker: 'richele',
+                expression: 'smile',
+                text:'“等我找到再给你。”'
+            },
+            {
+                speaker: 'oren',
+                expression: 'smile',
+                text:'“那就麻烦你了。”'
+            },
+            {
+                speaker: 'oren',
+                expression: 'smile',
+                text:'(不过这小子怎么突然笑得这么恶心)'
+            }
+        ],
+
+        Catch: [
+            {
+                speaker: 'richele',
+                expression: 'stress',
+                text:'“...”'
+            },
+            {
+                speaker: 'richele',
+                expression: 'stress',
+                text:'“哟，奥伦。”'
+            },
+            {
+                speaker: 'oren',
+                expression: 'strict',
+                text:'“装没事人呢？”'
+            },
+            {
+                speaker: 'oren',
+                expression: 'angry',
+                text:'“里凯莱，你这个骗子。”'
+            },
+            {
+                speaker: 'oren',
+                expression: 'yin',
+                text:'“昨天你和你们那的大人物们是怎么说的？”'
+            },
+            {
+                speaker: 'oren',
+                expression: 'yin',
+                text:'“看来我们几个之间有些误会啊。一起去枢机办公室聊聊吧。”'
+            },
+            {
+                speaker: 'richele',
+                expression: 'strict',
+                text:'“！”'
             }
         ]
     }

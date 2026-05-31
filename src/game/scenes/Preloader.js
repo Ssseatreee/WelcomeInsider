@@ -5,6 +5,7 @@ import createV2Animations from '../../animations/v2Animations';
 import createFedericoAnimations from '../../animations/federicoAnimations';
 import createLemuenAnimations from '../../animations/lemuenAnimations';
 import createAzeAnimations from '../../animations/azeAnimations';
+import createOrenAnimations from '../../animations/orenAnimations';
 
 export class Preloader extends Scene
 {
@@ -70,7 +71,19 @@ export class Preloader extends Scene
             { frameWidth: 32, frameHeight: 32 }
         );
 
+        this.load.spritesheet(
+            'npc-oren',
+            '../../../public/assets/sprites/oren_sprite.png',
+            { frameWidth: 32, frameHeight: 32 }
+        );
+
         this.load.image('logo', 'logo.png');
+
+        this.load.image(
+            'item-coffee',
+            '../../../public/assets/items/coffee.png'
+        );
+
         this.loadPortraits();
 
         this.loadMap();
@@ -185,6 +198,28 @@ export class Preloader extends Scene
             '../../../public/assets/portraits/aze/suprise.png'
         );
 
+        // oren
+        this.load.image(
+            'portrait-oren-normal',
+            '../../../public/assets/portraits/oren/normal.png'
+        );
+        this.load.image(
+            'portrait-oren-smile',
+            '../../../public/assets/portraits/oren/smile.png'
+        );
+        this.load.image(
+            'portrait-oren-strict',
+            '../../../public/assets/portraits/oren/strict.png'
+        );
+        this.load.image(
+            'portrait-oren-angry',
+            '../../../public/assets/portraits/oren/angry.png'
+        );
+        this.load.image(
+            'portrait-oren-yin',
+            '../../../public/assets/portraits/oren/yin.png'
+        );
+
     }
 
     loadMap()
@@ -293,6 +328,7 @@ export class Preloader extends Scene
         //lemuen animations
         createLemuenAnimations(this.anims);
         createAzeAnimations(this.anims);
+        createOrenAnimations(this.anims);
 
 
         //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.

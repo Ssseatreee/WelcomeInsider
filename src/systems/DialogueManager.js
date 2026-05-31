@@ -1,5 +1,6 @@
 // import { use } from 'matter';
 import * as Phaser from 'phaser';
+import items from '../data/items.js';
 import {
     GAME_HEIGHT,
     PLAY_AREA_UI_CENTER_X
@@ -25,6 +26,13 @@ export default class DialogueManager
         this.currentChoices = [];
         this.selectedChoiceIndex = 0;
         this.choiceTexts = [];
+
+        this.isShowingEffect = false;
+        this.effectPhase = null;
+        this.effectTimers = [];
+
+        /** 各角色最近一次说话时的表情 */
+        this.lastExpressions = {};
 
         const boxY = GAME_HEIGHT - 110;
 
@@ -77,6 +85,16 @@ export default class DialogueManager
 
         this.text.setVisible(false);
         this.text.setDepth(250);
+
+        this.effectImage = scene.add.image(
+            PLAY_AREA_UI_CENTER_X,
+            GAME_HEIGHT / 2 - 20,
+            'item-coffee'
+        );
+
+        this.effectImage.setScrollFactor(0);
+        this.effectImage.setDepth(300);
+        this.effectImage.setVisible(false);
 
         this.leftPortrait = scene.add.image(
             this.box.x - 320,
@@ -168,6 +186,9 @@ export default class DialogueManager
 
     start(dialogues)
     {
+        this.clearEffectTimers();
+        this.isShowingEffect = false;
+        this.effectPhase = null;
         this.hideChoices();
 
         this.leftPortrait.setVisible(true);
@@ -179,27 +200,24 @@ export default class DialogueManager
 
         this.isPlaying = true;
 
-        this.box.setVisible(true);
-
-        this.text.setVisible(true);
-
-        this.showCurrentDialogue();
-
         this.currentNPC =
             dialogues.find(
                 d => d.speaker && d.speaker !== 'richele'
             )?.speaker;
 
-        this.leftPortrait.setTexture(
-            'portrait-richele-normal'
-        );
+        this.lastExpressions = { richele: 'normal' };
 
         if (this.currentNPC)
         {
-            this.rightPortrait.setTexture(
-                `portrait-${this.currentNPC}-normal`
-            );
+            this.lastExpressions[this.currentNPC] = 'normal';
         }
+
+        this.box.setVisible(true);
+
+        this.text.setVisible(true);
+        this.resetDialogueTextLayout();
+
+        this.showCurrentDialogue();
     }
 
     update()
@@ -225,6 +243,22 @@ export default class DialogueManager
                     this.objectDialogCooldown = false;
 
                 });
+            }
+
+            return;
+        }
+
+        // ===== 选项效果（仍在对话中）=====
+
+        if (this.isShowingEffect)
+        {
+            if (
+                this.effectPhase === 'message'
+                &&
+                Phaser.Input.Keyboard.JustDown(this.spaceKey)
+            )
+            {
+                this.finishEffectAndEnd();
             }
 
             return;
@@ -283,13 +317,107 @@ export default class DialogueManager
 
             if (this.dialogIndex >= this.dialogues.length)
             {
-                this.end();
+                this.tryFinishOrShowEffect();
             }
             else
             {
                 this.showCurrentDialogue();
             }
         }
+    }
+
+    resetDialogueTextLayout()
+    {
+        this.text.setOrigin(0, 0);
+        this.text.setPosition(
+            this.box.x - 420,
+            this.box.y - 70
+        );
+    }
+
+    clearEffectTimers()
+    {
+        this.effectTimers.forEach(timer => timer.remove());
+        this.effectTimers = [];
+    }
+
+    tryFinishOrShowEffect()
+    {
+        const effect =
+            this.scene.pendingNeutralEffect;
+
+        if (effect === 'betrayOren')
+        {
+            this.scene.applyBetrayOren?.();
+            this.scene.pendingNeutralEffect = null;
+            this.end();
+            return;
+        }
+
+        if (effect)
+        {
+            this.beginEffectPhase(effect);
+            return;
+        }
+
+        this.end();
+    }
+
+    beginEffectPhase(effect)
+    {
+        this.isShowingEffect = true;
+        this.hideChoices();
+
+        this.leftPortrait.setVisible(false);
+        this.rightPortrait.setVisible(false);
+
+        this.scene.applyNeutralEffect?.(effect);
+
+        if (effect === 'azeCoffee')
+        {
+            const { textureKey, effectMessage } =
+                items.azeCoffee;
+
+            this.text.setVisible(false);
+            this.effectImage.setTexture(textureKey);
+            this.effectImage.setVisible(true);
+
+            this.effectPhase = 'coffee_image';
+
+            this.effectTimers.push(
+                this.scene.time.delayedCall(3000, () =>
+                {
+                    this.effectImage.setVisible(false);
+                    this.resetDialogueTextLayout();
+                    this.text.setText(effectMessage);
+                    this.text.setVisible(true);
+                    this.effectPhase = 'message';
+                })
+            );
+        }
+        else if (effect === 'clearWork')
+        {
+            this.effectImage.setVisible(false);
+            this.resetDialogueTextLayout();
+            this.text.setText(
+                items.clearWork.effectMessage
+            );
+            this.text.setVisible(true);
+            this.effectPhase = 'message';
+        }
+        else
+        {
+            this.finishEffectAndEnd();
+        }
+    }
+
+    finishEffectAndEnd()
+    {
+        this.clearEffectTimers();
+        this.isShowingEffect = false;
+        this.effectPhase = null;
+        this.effectImage.setVisible(false);
+        this.end();
     }
 
     showCurrentDialogue()
@@ -303,6 +431,7 @@ export default class DialogueManager
         }
 
         this.hideChoices();
+        this.resetDialogueTextLayout();
         this.text.setText(current.text);
         this.updatePortrait(current);
     }
@@ -391,7 +520,7 @@ export default class DialogueManager
         }
         else
         {
-            this.end();
+            this.tryFinishOrShowEffect();
         }
     }
 
@@ -466,9 +595,13 @@ export default class DialogueManager
     {
         const speaker = dialogue.speaker;
 
-        const expression = dialogue.expression;
+        const expression =
+            dialogue.expression || 'normal';
 
-        const textureKey = `portrait-${speaker}-${expression}`;
+        this.lastExpressions[speaker] = expression;
+
+        const textureKey =
+            `portrait-${speaker}-${expression}`;
 
         // 主角固定左边，NPC固定右边
         if (speaker === 'richele')
@@ -479,9 +612,23 @@ export default class DialogueManager
 
             this.leftPortrait.setVisible(true);
             this.leftPortrait.setAlpha(1);
-            this.rightPortrait.setAlpha(0.5);
-
             this.leftPortrait.setDepth(180);
+
+            if (this.currentNPC)
+            {
+                const npcExpression =
+                    this.lastExpressions[this.currentNPC]
+                    || 'normal';
+
+                this.rightPortrait.setTexture(
+                    `portrait-${this.currentNPC}-${npcExpression}`
+                );
+
+                this.rightPortrait.setVisible(true);
+            }
+
+            this.rightPortrait.setAlpha(0.5);
+            this.rightPortrait.setDepth(179);
         }
         else
         {
@@ -491,22 +638,36 @@ export default class DialogueManager
 
             this.rightPortrait.setVisible(true);
             this.rightPortrait.setAlpha(1);
-            this.leftPortrait.setAlpha(0.5);
-
             this.rightPortrait.setDepth(180);
+
+            const richeleExpression =
+                this.lastExpressions.richele
+                || 'normal';
+
+            this.leftPortrait.setTexture(
+                `portrait-richele-${richeleExpression}`
+            );
+
+            this.leftPortrait.setVisible(true);
+            this.leftPortrait.setAlpha(0.5);
+            this.leftPortrait.setDepth(179);
         }
     }
 
 
     end()
     {
+        this.clearEffectTimers();
         this.hideChoices();
 
+        this.isShowingEffect = false;
+        this.effectPhase = null;
         this.isPlaying = false;
 
         this.box.setVisible(false);
 
         this.text.setVisible(false);
+        this.effectImage.setVisible(false);
 
         // 隐藏立绘
         this.leftPortrait.setVisible(false);

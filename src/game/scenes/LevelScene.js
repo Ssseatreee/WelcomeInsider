@@ -112,6 +112,7 @@ export default class LevelScene extends Phaser.Scene
         }
 
         this.pendingNeutralEffect = null;
+        this.grantedSecondChance = false;
 
         // ===== 对话管理器 =====
         this.dialogueManager =
@@ -389,6 +390,10 @@ export default class LevelScene extends Phaser.Scene
             rightHudIgnore(dm.leftPortrait);
             rightHudIgnore(dm.rightPortrait);
 
+            // 物品图标仅在主游戏区居中显示
+            this.hudCamera?.ignore(dm.effectImage);
+            this.rightHudCamera?.ignore(dm.effectImage);
+
             dm.choiceTexts?.forEach(text =>
             {
                 hudIgnore(text);
@@ -398,6 +403,98 @@ export default class LevelScene extends Phaser.Scene
             hudIgnore(dm.choiceHint);
             rightHudIgnore(dm.choiceHint);
         }
+    }
+
+    applyNeutralEffect(effect)
+    {
+        if (effect === 'azeCoffee')
+        {
+            this.grantAzeCoffee();
+        }
+        else if (effect === 'clearWork')
+        {
+            this.clearWorkBacklog();
+        }
+
+        this.pendingNeutralEffect = null;
+    }
+
+    applyBetrayOren()
+    {
+        GameState.setFlag('orenBetrayed', true);
+
+        const oren =
+            this.npcManager.getAllNPCs().find(
+                npc =>
+                    npc.npcName === 'oren'
+                    &&
+                    npc.type === 'neutral'
+            );
+
+        if (oren)
+        {
+            oren.removed = true;
+
+            const sprite =
+                this.npcSprites.find(
+                    s => s.entity === oren
+                );
+
+            if (sprite?.scene)
+            {
+                sprite.setOnMap(false);
+            }
+        }
+
+        if (this.currentDialogNPC)
+        {
+            this.npcCatchCount[
+                this.currentDialogNPC.npcName
+            ] = 0;
+        }
+
+        this.grantedSecondChance = true;
+        this.pendingNeutralEffect = null;
+    }
+
+    buildSecondCatchDialogue(npcName)
+    {
+        const lines =
+            dialogues[npcName]?.secondCatch ?? [];
+
+        if (
+            !GameState.getFlag('orenMet')
+            ||
+            GameState.getFlag('orenBetrayed')
+        )
+        {
+            return lines;
+        }
+
+        const aboutOren =
+            dialogues[npcName]?.aboutOren;
+
+        if (!aboutOren?.length)
+        {
+            return lines;
+        }
+
+        return [
+            ...lines,
+            {
+                choices: [
+                    {
+                        label: '出卖奥伦，换取一次机会',
+                        effect: 'betrayOren',
+                        lines: aboutOren
+                    },
+                    {
+                        label: '保持沉默',
+                        lines: []
+                    }
+                ]
+            }
+        ];
     }
 
     revertHunterSpeedBoost()
@@ -438,6 +535,11 @@ export default class LevelScene extends Phaser.Scene
         if (npc.npcName === 'aze')
         {
             GameState.setFlag('azeGone', true);
+        }
+        else if (npc.npcName === 'oren')
+        {
+            GameState.setFlag('orenMet', true);
+            GameState.setFlag('orenGone', true);
         }
 
         npc.removed = true;
@@ -651,6 +753,24 @@ export default class LevelScene extends Phaser.Scene
                 return;
             }
 
+            if (
+                npc.npcName === 'oren'
+                &&
+                GameState.getFlag('orenGone')
+            )
+            {
+                this.dialogTriggered = false;
+                this.currentDialogNPC = null;
+                return;
+            }
+
+            if (npc.removed)
+            {
+                this.dialogTriggered = false;
+                this.currentDialogNPC = null;
+                return;
+            }
+
             dialogueKey = 'talk';
 
             const dialogue =
@@ -660,6 +780,31 @@ export default class LevelScene extends Phaser.Scene
             {
                 console.warn(
                     `Dialogue not found: ${npcName} -> ${dialogueKey}`
+                );
+                this.dialogTriggered = false;
+                this.currentDialogNPC = null;
+                return;
+            }
+
+            this.currentCatchIsBusy = false;
+            this.dialogueManager.start(dialogue);
+            return;
+        }
+
+        // ===== 被出卖的奥伦作为追捕者：一次即过关 =====
+        if (
+            npcName === 'oren'
+            &&
+            npc.type === 'hunter'
+        )
+        {
+            const dialogue =
+                dialogues.oren?.Catch;
+
+            if (!dialogue)
+            {
+                console.warn(
+                    'Dialogue not found: oren -> Catch'
                 );
                 this.dialogTriggered = false;
                 this.currentDialogNPC = null;
@@ -703,6 +848,12 @@ export default class LevelScene extends Phaser.Scene
         // ===== 读取对话 =====
         let dialogue =
             dialogues[npcName]?.[dialogueKey];
+
+        if (dialogueKey === 'secondCatch')
+        {
+            dialogue =
+                this.buildSecondCatchDialogue(npcName);
+        }
 
         if (!dialogue && isBusy)
         {
@@ -774,26 +925,25 @@ export default class LevelScene extends Phaser.Scene
         // ===== 结算逻辑（仅追捕者）=====
         if (npc.type === 'neutral')
         {
-            const effect = this.pendingNeutralEffect;
-
-            this.pendingNeutralEffect = null;
-
-            if (effect === 'azeCoffee')
-            {
-                this.grantAzeCoffee();
-            }
-            else if (effect === 'clearWork')
-            {
-                this.clearWorkBacklog();
-            }
-
             this.despawnNeutralNpc(npc);
+        }
+        else if (
+            npc.npcName === 'oren'
+            &&
+            npc.type === 'hunter'
+        )
+        {
+            this.nextLevel();
         }
         else
         {
             if (this.currentCatchIsBusy)
             {
                 this.nextLevel();
+            }
+            else if (this.grantedSecondChance)
+            {
+                this.grantedSecondChance = false;
             }
             else if (catchCount >= 2)
             {
@@ -875,6 +1025,28 @@ export default class LevelScene extends Phaser.Scene
             )
             {
                 npc.removed = true;
+            }
+            else if (npc.npcName === 'oren')
+            {
+                if (GameState.getFlag('orenBetrayed'))
+                {
+                    if (npc.convertToHunter)
+                    {
+                        npc.convertToHunter();
+                    }
+
+                    npc.removed = false;
+                }
+                else if (GameState.getFlag('orenGone'))
+                {
+                    npc.removed = true;
+                }
+                else
+                {
+                    npc.type = 'neutral';
+                    npc.hasEmpathy = false;
+                    npc.removed = false;
+                }
             }
             else
             {
@@ -975,6 +1147,14 @@ export default class LevelScene extends Phaser.Scene
                     sprite.entity.npcName === 'aze'
                     &&
                     GameState.getFlag('azeGone')
+                )
+                ||
+                (
+                    sprite.entity.npcName === 'oren'
+                    &&
+                    GameState.getFlag('orenGone')
+                    &&
+                    sprite.entity.type === 'neutral'
                 )
             )
             {

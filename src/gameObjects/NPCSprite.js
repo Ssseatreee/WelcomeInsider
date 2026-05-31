@@ -94,6 +94,13 @@ extends Phaser.Physics.Matter.Sprite
                     this.entity.currentMap
                 );
             }
+            else if (this.entity.usesPortals)
+            {
+                HunterPathing.clampEntity(
+                    this.entity,
+                    this.entity.currentMap
+                );
+            }
 
             this.setPosition(
                 this.entity.worldX,
@@ -180,6 +187,34 @@ extends Phaser.Physics.Matter.Sprite
             {
                 this.entity.portalCooldown = 600;
                 this.entity.pathing?.reset();
+
+                this.setPosition(
+                    this.entity.worldX,
+                    this.entity.worldY
+                );
+            }
+        }
+        else if (this.entity.usesPortals)
+        {
+            HunterPathing.clampEntity(
+                this.entity,
+                this.entity.currentMap
+            );
+
+            this.setPosition(
+                this.entity.worldX,
+                this.entity.worldY
+            );
+
+            if (
+                this.entity.portalCooldown <= 0
+                &&
+                this.scene.portalRegistry?.tryPortalTransition(
+                    this.entity
+                )
+            )
+            {
+                this.entity.portalCooldown = 600;
 
                 this.setPosition(
                     this.entity.worldX,

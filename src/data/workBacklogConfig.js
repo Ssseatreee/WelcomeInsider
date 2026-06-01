@@ -14,6 +14,12 @@ export default {
     /** 距顶部的偏移，数值越小面板越靠上 */
     panelOffsetTop: 100,
 
+    /** 任务面板（位于工作进度条上方） */
+    missionPanel: {
+        gap: 10,
+        height: 86
+    },
+
     barWidth: 260,
     barHeight: 22,
     barColor: 0xff6644,

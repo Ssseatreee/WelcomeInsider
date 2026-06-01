@@ -11,6 +11,9 @@ import PortalRegistry from '../../systems/PortalRegistry.js';
 import MiniMap from '../../systems/MiniMap.js';
 import WorkBacklogBar from '../../systems/WorkBacklogBar.js';
 import HunterPathing from '../../systems/HunterPathing.js';
+import LevelObjectives from '../../systems/LevelObjectives.js';
+import MissionPanel from '../../systems/MissionPanel.js';
+import LevelResultOverlay from '../../systems/LevelResultOverlay.js';
 
 import mapDisplayNames from '../../data/mapDisplayNames.js';
 import workBacklogConfig from '../../data/workBacklogConfig.js';
@@ -113,6 +116,31 @@ export default class LevelScene extends Phaser.Scene
 
         this.pendingNeutralEffect = null;
         this.grantedSecondChance = false;
+        this.missionCompleting = false;
+        this.survivalMs = 0;
+        this.isResultShowing = false;
+
+        // ===== 关卡任务 =====
+        this.levelData = levelData;
+        this.objectives =
+            new LevelObjectives(levelData.mission);
+
+        this.objectives.syncFromGameState();
+
+        if (levelData.mission)
+        {
+            this.missionPanel =
+                new MissionPanel(
+                    this,
+                    this.objectives,
+                    levelData.mission
+                );
+
+            this.missionPanel.refresh(0);
+        }
+
+        this.resultOverlay =
+            new LevelResultOverlay(this);
 
         // ===== 对话管理器 =====
         this.dialogueManager =
@@ -160,7 +188,11 @@ export default class LevelScene extends Phaser.Scene
                 this.npcDialogCooldown.add(npcSprite.entity);
 
                 // ===== 触发对话 =====
-                if (!this.dialogueManager.isPlaying)
+                if (
+                    !this.isResultShowing
+                    &&
+                    !this.dialogueManager.isPlaying
+                )
                 {
                     this.triggerDialog(npcSprite.entity);
                 }
@@ -201,7 +233,7 @@ export default class LevelScene extends Phaser.Scene
         this.tipText = this.add.text(
             20,
             60,
-            '方向键移动',
+            '方向键移动 · 完成任务通关',
             {
                 fontSize: '18px',
                 color: '#aaaaaa'
@@ -321,6 +353,28 @@ export default class LevelScene extends Phaser.Scene
 
             this.hudCamera?.ignore(
                 this.workBacklog.container
+            );
+        }
+
+        if (this.missionPanel?.container)
+        {
+            this.cameras.main.ignore(
+                this.missionPanel.container
+            );
+
+            this.hudCamera?.ignore(
+                this.missionPanel.container
+            );
+        }
+
+        if (this.resultOverlay?.container)
+        {
+            this.hudCamera?.ignore(
+                this.resultOverlay.container
+            );
+
+            this.rightHudCamera?.ignore(
+                this.resultOverlay.container
             );
         }
 
@@ -455,6 +509,11 @@ export default class LevelScene extends Phaser.Scene
 
         this.grantedSecondChance = true;
         this.pendingNeutralEffect = null;
+
+        this.emitObjectiveEvent({
+            type: 'setFlag',
+            flag: 'orenBetrayed'
+        });
     }
 
     buildSecondCatchDialogue(npcName)
@@ -522,12 +581,190 @@ export default class LevelScene extends Phaser.Scene
         this.player.applySpeedBoost(
             items.azeCoffee.speedMultiplier
         );
+
+        this.emitObjectiveEvent({
+            type: 'collectItem',
+            itemId: 'azeCoffee'
+        });
     }
 
     clearWorkBacklog()
     {
         this.workBacklog?.reset();
         this.revertHunterSpeedBoost();
+        GameState.setFlag('workClearedOnce', true);
+
+        this.emitObjectiveEvent({
+            type: 'setFlag',
+            flag: 'workClearedOnce'
+        });
+    }
+
+    emitObjectiveEvent(event)
+    {
+        if (!this.objectives?.onEvent(event))
+        {
+            return;
+        }
+
+        this.missionPanel?.refresh(this.survivalMs);
+        this.checkMissionComplete();
+    }
+
+    updateSurvival(delta)
+    {
+        if (!this.objectives?.needsSurvivalTimer())
+        {
+            return;
+        }
+
+        if (this.dialogueManager.isPlaying)
+        {
+            return;
+        }
+
+        if (this.dialogueManager.isShowingObjectDialogue)
+        {
+            return;
+        }
+
+        this.survivalMs += delta;
+
+        if (this.objectives.checkSurvivalTime(this.survivalMs))
+        {
+            this.missionPanel?.refresh(this.survivalMs);
+            this.checkMissionComplete();
+            return;
+        }
+
+        this.missionPanel?.refresh(this.survivalMs);
+    }
+
+    resolveHunterCatchOutcome(npc)
+    {
+        const mission = this.levelData?.mission;
+
+        if (mission?.passOnCatch)
+        {
+            this.showLevelResult(
+                'pass',
+                () => this.advanceLevel()
+            );
+
+            return true;
+        }
+
+        if (
+            npc.npcName === 'oren'
+            &&
+            npc.type === 'hunter'
+        )
+        {
+            this.failLevel();
+            return true;
+        }
+
+        if (this.currentCatchIsBusy)
+        {
+            this.failLevel();
+            return true;
+        }
+
+        if (this.grantedSecondChance)
+        {
+            this.grantedSecondChance = false;
+            return false;
+        }
+
+        const catchCount =
+            this.npcCatchCount[npc.npcName] || 0;
+
+        if (catchCount >= 2)
+        {
+            this.failLevel();
+            return true;
+        }
+
+        return false;
+    }
+
+    checkMissionComplete()
+    {
+        if (
+            this.missionCompleting
+            ||
+            !this.objectives?.isComplete()
+        )
+        {
+            return;
+        }
+
+        this.missionCompleting = true;
+
+        this.showLevelResult(
+            'pass',
+            () => this.advanceLevel()
+        );
+    }
+
+    showLevelResult(type, onConfirm)
+    {
+        if (this.isResultShowing)
+        {
+            return;
+        }
+
+        this.freezeForResultOverlay();
+        this.resultOverlay.show(type, onConfirm);
+    }
+
+    freezeForResultOverlay()
+    {
+        this.isResultShowing = true;
+
+        this.player?.setVelocity(0, 0);
+
+        this.npcManager.getAllNPCs().forEach(npc =>
+        {
+            npc.vx = 0;
+            npc.vy = 0;
+        });
+
+        this.npcSprites?.forEach(sprite =>
+        {
+            sprite.setVelocity(0, 0);
+        });
+    }
+
+    failLevel()
+    {
+        if (this.isResultShowing)
+        {
+            return;
+        }
+
+        this.showLevelResult(
+            'fail',
+            () =>
+            {
+                this.scene.restart({
+                    level: this.level
+                });
+            }
+        );
+    }
+
+    advanceLevel()
+    {
+        if (this.level >= 5)
+        {
+            this.scene.start('MainMenuScene');
+            return;
+        }
+
+        this.scene.restart({
+            level: this.level + 1
+        });
     }
 
     despawnNeutralNpc(npc)
@@ -577,6 +814,16 @@ export default class LevelScene extends Phaser.Scene
 
     update(time, delta)
     {
+        if (this.isResultShowing)
+        {
+            this.player?.setVelocity(0, 0);
+            this.npcSprites?.forEach(sprite =>
+            {
+                sprite.setVelocity(0, 0);
+            });
+            return;
+        }
+
         this.interactHint.setVisible(false);
         this.dialogueManager.update();
 
@@ -589,6 +836,7 @@ export default class LevelScene extends Phaser.Scene
         if (!this.dialogueManager.isPlaying)
         {
             this.workBacklog?.update(delta);
+            this.updateSurvival(delta);
         }
 
         // 剧情/抓捕对话：全局暂停
@@ -727,6 +975,11 @@ export default class LevelScene extends Phaser.Scene
 
     triggerDialog(npc)
     {
+        if (this.isResultShowing)
+        {
+            return;
+        }
+
         this.currentDialogNPC = npc;
         
         // 防止重复触发
@@ -877,25 +1130,6 @@ export default class LevelScene extends Phaser.Scene
         );
     }
 
-    nextLevel()
-    {
-        if (this.level >= 5) // 5个关卡
-        {
-            this.scene.start('MainMenuScene');
-            return;
-        }
-
-        const nextLevel = this.level + 1;
-
-        // 避免在 update / 对话回调中同步 restart 导致场景状态异常
-        this.time.delayedCall(0, () =>
-        {
-            this.scene.restart({
-                level: nextLevel
-            });
-        });
-    }
-
     shutdown()
     {
         if (this._onCollisionStart)
@@ -919,36 +1153,22 @@ export default class LevelScene extends Phaser.Scene
 
         const npcName = npc.npcName;
 
-        const catchCount =
-            this.npcCatchCount[npcName] || 0;
-
         // ===== 结算逻辑（仅追捕者）=====
         if (npc.type === 'neutral')
         {
             this.despawnNeutralNpc(npc);
         }
-        else if (
-            npc.npcName === 'oren'
-            &&
-            npc.type === 'hunter'
-        )
-        {
-            this.nextLevel();
-        }
         else
         {
-            if (this.currentCatchIsBusy)
-            {
-                this.nextLevel();
-            }
-            else if (this.grantedSecondChance)
-            {
-                this.grantedSecondChance = false;
-            }
-            else if (catchCount >= 2)
-            {
-                this.nextLevel();
-            }
+            this.resolveHunterCatchOutcome(npc);
+        }
+
+        if (npc.type === 'neutral')
+        {
+            this.emitObjectiveEvent({
+                type: 'talkNpc',
+                npc: npc.npcName
+            });
         }
 
         // ===== 清理状态 =====
@@ -1097,6 +1317,11 @@ export default class LevelScene extends Phaser.Scene
         });
 
         this.applyCameraFilters();
+
+        this.emitObjectiveEvent({
+            type: 'visitMap',
+            mapKey: targetMap
+        });
 
         console.log(
             'npcs:',

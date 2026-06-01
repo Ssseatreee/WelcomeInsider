@@ -54,7 +54,20 @@ const level3 = {
             type: 'neutral',
             moveSpeed: 1.8
         }
-    ]
+    ],
+
+    mission: {
+        title: '第三关',
+        mode: 'all',
+        objectives: [
+            {
+                id: 'survive_40',
+                type: 'surviveTime',
+                durationMs: 40000,
+                label: '坚持 40 秒不被抓捕'
+            }
+        ]
+    }
 };
 
 export default level3;

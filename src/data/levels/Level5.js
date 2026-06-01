@@ -54,7 +54,19 @@ const level5 = {
             type: 'neutral',
             moveSpeed: 1.8
         }
-    ]
+    ],
+
+    mission: {
+        title: '第五关',
+        passOnCatch: true,
+        objectives: [
+            {
+                id: 'survive_endless',
+                type: 'surviveDisplay',
+                label: '尽量坚持更长时间'
+            }
+        ]
+    }
 };
 
 export default level5;

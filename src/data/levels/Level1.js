@@ -1,5 +1,3 @@
-import mapDisplayNames from "../mapDisplayNames";
-
 const level1 = {
 
     playerSpawn: {
@@ -56,7 +54,20 @@ const level1 = {
             type: 'neutral',
             moveSpeed: 1.8
         }
-    ]
+    ],
+
+    mission: {
+        title: '第一关',
+        mode: 'all',
+        objectives: [
+            {
+                id: 'survive_20',
+                type: 'surviveTime',
+                durationMs: 20000,
+                label: '坚持 20 秒不被抓捕'
+            }
+        ]
+    }
 
 };
 

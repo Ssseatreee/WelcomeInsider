@@ -151,7 +151,11 @@ extends Phaser.Physics.Matter.Sprite
             return;
         }
 
-        if (this.scene.dialogueManager?.isPlaying)
+        if (
+            this.scene.isResultShowing
+            ||
+            this.scene.dialogueManager?.isPlaying
+        )
         {
             this.setVelocity(0, 0);
             return;

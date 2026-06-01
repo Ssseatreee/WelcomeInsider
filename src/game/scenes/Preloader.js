@@ -84,6 +84,16 @@ export class Preloader extends Scene
             '../../../public/assets/items/coffee.png'
         );
 
+        this.load.image(
+            'level-pass-portrait',
+            '../../../public/assets/level/过关里凯莱_白纸稿.png'
+        );
+
+        this.load.image(
+            'level-fail-portrait',
+            '../../../public/assets/level/不过关里凯莱_白纸稿.png'
+        );
+
         this.loadPortraits();
 
         this.loadMap();

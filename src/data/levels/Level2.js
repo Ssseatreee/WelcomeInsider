@@ -54,7 +54,26 @@ const level2 = {
             type: 'neutral',
             moveSpeed: 1.8
         }
-    ]
+    ],
+
+    mission: {
+        title: '第二关',
+        mode: 'all',
+        objectives: [
+            {
+                id: 'survive_40',
+                type: 'surviveTime',
+                durationMs: 40000,
+                label: '坚持 40 秒不被抓捕'
+            },
+            {
+                id: 'talk_aze',
+                type: 'talkNpc',
+                npc: 'aze',
+                label: '与艾泽尔搭话'
+            }
+        ]
+    }
 };
 
 export default level2;

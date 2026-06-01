@@ -54,7 +54,26 @@ const level4 = {
             type: 'neutral',
             moveSpeed: 1.8
         }
-    ]
+    ],
+
+    mission: {
+        title: '第四关',
+        mode: 'all',
+        objectives: [
+            {
+                id: 'survive_60',
+                type: 'surviveTime',
+                durationMs: 60000,
+                label: '坚持 60 秒不被抓捕'
+            },
+            {
+                id: 'talk_oren',
+                type: 'talkNpc',
+                npc: 'oren',
+                label: '与奥伦搭话'
+            }
+        ]
+    }
 };
 
 export default level4;

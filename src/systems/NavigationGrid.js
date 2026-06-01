@@ -1,5 +1,8 @@
 const gridCache = new Map();
 
+/** 与 NPCSprite Matter 碰撞体半径对齐（24×24  body） */
+export const NPC_BODY_MARGIN = 12;
+
 export default class NavigationGrid
 {
     constructor(map, layers, tileWidth, tileHeight)
@@ -89,7 +92,16 @@ export default class NavigationGrid
         return false;
     }
 
-    clampWorldPosition(x, y, margin = 10)
+    clampWorldPosition(x, y, margin = NPC_BODY_MARGIN)
+    {
+        return this.findNearestWalkableWorldPosition(
+            x,
+            y,
+            margin
+        );
+    }
+
+    findNearestWalkableWorldPosition(x, y, margin = NPC_BODY_MARGIN)
     {
         if (this.isPositionWalkable(x, y, margin))
         {
@@ -97,24 +109,61 @@ export default class NavigationGrid
         }
 
         const { tx, ty } = this.worldToTile(x, y);
-        const nearest = this.findNearestWalkable(tx, ty);
+        const maxRadius = 12;
 
-        if (!nearest)
+        for (let radius = 0; radius <= maxRadius; radius++)
         {
-            return { x, y };
+            for (let dy = -radius; dy <= radius; dy++)
+            {
+                for (let dx = -radius; dx <= radius; dx++)
+                {
+                    if (
+                        radius > 0
+                        &&
+                        Math.max(
+                            Math.abs(dx),
+                            Math.abs(dy)
+                        ) !== radius
+                    )
+                    {
+                        continue;
+                    }
+
+                    const world =
+                        this.tileToWorld(
+                            tx + dx,
+                            ty + dy
+                        );
+
+                    if (
+                        this.isPositionWalkable(
+                            world.x,
+                            world.y,
+                            margin
+                        )
+                    )
+                    {
+                        return world;
+                    }
+                }
+            }
         }
 
-        return this.tileToWorld(nearest.tx, nearest.ty);
+        return { x, y };
     }
 
-    isPositionWalkable(x, y, margin = 10)
+    isPositionWalkable(x, y, margin = NPC_BODY_MARGIN)
     {
         const points = [
             [x, y],
             [x - margin, y],
             [x + margin, y],
             [x, y - margin],
-            [x, y + margin]
+            [x, y + margin],
+            [x - margin, y - margin],
+            [x + margin, y - margin],
+            [x - margin, y + margin],
+            [x + margin, y + margin]
         ];
 
         for (const [px, py] of points)

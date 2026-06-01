@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser';
 import NPC from './NPC';
 import NavigationGrid from '../../systems/NavigationGrid.js';
+import HunterPathing from '../../systems/HunterPathing.js';
 
 export default class Aze extends NPC
 {
@@ -49,7 +50,7 @@ export default class Aze extends NPC
         ];
 
         const grid =
-            NavigationGrid.get(Aze.MAP_KEY);
+            NavigationGrid.get(this.currentMap);
 
         let available = dirs;
 
@@ -151,11 +152,20 @@ export default class Aze extends NPC
         }
 
         // 离屏时仍用逻辑坐标模拟（无 Matter 碰撞体）
-        const frameScale = delta / (1000 / 60);
-        const step = this.moveSpeed * frameScale;
+        const moved =
+            HunterPathing.applyOffSceneWanderStep(
+                this,
+                this.wanderDx,
+                this.wanderDy,
+                delta,
+                this.currentMap
+            );
 
-        this.worldX += this.wanderDx * step;
-        this.worldY += this.wanderDy * step;
+        if (!moved)
+        {
+            this.pickWanderDirection();
+        }
+
         this.vx = 0;
         this.vy = 0;
     }

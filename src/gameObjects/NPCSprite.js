@@ -87,14 +87,7 @@ extends Phaser.Physics.Matter.Sprite
 
         if (onMap)
         {
-            if (this.entity.type === 'hunter')
-            {
-                HunterPathing.clampEntity(
-                    this.entity,
-                    this.entity.currentMap
-                );
-            }
-            else if (this.entity.usesPortals)
+            if (NPCSprite.usesPhysicsMovement(this.entity))
             {
                 HunterPathing.clampEntity(
                     this.entity,
@@ -169,9 +162,9 @@ extends Phaser.Physics.Matter.Sprite
         this.entity.worldX = this.x;
         this.entity.worldY = this.y;
 
-        if (this.entity.type === 'hunter')
+        if (NPCSprite.usesPhysicsMovement(this.entity))
         {
-            HunterPathing.clampEntity(
+            HunterPathing.clampEntityIfInvalid(
                 this.entity,
                 this.entity.currentMap
             );
@@ -180,7 +173,10 @@ extends Phaser.Physics.Matter.Sprite
                 this.entity.worldX,
                 this.entity.worldY
             );
+        }
 
+        if (this.entity.type === 'hunter')
+        {
             if (
                 this.entity.portalCooldown <= 0
                 &&
@@ -200,16 +196,6 @@ extends Phaser.Physics.Matter.Sprite
         }
         else if (this.entity.usesPortals)
         {
-            HunterPathing.clampEntity(
-                this.entity,
-                this.entity.currentMap
-            );
-
-            this.setPosition(
-                this.entity.worldX,
-                this.entity.worldY
-            );
-
             if (
                 this.entity.portalCooldown <= 0
                 &&

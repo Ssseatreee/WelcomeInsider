@@ -1,10 +1,13 @@
-import NavigationGrid from './NavigationGrid.js';
+import NavigationGrid, {
+    NPC_BODY_MARGIN
+} from './NavigationGrid.js';
 
 export default class HunterPathing
 {
     static STUCK_MS = 2000;
     static WANDER_MS = 3000;
     static WANDER_DIR_MS = 500;
+    static NPC_BODY_MARGIN = NPC_BODY_MARGIN;
 
     constructor(entity)
     {
@@ -355,7 +358,7 @@ export default class HunterPathing
         entity.worldX += movement.vx * frameScale;
         entity.worldY += movement.vy * frameScale;
 
-        HunterPathing.clampEntity(
+        HunterPathing.clampEntityIfInvalid(
             entity,
             entity.currentMap
         );
@@ -373,10 +376,74 @@ export default class HunterPathing
         const clamped =
             grid.clampWorldPosition(
                 entity.worldX,
-                entity.worldY
+                entity.worldY,
+                HunterPathing.NPC_BODY_MARGIN
             );
 
         entity.worldX = clamped.x;
         entity.worldY = clamped.y;
+    }
+
+    static clampEntityIfInvalid(entity, mapKey)
+    {
+        const grid = NavigationGrid.get(mapKey);
+
+        if (!grid)
+        {
+            return;
+        }
+
+        if (
+            grid.isPositionWalkable(
+                entity.worldX,
+                entity.worldY,
+                HunterPathing.NPC_BODY_MARGIN
+            )
+        )
+        {
+            return;
+        }
+
+        HunterPathing.clampEntity(entity, mapKey);
+    }
+
+    /**
+     * 离屏游荡步进：仅在下一步对碰撞体安全时才移动
+     */
+    static applyOffSceneWanderStep(
+        entity,
+        dirX,
+        dirY,
+        delta,
+        mapKey
+    )
+    {
+        const grid = NavigationGrid.get(mapKey);
+
+        if (!grid)
+        {
+            return false;
+        }
+
+        const frameScale = delta / (1000 / 60);
+        const step = entity.moveSpeed * frameScale;
+        const nextX = entity.worldX + dirX * step;
+        const nextY = entity.worldY + dirY * step;
+
+        if (
+            grid.isPositionWalkable(
+                nextX,
+                nextY,
+                HunterPathing.NPC_BODY_MARGIN
+            )
+        )
+        {
+            entity.worldX = nextX;
+            entity.worldY = nextY;
+
+            return true;
+        }
+
+        return false;
     }
 }

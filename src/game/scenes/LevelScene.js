@@ -1548,6 +1548,8 @@ export default class LevelScene extends Phaser.Scene
     {
         this.currentMap = targetMap;
 
+        this.npcManager.clampNPCsOnMap(targetMap);
+
         // 先更新 NPC 可见性/物理体，再卸载旧地图，避免残留碰撞体
         this.refreshNPCSprites();
 

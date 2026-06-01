@@ -254,14 +254,26 @@ export default class Oren extends NPC
             }
             else
             {
-                const frameScale = delta / (1000 / 60);
-                const step = this.moveSpeed * frameScale;
                 const dist = Math.hypot(move.dx, move.dy);
+                let moved = false;
 
                 if (dist > 0)
                 {
-                    this.worldX += (move.dx / dist) * step;
-                    this.worldY += (move.dy / dist) * step;
+                    moved =
+                        HunterPathing.applyOffSceneWanderStep(
+                            this,
+                            move.dx / dist,
+                            move.dy / dist,
+                            delta,
+                            this.currentMap
+                        );
+                }
+
+                if (!moved)
+                {
+                    this.seekingPortal = false;
+                    this.portalTarget = null;
+                    this.pickWanderDirection();
                 }
 
                 this.vx = 0;
@@ -293,11 +305,20 @@ export default class Oren extends NPC
         }
         else
         {
-            const frameScale = delta / (1000 / 60);
-            const step = this.moveSpeed * frameScale;
+            const moved =
+                HunterPathing.applyOffSceneWanderStep(
+                    this,
+                    this.wanderDx,
+                    this.wanderDy,
+                    delta,
+                    this.currentMap
+                );
 
-            this.worldX += this.wanderDx * step;
-            this.worldY += this.wanderDy * step;
+            if (!moved)
+            {
+                this.pickWanderDirection();
+            }
+
             this.vx = 0;
             this.vy = 0;
         }

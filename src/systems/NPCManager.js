@@ -1,3 +1,5 @@
+import HunterPathing from './HunterPathing.js';
+
 export default class NPCManager
 {
     constructor()
@@ -25,6 +27,34 @@ export default class NPCManager
             npc.update(
                 context,
                 delta
+            );
+
+            if (npc.currentMap !== context.sceneMap)
+            {
+                HunterPathing.clampEntityIfInvalid(
+                    npc,
+                    npc.currentMap
+                );
+            }
+        }
+    }
+
+    clampNPCsOnMap(mapKey)
+    {
+        for (const npc of this.npcs.values())
+        {
+            if (
+                npc.removed
+                ||
+                npc.currentMap !== mapKey
+            )
+            {
+                continue;
+            }
+
+            HunterPathing.clampEntity(
+                npc,
+                mapKey
             );
         }
     }

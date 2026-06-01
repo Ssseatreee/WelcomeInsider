@@ -3,6 +3,8 @@ import {
     GAME_HEIGHT
 } from '../game/layout.js';
 
+import GameState from './GameState.js';
+
 export default class MiniMap
 {
     constructor(scene, npcManager)
@@ -186,9 +188,21 @@ export default class MiniMap
 
         g.clear();
 
+        const revealAll =
+            GameState.hasDroneReveal();
+
         for (const npc of this.npcManager.getAllNPCs())
         {
-            if (!npc.hasEmpathy)
+            if (npc.removed)
+            {
+                continue;
+            }
+
+            if (
+                !revealAll
+                &&
+                !npc.hasEmpathy
+            )
             {
                 continue;
             }

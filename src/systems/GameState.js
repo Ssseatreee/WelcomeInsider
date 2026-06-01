@@ -4,7 +4,33 @@ const GameState = {
 
     collectedItems: [],
 
+    /** 已拾取的地图物体："{mapKey}:{objectId}" */
+    pickedMapObjects: [],
+
     flags: {},
+
+    getMapObjectKey(mapKey, objectId)
+    {
+        return `${mapKey}:${objectId}`;
+    },
+
+    hasPickedMapObject(mapKey, objectId)
+    {
+        return this.pickedMapObjects.includes(
+            this.getMapObjectKey(mapKey, objectId)
+        );
+    },
+
+    markMapObjectPicked(mapKey, objectId)
+    {
+        const key =
+            this.getMapObjectKey(mapKey, objectId);
+
+        if (!this.pickedMapObjects.includes(key))
+        {
+            this.pickedMapObjects.push(key);
+        }
+    },
 
     addCollectedItem(itemId)
     {
@@ -17,6 +43,19 @@ const GameState = {
     hasCollectedItem(itemId)
     {
         return this.collectedItems.includes(itemId);
+    },
+
+    removeCollectedItem(itemId)
+    {
+        this.collectedItems =
+            this.collectedItems.filter(
+                id => id !== itemId
+            );
+    },
+
+    hasDroneReveal()
+    {
+        return this.hasCollectedItem('drone');
     },
 
     // npcCatchCount: {},

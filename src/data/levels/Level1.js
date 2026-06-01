@@ -53,6 +53,15 @@ const level1 = {
             mapKey: 'drinkingroom',
             type: 'neutral',
             moveSpeed: 1.8
+        },
+
+        {
+            name: 'sply',
+            x: 280,
+            y: 240,
+            mapKey: 'drinkingroom',
+            type: 'neutral',
+            moveSpeed: 1.2
         }
     ],
 

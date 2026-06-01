@@ -13,11 +13,13 @@ import WorkBacklogBar from '../../systems/WorkBacklogBar.js';
 import HunterPathing from '../../systems/HunterPathing.js';
 import LevelObjectives from '../../systems/LevelObjectives.js';
 import MissionPanel from '../../systems/MissionPanel.js';
+import ItemInventoryPanel from '../../systems/ItemInventoryPanel.js';
+import ItemObtainNotice from '../../systems/ItemObtainNotice.js';
 import LevelResultOverlay from '../../systems/LevelResultOverlay.js';
 
 import mapDisplayNames from '../../data/mapDisplayNames.js';
 import workBacklogConfig from '../../data/workBacklogConfig.js';
-import items from '../../data/items.js';
+import items, { resolveItem } from '../../data/items.js';
 
 import {
     GAME_HEIGHT,
@@ -287,6 +289,12 @@ export default class LevelScene extends Phaser.Scene
         this.workBacklog.onSpeedBoost =
             () => this.applyHunterSpeedBoost();
 
+        this.itemPanel =
+            new ItemInventoryPanel(this);
+
+        this.itemObtainNotice =
+            new ItemObtainNotice(this);
+
         this.currentCatchIsBusy = false;
 
         this.applyCameraFilters();
@@ -364,6 +372,28 @@ export default class LevelScene extends Phaser.Scene
 
             this.hudCamera?.ignore(
                 this.missionPanel.container
+            );
+        }
+
+        if (this.itemPanel?.container)
+        {
+            this.cameras.main.ignore(
+                this.itemPanel.container
+            );
+
+            this.hudCamera?.ignore(
+                this.itemPanel.container
+            );
+        }
+
+        if (this.itemObtainNotice?.container)
+        {
+            this.hudCamera?.ignore(
+                this.itemObtainNotice.container
+            );
+
+            this.rightHudCamera?.ignore(
+                this.itemObtainNotice.container
             );
         }
 
@@ -469,8 +499,84 @@ export default class LevelScene extends Phaser.Scene
         {
             this.clearWorkBacklog();
         }
+        else if (effect === 'giveDonutToSply')
+        {
+            this.grantDonutToSply();
+        }
+        else if (effect === 'splyRefuse')
+        {
+            this.applySplyRefuse();
+        }
 
         this.pendingNeutralEffect = null;
+    }
+
+    grantDonutToSply()
+    {
+        if (!GameState.hasCollectedItem('donut'))
+        {
+            return;
+        }
+
+        GameState.removeCollectedItem('donut');
+        this.itemPanel?.refresh();
+
+        if (GameState.hasCollectedItem('drone'))
+        {
+            return;
+        }
+
+        GameState.addCollectedItem('drone');
+
+        this.emitObjectiveEvent({
+            type: 'collectItem',
+            itemId: 'drone'
+        });
+
+        this.itemPanel?.refresh();
+        this.itemObtainNotice?.show(items.drone);
+    }
+
+    applySplyRefuse()
+    {
+        if (GameState.getFlag('federicoAware'))
+        {
+            return;
+        }
+
+        GameState.setFlag('federicoAware', true);
+
+        this.itemObtainNotice?.showMessage(
+            '~费德里科察觉到了你的位置~'
+        );
+    }
+
+    buildSplyDialogue()
+    {
+        const talk = dialogues.sply?.talk ?? [];
+        const choiceBlock = talk[talk.length - 1];
+
+        if (!choiceBlock?.choices)
+        {
+            return talk;
+        }
+
+        const prefix = talk.slice(0, -1);
+        const choices =
+            choiceBlock.choices.filter(choice =>
+            {
+                if (choice.effect === 'giveDonutToSply')
+                {
+                    return GameState.hasCollectedItem('donut');
+                }
+
+                return true;
+            });
+
+        return [
+            ...prefix,
+            { choices }
+        ];
     }
 
     applyBetrayOren()
@@ -576,6 +682,11 @@ export default class LevelScene extends Phaser.Scene
 
     grantAzeCoffee()
     {
+        if (GameState.hasCollectedItem('azeCoffee'))
+        {
+            return;
+        }
+
         GameState.addCollectedItem('azeCoffee');
 
         this.player.applySpeedBoost(
@@ -586,6 +697,105 @@ export default class LevelScene extends Phaser.Scene
             type: 'collectItem',
             itemId: 'azeCoffee'
         });
+
+        this.itemPanel?.refresh();
+        this.itemObtainNotice?.show(items.azeCoffee);
+    }
+
+    tryPickupMapItem(obj)
+    {
+        const itemKey =
+            this.getProperty(obj, 'getItem');
+
+        if (!itemKey)
+        {
+            return false;
+        }
+
+        if (
+            GameState.hasPickedMapObject(
+                this.currentMap,
+                obj.id
+            )
+        )
+        {
+            return false;
+        }
+
+        const item = resolveItem(itemKey);
+
+        if (!item)
+        {
+            console.warn(
+                'Unknown map item:',
+                itemKey
+            );
+
+            return false;
+        }
+
+        GameState.markMapObjectPicked(
+            this.currentMap,
+            obj.id
+        );
+
+        const isNewItem =
+            !GameState.hasCollectedItem(item.id);
+
+        if (isNewItem)
+        {
+            GameState.addCollectedItem(item.id);
+
+            this.emitObjectiveEvent({
+                type: 'collectItem',
+                itemId: item.id
+            });
+
+            this.itemPanel?.refresh();
+            this.itemObtainNotice?.show(item);
+        }
+
+        return isNewItem;
+    }
+
+    getMapObjectInteractHint(obj)
+    {
+        const itemKey =
+            this.getProperty(obj, 'getItem');
+
+        const hasDialog =
+            Boolean(this.getProperty(obj, 'dialog'));
+
+        const canPickup =
+            itemKey
+            &&
+            !GameState.hasPickedMapObject(
+                this.currentMap,
+                obj.id
+            )
+            &&
+            resolveItem(itemKey);
+
+        if (canPickup && hasDialog)
+        {
+            const item = resolveItem(itemKey);
+
+            return `[SPACE] 查看 / 拾取 ${item.name}`;
+        }
+
+        if (canPickup)
+        {
+            const item = resolveItem(itemKey);
+
+            return `[SPACE] 拾取 ${item.name}`;
+        }
+
+        if (hasDialog)
+        {
+            return '[SPACE] 查看';
+        }
+
+        return null;
     }
 
     clearWorkBacklog()
@@ -778,6 +988,10 @@ export default class LevelScene extends Phaser.Scene
             GameState.setFlag('orenMet', true);
             GameState.setFlag('orenGone', true);
         }
+        else if (npc.npcName === 'sply')
+        {
+            GameState.setFlag('splyGone', true);
+        }
 
         npc.removed = true;
 
@@ -915,20 +1129,20 @@ export default class LevelScene extends Phaser.Scene
                     )
                 )
                 {
-                    console.log(
-                        'Near Object:',
-                        obj.name
-                    );
-                    // 显示交互提示
+                    const hintText =
+                        this.getMapObjectInteractHint(obj);
+
+                    if (!hintText)
+                    {
+                        return;
+                    }
+
                     this.interactHint.setPosition(
                         this.player.x,
                         this.player.y - 48
                     );
 
-                    // 显示提示
-                    this.interactHint.setText(
-                        '[SPACE] 查看'
-                    );
+                    this.interactHint.setText(hintText);
                     this.interactHint.setVisible(true);
 
                     if (
@@ -937,18 +1151,40 @@ export default class LevelScene extends Phaser.Scene
                         )
                     )
                     {
+                        const gainedNewItem =
+                            this.tryPickupMapItem(obj);
+
                         const dialogProp =
                             obj.properties?.find(
                                 p => p.name === 'dialog'
                             );
 
-                        if (dialogProp &&
-                            !this.dialogueManager.isShowingObjectDialogue &&
+                        if (
+                            dialogProp
+                            &&
+                            !this.dialogueManager.isShowingObjectDialogue
+                            &&
                             !this.dialogueManager.objectDialogCooldown
                         )
                         {
-                            this.dialogueManager.showObjectDialogue(obj);
-                            return;
+                            const showDialog = () =>
+                            {
+                                this.dialogueManager.showObjectDialogue(
+                                    obj
+                                );
+                            };
+
+                            if (gainedNewItem)
+                            {
+                                this.time.delayedCall(
+                                    2000,
+                                    showDialog
+                                );
+                            }
+                            else
+                            {
+                                showDialog();
+                            }
                         }
                     }
                 }
@@ -1017,6 +1253,17 @@ export default class LevelScene extends Phaser.Scene
                 return;
             }
 
+            if (
+                npc.npcName === 'sply'
+                &&
+                GameState.getFlag('splyGone')
+            )
+            {
+                this.dialogTriggered = false;
+                this.currentDialogNPC = null;
+                return;
+            }
+
             if (npc.removed)
             {
                 this.dialogTriggered = false;
@@ -1027,7 +1274,9 @@ export default class LevelScene extends Phaser.Scene
             dialogueKey = 'talk';
 
             const dialogue =
-                dialogues[npcName]?.[dialogueKey];
+                npc.npcName === 'sply'
+                    ? this.buildSplyDialogue()
+                    : dialogues[npcName]?.[dialogueKey];
 
             if (!dialogue)
             {
@@ -1210,6 +1459,11 @@ export default class LevelScene extends Phaser.Scene
                 npc.currentMap = npcData.mapKey;
             }
 
+            if (npc.npcName === 'sply')
+            {
+                npc.wanderMapKey = npc.currentMap;
+            }
+
             if (npcData.x != null)
             {
                 npc.worldX = npcData.x;
@@ -1267,6 +1521,14 @@ export default class LevelScene extends Phaser.Scene
                     npc.hasEmpathy = false;
                     npc.removed = false;
                 }
+            }
+            else if (
+                npc.npcName === 'sply'
+                &&
+                GameState.getFlag('splyGone')
+            )
+            {
+                npc.removed = true;
             }
             else
             {
@@ -1380,6 +1642,12 @@ export default class LevelScene extends Phaser.Scene
                     GameState.getFlag('orenGone')
                     &&
                     sprite.entity.type === 'neutral'
+                )
+                ||
+                (
+                    sprite.entity.npcName === 'sply'
+                    &&
+                    GameState.getFlag('splyGone')
                 )
             )
             {

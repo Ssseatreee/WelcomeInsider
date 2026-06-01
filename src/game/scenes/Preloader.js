@@ -6,6 +6,7 @@ import createFedericoAnimations from '../../animations/federicoAnimations';
 import createLemuenAnimations from '../../animations/lemuenAnimations';
 import createAzeAnimations from '../../animations/azeAnimations';
 import createOrenAnimations from '../../animations/orenAnimations';
+import createSplyAnimations from '../../animations/splyAnimations';
 
 export class Preloader extends Scene
 {
@@ -77,11 +78,27 @@ export class Preloader extends Scene
             { frameWidth: 32, frameHeight: 32 }
         );
 
+        this.load.spritesheet(
+            'npc-sply',
+            '../../../public/assets/sprites/sply_sprite.png',
+            { frameWidth: 32, frameHeight: 32 }
+        );
+
         this.load.image('logo', 'logo.png');
 
         this.load.image(
             'item-coffee',
             '../../../public/assets/items/coffee.png'
+        );
+
+        this.load.image(
+            'item-donut',
+            '../../../public/assets/items/donut.png'
+        );
+
+        this.load.image(
+            'item-drone',
+            '../../../public/assets/items/drone.png'
         );
 
         this.load.image(
@@ -230,6 +247,32 @@ export class Preloader extends Scene
             '../../../public/assets/portraits/oren/yin.png'
         );
 
+        // sply
+        this.load.image(
+            'portrait-sply-normal',
+            '../../../public/assets/portraits/sply/normal.png'
+        );
+        this.load.image(
+            'portrait-sply-smile',
+            '../../../public/assets/portraits/sply/smile.png'
+        );
+        this.load.image(
+            'portrait-sply-biyan_smile',
+            '../../../public/assets/portraits/sply/biyan_smile.png'
+        );
+        this.load.image(
+            'portrait-sply-biyan_bad',
+            '../../../public/assets/portraits/sply/biyan_bad.png'
+        );
+        this.load.image(
+            'portrait-sply-biyan_cat',
+            '../../../public/assets/portraits/sply/biyan_cat.png'
+        );
+        this.load.image(
+            'portrait-sply-cat_thinking',
+            '../../../public/assets/portraits/sply/cat_thinking.png'
+        );
+
     }
 
     loadMap()
@@ -339,6 +382,7 @@ export class Preloader extends Scene
         createLemuenAnimations(this.anims);
         createAzeAnimations(this.anims);
         createOrenAnimations(this.anims);
+        createSplyAnimations(this.anims);
 
 
         //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.

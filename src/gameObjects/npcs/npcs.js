@@ -3,6 +3,7 @@ import Federico from './Federico';
 import Lemuen from './Lemuen';
 import Aze from './Aze';
 import Oren from './Oren';
+import Sply from './Sply';
 
 const npcMap = {
 
@@ -14,7 +15,9 @@ const npcMap = {
 
     aze: Aze,
 
-    oren: Oren
+    oren: Oren,
+
+    sply: Sply
 };
 
 export default npcMap;

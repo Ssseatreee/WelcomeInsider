@@ -424,6 +424,92 @@ const dialogues = {
                 text:'“！”'
             }
         ]
+    },
+
+    sply: {
+        talk: [
+            {
+                speaker: 'sply',
+                expression: 'biyan_smile',
+                text:'"被我抓到了吧。”'
+            },
+            {
+                speaker: 'richele',
+                expression: 'smile',
+                text:'“什么？”'
+            },
+            {
+                speaker: 'sply',
+                expression: 'smile',
+                text:'"你不正在想方设法偷懒吗？”'
+            },
+            {
+                speaker: 'sply',
+                expression: 'biyan_smile',
+                text:'"别装了，老实说吧——”'
+            },
+            {
+                speaker: 'sply',
+                expression: 'normal',
+                text:'“给我带东西没，我可以接受贿赂。”'
+            },
+            {
+                choices: [
+                {
+                    label: '将甜甜圈送给斯普莉雅',
+                    effect: 'giveDonutToSply',
+                    lines: [
+                        {
+                            speaker: 'richele',
+                            expression: 'strict',
+                            text:'“我从休息室刚拿的。”'
+                        },
+                        {
+                            speaker: 'sply',
+                            expression: 'biyan_smile',
+                            text:'“嗯，不错。”'
+                        },
+                        {
+                            speaker: 'sply',
+                            expression: 'smile',
+                            text:'“那我就当没看见你咯。”'
+                        },
+                        {
+                            speaker: 'sply',
+                            expression: 'smile',
+                            text: "对了，这个先借你用吧。"
+                        },
+                        {
+                            speaker: 'sply',
+                            expression: 'biyan_cat',
+                            text: "就当我为你祈祷了。剩下的看你自己咯。"
+                        }
+                    ]
+                },
+                {
+                    label: '我可没什么东西要给你',
+                    effect: 'splyRefuse',
+                    lines: [
+                        {
+                            speaker: 'richele',
+                            expression: 'strict',
+                            text:'“斯普莉雅，我可没什么东西要给你。”'
+                        },
+                        {
+                            speaker: 'sply',
+                            expression: 'cat_thinking',
+                            text: "......"
+                        },
+                        {
+                            speaker: 'sply',
+                            expression: 'biyan_bad',
+                            text: "那就公事公办~"
+                        }
+                    ]
+                }
+                ]
+            }
+        ]
     }
 };
 

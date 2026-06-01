@@ -375,21 +375,17 @@ export default class DialogueManager
 
         if (effect === 'azeCoffee')
         {
-            const { textureKey, effectMessage } =
-                items.azeCoffee;
-
             this.text.setVisible(false);
-            this.effectImage.setTexture(textureKey);
-            this.effectImage.setVisible(true);
-
-            this.effectPhase = 'coffee_image';
+            this.effectImage.setVisible(false);
+            this.effectPhase = 'coffee_notice';
 
             this.effectTimers.push(
-                this.scene.time.delayedCall(3000, () =>
+                this.scene.time.delayedCall(2000, () =>
                 {
-                    this.effectImage.setVisible(false);
                     this.resetDialogueTextLayout();
-                    this.text.setText(effectMessage);
+                    this.text.setText(
+                        items.azeCoffee.effectMessage
+                    );
                     this.text.setVisible(true);
                     this.effectPhase = 'message';
                 })
@@ -404,6 +400,42 @@ export default class DialogueManager
             );
             this.text.setVisible(true);
             this.effectPhase = 'message';
+        }
+        else if (effect === 'giveDonutToSply')
+        {
+            this.text.setVisible(false);
+            this.effectImage.setVisible(false);
+            this.effectPhase = 'drone_notice';
+
+            this.effectTimers.push(
+                this.scene.time.delayedCall(2000, () =>
+                {
+                    this.resetDialogueTextLayout();
+                    this.text.setText(
+                        items.drone.effectMessage
+                    );
+                    this.text.setVisible(true);
+                    this.effectPhase = 'message';
+                })
+            );
+        }
+        else if (effect === 'splyRefuse')
+        {
+            this.text.setVisible(false);
+            this.effectImage.setVisible(false);
+            this.effectPhase = 'sply_refuse_notice';
+
+            this.effectTimers.push(
+                this.scene.time.delayedCall(2000, () =>
+                {
+                    this.resetDialogueTextLayout();
+                    this.text.setText(
+                        items.splyRefuse.effectMessage
+                    );
+                    this.text.setVisible(true);
+                    this.effectPhase = 'message';
+                })
+            );
         }
         else
         {

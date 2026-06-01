@@ -1,4 +1,5 @@
 import NPC from './NPC';
+import GameState from '../../systems/GameState.js';
 
 export default class Federico extends NPC
 {
@@ -12,6 +13,22 @@ export default class Federico extends NPC
             minimapColor: 0xefe6d0,
             moveSpeed: config.moveSpeed ?? 3
         });
+    }
+
+    update(context, delta)
+    {
+        if (GameState.getFlag('federicoAware'))
+        {
+            const savedEmpathy = this.hasEmpathy;
+
+            this.hasEmpathy = true;
+            super.update(context, delta);
+            this.hasEmpathy = savedEmpathy;
+
+            return;
+        }
+
+        super.update(context, delta);
     }
 
     onCatchPlayer(player)

@@ -20,6 +20,17 @@ export default {
         height: 86
     },
 
+    /** 物品栏（位于工作进度条下方） */
+    itemPanel: {
+        gap: 10,
+        title: '物品',
+        columns: 3,
+        iconSize: 72,
+        cellGap: 14,
+        labelHeight: 22,
+        labelFontSize: '14px'
+    },
+
     barWidth: 260,
     barHeight: 22,
     barColor: 0xff6644,

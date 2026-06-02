@@ -1,6 +1,8 @@
+import * as Phaser from 'phaser';
 import NavigationGrid, {
     NPC_BODY_MARGIN
 } from './NavigationGrid.js';
+import miniMapLayout from '../data/miniMapLayout.js';
 
 export default class HunterPathing
 {
@@ -8,6 +10,13 @@ export default class HunterPathing
     static WANDER_MS = 3000;
     static WANDER_DIR_MS = 500;
     static NPC_BODY_MARGIN = NPC_BODY_MARGIN;
+
+    static CARDINAL_DIRS = [
+        { x: 1, y: 0, dir: 'right' },
+        { x: -1, y: 0, dir: 'left' },
+        { x: 0, y: 1, dir: 'down' },
+        { x: 0, y: -1, dir: 'up' }
+    ];
 
     constructor(entity)
     {
@@ -307,7 +316,19 @@ export default class HunterPathing
 
     canMoveTo(grid, x, y)
     {
-        const margin = 10;
+        const margin = HunterPathing.NPC_BODY_MARGIN;
+
+        if (
+            !grid.isWithinWorldBounds(
+                x,
+                y,
+                margin
+            )
+        )
+        {
+            return false;
+        }
+
         const points = [
             [x, y],
             [x - margin, y],
@@ -349,7 +370,7 @@ export default class HunterPathing
     }
 
     /**
-     * 离屏模拟步进 — 与 Matter setVelocity 的体感速度对齐（按 60fps 帧步进）
+     * 离屏追击步进 — 沿速度向量推进，事后校正位置（供 hunter 跨图寻路）
      */
     static applyOffSceneStep(entity, movement, delta)
     {
@@ -358,7 +379,7 @@ export default class HunterPathing
         entity.worldX += movement.vx * frameScale;
         entity.worldY += movement.vy * frameScale;
 
-        HunterPathing.clampEntityIfInvalid(
+        HunterPathing.clampEntity(
             entity,
             entity.currentMap
         );
@@ -367,8 +388,36 @@ export default class HunterPathing
     static clampEntity(entity, mapKey)
     {
         const grid = NavigationGrid.get(mapKey);
+        const margin = HunterPathing.NPC_BODY_MARGIN;
 
         if (!grid)
+        {
+            HunterPathing.clampEntityToMapPixels(
+                entity,
+                mapKey,
+                margin
+            );
+
+            return;
+        }
+
+        const bounded =
+            grid.clampToWorldBounds(
+                entity.worldX,
+                entity.worldY,
+                margin
+            );
+
+        entity.worldX = bounded.x;
+        entity.worldY = bounded.y;
+
+        if (
+            grid.isPositionWalkable(
+                entity.worldX,
+                entity.worldY,
+                margin
+            )
+        )
         {
             return;
         }
@@ -377,11 +426,32 @@ export default class HunterPathing
             grid.clampWorldPosition(
                 entity.worldX,
                 entity.worldY,
-                HunterPathing.NPC_BODY_MARGIN
+                margin
             );
 
         entity.worldX = clamped.x;
         entity.worldY = clamped.y;
+    }
+
+    static clampEntityToMapPixels(entity, mapKey, margin)
+    {
+        const size =
+            miniMapLayout.mapPixelSizes?.[mapKey];
+
+        if (!size)
+        {
+            return;
+        }
+
+        entity.worldX = Math.min(
+            size.w - margin,
+            Math.max(margin, entity.worldX)
+        );
+
+        entity.worldY = Math.min(
+            size.h - margin,
+            Math.max(margin, entity.worldY)
+        );
     }
 
     static clampEntityIfInvalid(entity, mapKey)
@@ -408,7 +478,7 @@ export default class HunterPathing
     }
 
     /**
-     * 离屏游荡步进：仅在下一步对碰撞体安全时才移动
+     * 离屏游荡步进 — 先推进再校正，失败时分轴滑墙（对齐 Matter 体感）
      */
     static applyOffSceneWanderStep(
         entity,
@@ -418,32 +488,125 @@ export default class HunterPathing
         mapKey
     )
     {
-        const grid = NavigationGrid.get(mapKey);
-
-        if (!grid)
+        if (dirX === 0 && dirY === 0)
         {
             return false;
         }
 
-        const frameScale = delta / (1000 / 60);
-        const step = entity.moveSpeed * frameScale;
-        const nextX = entity.worldX + dirX * step;
-        const nextY = entity.worldY + dirY * step;
+        const prevX = entity.worldX;
+        const prevY = entity.worldY;
+        const speed = entity.moveSpeed;
 
-        if (
-            grid.isPositionWalkable(
-                nextX,
-                nextY,
-                HunterPathing.NPC_BODY_MARGIN
-            )
-        )
+        const tryMove = (vx, vy) =>
         {
-            entity.worldX = nextX;
-            entity.worldY = nextY;
+            entity.worldX = prevX;
+            entity.worldY = prevY;
 
+            HunterPathing.applyOffSceneStep(
+                entity,
+                { vx, vy, dx: dirX, dy: dirY },
+                delta
+            );
+
+            return (
+                Math.hypot(
+                    entity.worldX - prevX,
+                    entity.worldY - prevY
+                ) > 0.01
+            );
+        };
+
+        if (tryMove(dirX * speed, dirY * speed))
+        {
             return true;
         }
 
+        if (dirX !== 0 && tryMove(dirX * speed, 0))
+        {
+            return true;
+        }
+
+        if (dirY !== 0 && tryMove(0, dirY * speed))
+        {
+            return true;
+        }
+
+        entity.worldX = prevX;
+        entity.worldY = prevY;
+
         return false;
+    }
+
+    static pickCardinalWanderDir(entity, mapKey)
+    {
+        const grid = NavigationGrid.get(mapKey);
+        const dirs = HunterPathing.CARDINAL_DIRS;
+
+        if (!grid)
+        {
+            return Phaser.Utils.Array.GetRandom(dirs);
+        }
+
+        const step =
+            entity.moveSpeed * (1000 / 60);
+        const margin = HunterPathing.NPC_BODY_MARGIN;
+        const bounds = grid.getWorldBounds(margin);
+
+        const inBounds = (nextX, nextY) =>
+            nextX >= bounds.minX
+            && nextX <= bounds.maxX
+            && nextY >= bounds.minY
+            && nextY <= bounds.maxY;
+
+        const open =
+            dirs.filter((dir) =>
+            {
+                const nextX =
+                    entity.worldX + dir.x * step;
+                const nextY =
+                    entity.worldY + dir.y * step;
+
+                return (
+                    inBounds(nextX, nextY)
+                    &&
+                    grid.isPositionWalkable(
+                        nextX,
+                        nextY,
+                        margin
+                    )
+                );
+            });
+
+        if (open.length > 0)
+        {
+            return Phaser.Utils.Array.GetRandom(open);
+        }
+
+        const tileFallback =
+            dirs.filter((dir) =>
+            {
+                const nextX =
+                    entity.worldX + dir.x * step;
+                const nextY =
+                    entity.worldY + dir.y * step;
+
+                if (!inBounds(nextX, nextY))
+                {
+                    return false;
+                }
+
+                const tile = grid.worldToTile(
+                    nextX,
+                    nextY
+                );
+
+                return grid.isWalkable(tile.tx, tile.ty);
+            });
+
+        return Phaser.Utils.Array.GetRandom(
+            tileFallback.length > 0
+                ? tileFallback
+                : dirs
+        );
     }
 }

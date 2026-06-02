@@ -1,4 +1,5 @@
 import HunterPathing from './HunterPathing.js';
+import NavigationGrid from './NavigationGrid.js';
 
 export default class NPCManager
 {
@@ -24,14 +25,41 @@ export default class NPCManager
                 continue;
             }
 
+            const offScene =
+                npc.currentMap !== context.sceneMap;
+
+            if (offScene)
+            {
+                if (
+                    !NavigationGrid.get(npc.currentMap)
+                    &&
+                    context.ensureNavGrid
+                )
+                {
+                    context.ensureNavGrid(npc.currentMap);
+                }
+            }
+
             npc.update(
                 context,
                 delta
             );
 
-            if (npc.currentMap !== context.sceneMap)
+            if (
+                offScene
+                &&
+                (
+                    npc.type === 'neutral'
+                    ||
+                    (
+                        npc.type === 'hunter'
+                        &&
+                        !npc.hasEmpathy
+                    )
+                )
+            )
             {
-                HunterPathing.clampEntityIfInvalid(
+                HunterPathing.clampEntity(
                     npc,
                     npc.currentMap
                 );

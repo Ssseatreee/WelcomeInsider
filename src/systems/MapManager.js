@@ -70,11 +70,6 @@ export default class MapManager {
      */
     warmNavigationGrid(mapKey)
     {
-        if (NavigationGrid.get(mapKey))
-        {
-            return;
-        }
-
         const map =
             this.scene.make.tilemap({ key: mapKey });
 
@@ -109,7 +104,11 @@ export default class MapManager {
             }
         });
 
-        NavigationGrid.getOrCreate(map, layers);
+        NavigationGrid.getOrCreate(
+            map,
+            layers,
+            true
+        );
 
         Object.values(layers).forEach(layer => layer.destroy());
         map.destroy();

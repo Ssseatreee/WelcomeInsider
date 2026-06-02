@@ -1,6 +1,5 @@
 import * as Phaser from 'phaser';
 import NPC from './NPC';
-import NavigationGrid from '../../systems/NavigationGrid.js';
 import HunterPathing from '../../systems/HunterPathing.js';
 
 export default class Aze extends NPC
@@ -42,41 +41,11 @@ export default class Aze extends NPC
 
     pickWanderDirection()
     {
-        const dirs = [
-            { x: 1, y: 0, dir: 'right' },
-            { x: -1, y: 0, dir: 'left' },
-            { x: 0, y: 1, dir: 'down' },
-            { x: 0, y: -1, dir: 'up' }
-        ];
-
-        const grid =
-            NavigationGrid.get(this.currentMap);
-
-        let available = dirs;
-
-        if (grid)
-        {
-            const tile =
-                grid.worldToTile(
-                    this.worldX,
-                    this.worldY
-                );
-
-            const open = dirs.filter(dir =>
-                grid.isWalkable(
-                    tile.tx + dir.x,
-                    tile.ty + dir.y
-                )
-            );
-
-            if (open.length > 0)
-            {
-                available = open;
-            }
-        }
-
         const choice =
-            Phaser.Utils.Array.GetRandom(available);
+            HunterPathing.pickCardinalWanderDir(
+                this,
+                this.currentMap
+            );
 
         this.wanderDx = choice.x;
         this.wanderDy = choice.y;
@@ -165,6 +134,8 @@ export default class Aze extends NPC
         {
             this.pickWanderDirection();
         }
+
+        this.updateStuckState(delta);
 
         this.vx = 0;
         this.vy = 0;

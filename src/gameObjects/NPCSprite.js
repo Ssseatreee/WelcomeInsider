@@ -116,6 +116,14 @@ extends Phaser.Physics.Matter.Sprite
         }
         else
         {
+            this.entity.worldX = this.x;
+            this.entity.worldY = this.y;
+
+            HunterPathing.clampEntity(
+                this.entity,
+                this.entity.currentMap
+            );
+
             this.setVelocity(0, 0);
 
             if (world.has(this.body))

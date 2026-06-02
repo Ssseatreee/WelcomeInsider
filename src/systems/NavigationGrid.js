@@ -3,6 +3,34 @@ const gridCache = new Map();
 /** 与 NPCSprite Matter 碰撞体半径对齐（24×24  body） */
 export const NPC_BODY_MARGIN = 12;
 
+/** 明确的地形层（有 tile 才可站立） */
+const GROUND_LAYER_NAMES = [
+    'floor',
+    'ground',
+    'ground2',
+    'ground2.1',
+    'ground2.2'
+];
+
+/** 不参与“可站立”判定的装饰 / 碰撞层 */
+const NON_GROUND_LAYER_NAMES = new Set([
+    'border',
+    'border1',
+    'objects',
+    'wall',
+    'door',
+    'blanket',
+    'laterano',
+    'sculpture',
+    'chairs',
+    'zhuzi',
+    'taizi',
+    'taizi-chairs',
+    'taizi2',
+    'top',
+    'top2'
+]);
+
 export default class NavigationGrid
 {
     constructor(map, layers, tileWidth, tileHeight)
@@ -62,6 +90,11 @@ export default class NavigationGrid
 
     _isBlockedAt(layers, tx, ty)
     {
+        if (!this._hasWalkableGround(layers, tx, ty))
+        {
+            return true;
+        }
+
         for (const layer of Object.values(layers))
         {
             if (!layer || !layer.getTileAt)
@@ -92,12 +125,101 @@ export default class NavigationGrid
         return false;
     }
 
+    _hasWalkableGround(layers, tx, ty)
+    {
+        for (const name of GROUND_LAYER_NAMES)
+        {
+            const layer = layers[name];
+
+            if (!layer?.getTileAt)
+            {
+                continue;
+            }
+
+            const tile = layer.getTileAt(tx, ty);
+
+            if (tile && tile.index > 0)
+            {
+                return true;
+            }
+        }
+
+        for (const [name, layer] of Object.entries(layers))
+        {
+            if (
+                NON_GROUND_LAYER_NAMES.has(name)
+                ||
+                /^top\d*$/i.test(name)
+                ||
+                GROUND_LAYER_NAMES.includes(name)
+            )
+            {
+                continue;
+            }
+
+            if (!layer?.getTileAt)
+            {
+                continue;
+            }
+
+            const tile = layer.getTileAt(tx, ty);
+
+            if (tile && tile.index > 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     clampWorldPosition(x, y, margin = NPC_BODY_MARGIN)
     {
         return this.findNearestWalkableWorldPosition(
             x,
             y,
             margin
+        );
+    }
+
+    getWorldBounds(margin = NPC_BODY_MARGIN)
+    {
+        const mapW = this.width * this.tileWidth;
+        const mapH = this.height * this.tileHeight;
+
+        return {
+            minX: margin,
+            minY: margin,
+            maxX: mapW - margin,
+            maxY: mapH - margin
+        };
+    }
+
+    clampToWorldBounds(x, y, margin = NPC_BODY_MARGIN)
+    {
+        const bounds = this.getWorldBounds(margin);
+
+        return {
+            x: Math.min(
+                bounds.maxX,
+                Math.max(bounds.minX, x)
+            ),
+            y: Math.min(
+                bounds.maxY,
+                Math.max(bounds.minY, y)
+            )
+        };
+    }
+
+    isWithinWorldBounds(x, y, margin = NPC_BODY_MARGIN)
+    {
+        const bounds = this.getWorldBounds(margin);
+
+        return (
+            x >= bounds.minX
+            && x <= bounds.maxX
+            && y >= bounds.minY
+            && y <= bounds.maxY
         );
     }
 
@@ -149,7 +271,11 @@ export default class NavigationGrid
             }
         }
 
-        return { x, y };
+        return this.clampToWorldBounds(
+            x,
+            y,
+            margin
+        );
     }
 
     isPositionWalkable(x, y, margin = NPC_BODY_MARGIN)

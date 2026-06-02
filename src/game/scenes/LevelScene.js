@@ -1041,11 +1041,6 @@ export default class LevelScene extends Phaser.Scene
         this.interactHint.setVisible(false);
         this.dialogueManager.update();
 
-        this.miniMap?.update(
-            this.currentMap,
-            this.player
-        );
-
         // NPC 对话期间不累积待处理工作
         if (!this.dialogueManager.isPlaying)
         {
@@ -1056,6 +1051,11 @@ export default class LevelScene extends Phaser.Scene
         // 剧情/抓捕对话：全局暂停
         if (this.dialogueManager.isPlaying)
         {
+            this.miniMap?.update(
+                this.currentMap,
+                this.player
+            );
+
             return;
         }
 
@@ -1197,7 +1197,13 @@ export default class LevelScene extends Phaser.Scene
                 player: this.player,
                 playerMap: this.currentMap,
                 sceneMap: this.currentMap,
-                portalRegistry: this.portalRegistry
+                portalRegistry: this.portalRegistry,
+                ensureNavGrid: (mapKey) =>
+                {
+                    this.mapManager.warmNavigationGrid(
+                        mapKey
+                    );
+                }
             },
             delta
         );
@@ -1206,6 +1212,11 @@ export default class LevelScene extends Phaser.Scene
 
         this.npcSprites.forEach(
             sprite => sprite.syncFromEntity()
+        );
+
+        this.miniMap?.update(
+            this.currentMap,
+            this.player
         );
     }
 
@@ -1549,6 +1560,28 @@ export default class LevelScene extends Phaser.Scene
         this.currentMap = targetMap;
 
         this.npcManager.clampNPCsOnMap(targetMap);
+
+        // 离屏地图 Matter 已卸载，预热导航网格并校正游荡 NPC 位置
+        this.npcManager.getAllNPCs().forEach(npc =>
+        {
+            if (
+                npc.removed
+                ||
+                npc.currentMap === targetMap
+            )
+            {
+                return;
+            }
+
+            this.mapManager.warmNavigationGrid(
+                npc.currentMap
+            );
+
+            HunterPathing.clampEntity(
+                npc,
+                npc.currentMap
+            );
+        });
 
         // 先更新 NPC 可见性/物理体，再卸载旧地图，避免残留碰撞体
         this.refreshNPCSprites();

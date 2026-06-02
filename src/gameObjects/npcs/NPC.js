@@ -152,10 +152,12 @@ export default class NPC
             }
             else
             {
-                HunterPathing.applyOffSceneStep(
+                HunterPathing.applyOffSceneWanderStep(
                     this,
-                    movement,
-                    delta
+                    movement.dx,
+                    movement.dy,
+                    delta,
+                    this.currentMap
                 );
                 this.vx = 0;
                 this.vy = 0;

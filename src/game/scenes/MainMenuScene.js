@@ -2,11 +2,11 @@ import { Scene, Math as PhaserMath } from 'phaser';
 
 /** 视差强度：鼠标在屏幕边缘时各层最大位移（像素），越远层幅度越大 */
 const PARALLAX_STRENGTH = {
-    ui: 4,
-    front: 10,
-    smoke: 18,
-    wish: 26,
-    back: 38
+    ui: 8,
+    front: -10,
+    smoke: -18,
+    wish: -26,
+    back: -38
 };
 
 const BG_LAYERS = [
@@ -190,7 +190,7 @@ export default class MainMenuScene extends Scene
         );
 
         const startButton =
-            this.createButton(cx, 320, '开始游戏');
+            this.createButton(cx, 320, '上班');
 
         startButton.on('pointerdown', () =>
         {

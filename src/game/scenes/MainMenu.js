@@ -19,11 +19,9 @@ export class MainMenu extends Scene
             align: 'center'
         }).setOrigin(0.5);
 
-        this.input.once('pointerdown', () => {
-
+        this.input.once('pointerdown', () =>
+        {
             this.scene.start('MainMenuScene');
-            // this.scene.start('Game');
-
         });
     }
 }

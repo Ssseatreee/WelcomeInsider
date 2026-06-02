@@ -366,6 +366,29 @@ export class Preloader extends Scene
                 `../../../public/assets/tilesets/office_essential/${fileName}`
             );
         });
+
+        const beginningCgPath =
+            '../../../public/assets/CG/beginning';
+
+        this.load.image(
+            'cg-beginning-back',
+            `${beginningCgPath}/back.png`
+        );
+
+        this.load.image(
+            'cg-beginning-wish',
+            `${beginningCgPath}/wish.png`
+        );
+
+        this.load.image(
+            'cg-beginning-smoke',
+            `${beginningCgPath}/smoke.png`
+        );
+
+        this.load.image(
+            'cg-beginning-front',
+            `${beginningCgPath}/front.png`
+        );
     }
 
     create ()
@@ -386,7 +409,7 @@ export class Preloader extends Scene
 
 
         //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.
-        this.scene.start('MainMenu');
+        this.scene.start('MainMenuScene');
 
 
     }

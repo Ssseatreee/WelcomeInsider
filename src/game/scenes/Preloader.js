@@ -1,4 +1,5 @@
 import { Scene } from 'phaser';
+import { transitionToScene } from '../../systems/CurtainTransition.js';
 
 import createPlayerAnimations from '../../animations/playerAnimations';
 import createV2Animations from '../../animations/v2Animations';
@@ -7,6 +8,17 @@ import createLemuenAnimations from '../../animations/lemuenAnimations';
 import createAzeAnimations from '../../animations/azeAnimations';
 import createOrenAnimations from '../../animations/orenAnimations';
 import createSplyAnimations from '../../animations/splyAnimations';
+
+const BAR_WIDTH = 468;
+const BAR_HEIGHT = 32;
+const BAR_FILL_INSET = 4;
+const UI_ICON_SCALE = 0.18;
+
+/** 预加载界面至少停留时长（毫秒） */
+const MIN_PRELOAD_MS = 3500;
+
+/** 进度条追赶速度，越小越慢 */
+const PROGRESS_CATCHUP = 1.8;
 
 export class Preloader extends Scene
 {
@@ -17,22 +29,132 @@ export class Preloader extends Scene
 
     init ()
     {
-        //  We loaded this image in our Boot Scene, so we can display it here
-        this.add.image(512, 384, 'background');
+        const cx = this.scale.width / 2;
+        const cy = this.scale.height / 2;
+        const barLeft = cx - BAR_WIDTH / 2;
 
-        //  A simple progress bar. This is the outline of the bar.
-        this.add.rectangle(512, 384, 468, 32).setStrokeStyle(1, 0xffffff);
+        this.add.rectangle(
+            cx,
+            cy,
+            BAR_WIDTH,
+            BAR_HEIGHT
+        ).setStrokeStyle(2, 0xffffff);
 
-        //  This is the progress bar itself. It will increase in size from the left based on the % of progress.
-        const bar = this.add.rectangle(512-230, 384, 4, 28, 0xffffff);
+        this.progressFill = this.add.rectangle(
+            barLeft,
+            cy,
+            4,
+            BAR_HEIGHT - BAR_FILL_INSET,
+            0xffffff
+        ).setOrigin(0, 0.5);
 
-        //  Use the 'progress' event emitted by the LoaderPlugin to update the loading bar
-        this.load.on('progress', (progress) => {
+        this.donutIcon = this.add.image(
+            barLeft + BAR_WIDTH,
+            cy,
+            'ui-donut'
+        ).setScale(UI_ICON_SCALE).setDepth(2);
 
-            //  Update the progress bar (our bar is 464px wide, so 100% = 464px)
-            bar.width = 4 + (460 * progress);
-
+        this.tweens.add({
+            targets: this.donutIcon,
+            angle: 360,
+            duration: 2200,
+            repeat: -1
         });
+
+        this.runnerIcon = this.add.image(
+            barLeft,
+            cy,
+            'ui-left'
+        ).setScale(UI_ICON_SCALE).setDepth(2);
+
+        this.runnerSwapped = false;
+        this.barLeft = barLeft;
+
+        this.loadProgress = 0;
+        this.displayProgress = 0;
+        this.assetsReady = false;
+        this.transitioning = false;
+        this.preloadStartedAt = 0;
+
+        this.load.on('progress', (progress) =>
+        {
+            this.loadProgress = progress;
+        });
+    }
+
+    applyProgressDisplay(progress)
+    {
+        const fillW =
+            Math.max(4, BAR_WIDTH * progress);
+
+        this.progressFill.width = fillW;
+        this.runnerIcon.x = this.barLeft + fillW;
+
+        if (
+            !this.runnerSwapped
+            &&
+            this.runnerIcon.x
+            >= this.donutIcon.x
+                - this.donutIcon.displayWidth * 0.35
+        )
+        {
+            this.runnerIcon.setTexture('ui-right');
+            this.runnerSwapped = true;
+        }
+    }
+
+    update(_time, delta)
+    {
+        if (!this.preloadStartedAt)
+        {
+            this.preloadStartedAt = this.time.now;
+        }
+
+        const dt = delta / 1000;
+        const diff =
+            this.loadProgress - this.displayProgress;
+
+        this.displayProgress +=
+            diff * Math.min(1, PROGRESS_CATCHUP * dt);
+
+        if (
+            this.loadProgress >= 1
+            &&
+            this.displayProgress > 0.998
+        )
+        {
+            this.displayProgress = 1;
+        }
+
+        this.applyProgressDisplay(this.displayProgress);
+
+        if (this.assetsReady)
+        {
+            this.tryFinishPreload();
+        }
+    }
+
+    tryFinishPreload()
+    {
+        if (
+            this.transitioning
+            ||
+            this.displayProgress < 1
+        )
+        {
+            return;
+        }
+
+        const elapsed =
+            this.time.now - this.preloadStartedAt;
+
+        if (elapsed < MIN_PRELOAD_MS)
+        {
+            return;
+        }
+
+        this.transitioning = true;
+        transitionToScene(this, 'MainMenuScene');
     }
 
     preload ()
@@ -381,6 +503,16 @@ export class Preloader extends Scene
         );
 
         this.load.image(
+            'cg-beginning-wish1',
+            `${beginningCgPath}/wish1.png`
+        );
+
+        this.load.image(
+            'cg-beginning-wish2',
+            `${beginningCgPath}/wish2.png`
+        );
+
+        this.load.image(
             'cg-beginning-smoke',
             `${beginningCgPath}/smoke.png`
         );
@@ -389,6 +521,14 @@ export class Preloader extends Scene
             'cg-beginning-front',
             `${beginningCgPath}/front.png`
         );
+
+        for (let i = 1; i <= 5; i += 1)
+        {
+            this.load.image(
+                `turn-${i}`,
+                `${beginningCgPath}/turn/${i}.png`
+            );
+        }
     }
 
     create ()
@@ -407,10 +547,7 @@ export class Preloader extends Scene
         createOrenAnimations(this.anims);
         createSplyAnimations(this.anims);
 
-
-        //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.
-        this.scene.start('MainMenuScene');
-
-
+        this.loadProgress = 1;
+        this.assetsReady = true;
     }
 }

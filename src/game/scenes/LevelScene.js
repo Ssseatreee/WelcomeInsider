@@ -5,6 +5,13 @@ import levels from '../../data/levels';
 import DialogueManager from '../../systems/DialogueManager';
 import dialogues from '../../data/dialogues';
 import GameState from '../../systems/GameState.js';
+import {
+    beginEnterCurtain,
+    finishEnterCurtain,
+    readCurtainEnter,
+    readCurtainTurnKey,
+    transitionToScene
+} from '../../systems/CurtainTransition.js';
 
 import MapManager from '../../systems/MapManager.js';
 import PortalRegistry from '../../systems/PortalRegistry.js';
@@ -18,6 +25,7 @@ import ItemObtainNotice from '../../systems/ItemObtainNotice.js';
 import LevelResultOverlay from '../../systems/LevelResultOverlay.js';
 
 import mapDisplayNames from '../../data/mapDisplayNames.js';
+import miniMapLayout from '../../data/miniMapLayout.js';
 import workBacklogConfig from '../../data/workBacklogConfig.js';
 import items, { resolveItem } from '../../data/items.js';
 
@@ -40,15 +48,57 @@ export default class LevelScene extends Phaser.Scene
 
     init(data)
     {
-        this.level = data.level || 1;
+        this.curtainEnter = readCurtainEnter(data);
+        this.curtainTurnKey = readCurtainTurnKey(data);
+        this._curtainTransitioning = false;
+        this._returningToMenu = false;
+        this.continueGame = Boolean(data.continueGame);
+        this.saveData = null;
+
+        if (this.continueGame)
+        {
+            this.saveData = GameState.loadSave();
+
+            if (this.saveData)
+            {
+                this.level = this.saveData.level || 1;
+            }
+            else
+            {
+                this.continueGame = false;
+                this.level = data.level || 1;
+            }
+        }
+        else
+        {
+            this.level = data.level || 1;
+        }
     }
 
     create()
     {
+        this.input.enabled = true;
+        this._curtainTransitioning = false;
+        this._returningToMenu = false;
+
         this.setupPlayAreaCameras();
 
+        this._curtainHandle =
+            beginEnterCurtain(this);
+
+        let levelData = levels[this.level];
+
+        if (!levelData)
+        {
+            this.level = 1;
+            this.continueGame = false;
+            this.saveData = null;
+            levelData = levels[1];
+        }
+
+        try
+        {
         // ===== 当前关卡数据 =====
-        const levelData = levels[this.level];
 
         // ===== 玩家 =====
         this.player = new Player(
@@ -57,17 +107,34 @@ export default class LevelScene extends Phaser.Scene
             levelData.playerSpawn.y
         );
 
+        const startMap =
+            this.continueGame
+            &&
+            this.saveData?.currentMap
+                ? this.saveData.currentMap
+                : 'drinkingroom';
+
         // ===== 当前地图 =====
-        this.currentMap = 'drinkingroom';
+        this.currentMap = startMap;
 
         this.portalRegistry = new PortalRegistry();
 
-        this.npcCatchCount = {};
+        this.npcCatchCount =
+            this.continueGame
+            &&
+            this.saveData?.npcCatchCount
+                ? { ...this.saveData.npcCatchCount }
+                : {};
         // ===== NPCManager =====
         this.npcManager =
             this.game.npcManager;
 
         this.resetNPCsFromLevel(levelData);
+
+        if (this.continueGame && this.saveData)
+        {
+            this.applySavedNpcs(this.saveData);
+        }
 
         // ===== 当前Scene中的Sprite（只创建一次，切图不销毁）=====
         this.npcSprites =
@@ -79,7 +146,15 @@ export default class LevelScene extends Phaser.Scene
         // ===== 地图管理器 =====
         this.mapManager = new MapManager(this);
 
-        this.mapManager.loadMap('drinkingroom');
+        this.mapManager.loadMap(startMap);
+
+        if (this.continueGame && this.saveData)
+        {
+            this.player.setPosition(
+                this.saveData.playerX,
+                this.saveData.playerY
+            );
+        }
 
         const npcMapKeys =
             new Set(
@@ -119,7 +194,12 @@ export default class LevelScene extends Phaser.Scene
         this.pendingNeutralEffect = null;
         this.grantedSecondChance = false;
         this.missionCompleting = false;
-        this.survivalMs = 0;
+        this.survivalMs =
+            this.continueGame
+            &&
+            this.saveData?.survivalMs
+                ? this.saveData.survivalMs
+                : 0;
         this.isResultShowing = false;
 
         // ===== 关卡任务 =====
@@ -138,7 +218,7 @@ export default class LevelScene extends Phaser.Scene
                     levelData.mission
                 );
 
-            this.missionPanel.refresh(0);
+            this.missionPanel.refresh(this.survivalMs);
         }
 
         this.resultOverlay =
@@ -282,6 +362,8 @@ export default class LevelScene extends Phaser.Scene
                 this.npcManager
             );
 
+        this.createBackButton();
+
         // ===== 待处理工作进度条（右侧黑色 HUD 区） =====
         this.workBacklog =
             new WorkBacklogBar(this);
@@ -304,6 +386,19 @@ export default class LevelScene extends Phaser.Scene
             'npcs:',
             this.npcManager.getNPCsInMap(this.currentMap)
         );
+
+        finishEnterCurtain(
+            this,
+            this._curtainHandle
+        );
+        }
+        finally
+        {
+            if (this.input.enabled === false)
+            {
+                this.input.enabled = true;
+            }
+        }
     }
 
     setupPlayAreaCameras()
@@ -351,6 +446,12 @@ export default class LevelScene extends Phaser.Scene
             this.rightHudCamera?.ignore(
                 this.miniMap.container
             );
+        }
+
+        if (this.backButton)
+        {
+            this.cameras.main.ignore(this.backButton);
+            this.rightHudCamera?.ignore(this.backButton);
         }
 
         if (this.workBacklog?.container)
@@ -968,7 +1069,7 @@ export default class LevelScene extends Phaser.Scene
     {
         if (this.level >= 5)
         {
-            this.scene.start('MainMenuScene');
+            this.returnToMainMenu();
             return;
         }
 
@@ -1028,6 +1129,17 @@ export default class LevelScene extends Phaser.Scene
 
     update(time, delta)
     {
+        if (
+            Phaser.Input.Keyboard.JustDown(this.escKey)
+            &&
+            !this.isResultShowing
+            &&
+            !this.dialogueManager.isPlaying
+        )
+        {
+            this.returnToMainMenu();
+        }
+
         if (this.isResultShowing)
         {
             this.player?.setVelocity(0, 0);
@@ -1399,6 +1511,16 @@ export default class LevelScene extends Phaser.Scene
                 this._onCollisionStart
             );
         }
+
+        if (this._onBackPointerUp)
+        {
+            this.input.off(
+                'pointerup',
+                this._onBackPointerUp
+            );
+        }
+
+        this.mapManager?.clearCurrentMap();
     }
 
     onDialogueEnd()
@@ -1449,6 +1571,185 @@ export default class LevelScene extends Phaser.Scene
             );
 
         return prop ? prop.value : null;
+    }
+
+    createBackButton()
+    {
+        const panelTop =
+            Math.max(
+                8,
+                (GAME_HEIGHT - miniMapLayout.panelHeight) / 2
+            );
+
+        const cx = miniMapLayout.panelWidth / 2;
+        const y = panelTop - 28;
+
+        this.backButton =
+            this.add.text(
+                cx,
+                y,
+                '← 返回',
+                {
+                    fontSize: '20px',
+                    color: '#f5f0e8',
+                    backgroundColor: 'rgba(20, 16, 12, 0.55)',
+                    padding: {
+                        left: 14,
+                        right: 14,
+                        top: 8,
+                        bottom: 8
+                    }
+                }
+            )
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(601)
+            .setInteractive({ useHandCursor: true });
+
+        this.backButton.on('pointerover', () =>
+        {
+            this.backButton.setStyle({
+                backgroundColor: 'rgba(48, 38, 28, 0.72)',
+                color: '#fff8ee'
+            });
+        });
+
+        this.backButton.on('pointerout', () =>
+        {
+            this.backButton.setStyle({
+                backgroundColor: 'rgba(20, 16, 12, 0.55)',
+                color: '#f5f0e8'
+            });
+        });
+
+        this.backButton.on('pointerup', () =>
+        {
+            this.returnToMainMenu();
+        });
+
+        // 多相机时 Text 的 hitTest 可能失效，用 HUD 区点击作兜底
+        this._onBackPointerUp = (pointer) =>
+        {
+            if (pointer.x > HUD_WIDTH)
+            {
+                return;
+            }
+
+            const bounds =
+                this.backButton.getBounds();
+
+            if (bounds.contains(pointer.x, pointer.y))
+            {
+                this.returnToMainMenu();
+            }
+        };
+
+        this.input.on(
+            'pointerup',
+            this._onBackPointerUp
+        );
+
+        if (this.input.keyboard)
+        {
+            this.escKey =
+                this.input.keyboard.addKey(
+                    Phaser.Input.Keyboard.KeyCodes.ESC
+                );
+        }
+    }
+
+    returnToMainMenu()
+    {
+        if (this._returningToMenu)
+        {
+            return;
+        }
+
+        this._returningToMenu = true;
+        this._curtainTransitioning = false;
+        this.input.enabled = true;
+
+        GameState.saveProgress(
+            GameState.buildSaveFromScene(this)
+        );
+
+        transitionToScene(this, 'MainMenuScene');
+    }
+
+    applySavedNpcs(saveData)
+    {
+        if (!saveData?.npcs?.length)
+        {
+            return;
+        }
+
+        for (const saved of saveData.npcs)
+        {
+            const npc =
+                this.npcManager.getNPC(saved.id);
+
+            if (!npc)
+            {
+                continue;
+            }
+
+            if (saved.currentMap != null)
+            {
+                npc.currentMap = saved.currentMap;
+            }
+
+            if (saved.worldX != null)
+            {
+                npc.worldX = saved.worldX;
+            }
+
+            if (saved.worldY != null)
+            {
+                npc.worldY = saved.worldY;
+            }
+
+            if (saved.facing != null)
+            {
+                npc.facing = saved.facing;
+            }
+
+            if (saved.removed != null)
+            {
+                npc.removed = saved.removed;
+            }
+
+            if (
+                saved.type === 'hunter'
+                &&
+                npc.type !== 'hunter'
+                &&
+                npc.convertToHunter
+            )
+            {
+                npc.convertToHunter();
+            }
+            else if (saved.type != null)
+            {
+                npc.type = saved.type;
+            }
+
+            if (saved.hasEmpathy != null)
+            {
+                npc.hasEmpathy = saved.hasEmpathy;
+            }
+
+            HunterPathing.clampEntity(
+                npc,
+                npc.currentMap
+            );
+
+            npc.pathing?.reset();
+
+            if (npc.resetWander)
+            {
+                npc.resetWander();
+            }
+        }
     }
 
     resetNPCsFromLevel(levelData)

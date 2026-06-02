@@ -1,302 +1,861 @@
 import { Scene, Math as PhaserMath } from 'phaser';
 
+import GameState from '../../systems/GameState.js';
+
+import {
+
+    playEnterIfNeeded,
+
+    readCurtainEnter,
+
+    readCurtainTurnKey,
+
+    transitionToScene
+
+} from '../../systems/CurtainTransition.js';
+
+
+
 /** 视差强度：鼠标在屏幕边缘时各层最大位移（像素），越远层幅度越大 */
+
 const PARALLAX_STRENGTH = {
+
     ui: 8,
+
     front: -10,
+
     smoke: -18,
+
     wish: -26,
+
     back: -38
+
 };
 
-const BG_LAYERS = [
-    { key: 'cg-beginning-back', strength: PARALLAX_STRENGTH.back, depth: 0 },
-    { key: 'cg-beginning-wish', strength: PARALLAX_STRENGTH.wish, depth: 1 },
-    { key: 'cg-beginning-front', strength: PARALLAX_STRENGTH.front, depth: 2 },
-    { key: 'cg-beginning-smoke', strength: PARALLAX_STRENGTH.smoke, depth: 3 }
+
+
+const WISH_TEXTURE_KEYS = [
+    'cg-beginning-wish1',
+    'cg-beginning-wish2'
 ];
 
+const BG_LAYERS = [
+
+    { key: 'cg-beginning-back', strength: PARALLAX_STRENGTH.back, depth: 0 },
+
+    {
+        key: 'cg-beginning-wish',
+        strength: PARALLAX_STRENGTH.wish,
+        depth: 1,
+        wishRotate: true
+    },
+
+    {
+        key: WISH_TEXTURE_KEYS[0],
+        strength: PARALLAX_STRENGTH.wish,
+        depth: 2,
+        wishRotate: true,
+        wishSwap: true
+    },
+
+    { key: 'cg-beginning-front', strength: PARALLAX_STRENGTH.front, depth: 3 },
+
+    { key: 'cg-beginning-smoke', strength: PARALLAX_STRENGTH.smoke, depth: 4 }
+
+];
+
+
+
 /** 视差弹簧：刚度越高回弹越快；阻尼越高停稳越快（略低于临界阻尼会有轻弹） */
+const PARALLAX_OVERSHOOT = 1.12;
+
 const PARALLAX_SPRING = 10;
+
 const PARALLAX_DAMPING = 8;
 
+
+
 /** smoke 单次上移距离（像素），完成后瞬间复位 */
+
 const SMOKE_RISE_PX = 72;
+
 const SMOKE_RISE_MS = 5200;
 
+
+
 /** wish 瞬时跳变角度与每步停留时长 */
+
 const WISH_SWING_DEG = 15;
+
 const WISH_STEP_MS = 600;
 
+
+
 export default class MainMenuScene extends Scene
+
 {
+
     constructor()
+
     {
+
         super('MainMenuScene');
+
     }
 
-    create()
+
+
+    init(data)
+
     {
+
+        this.curtainEnter = readCurtainEnter(data);
+
+        this.curtainTurnKey = readCurtainTurnKey(data);
+
+        this._curtainTransitioning = false;
+
+    }
+
+
+
+    create()
+
+    {
+
+        this.input.enabled = true;
+
+
+
         this.cameras.main.setBackgroundColor('#0a0a0a');
 
+
+
         this.centerX = this.scale.width / 2;
+
         this.centerY = this.scale.height / 2;
 
+
+
         this.parallaxTarget = { x: 0, y: 0 };
+
         this.parallaxOffset = { x: 0, y: 0 };
+
         this.parallaxVelocity = { x: 0, y: 0 };
 
+
+
         this.bgLayers = BG_LAYERS.map((entry) =>
+
         {
+
             const sprite =
+
                 this.add.image(
+
                     this.centerX,
+
                     this.centerY,
+
                     entry.key
+
                 );
 
+
+
             sprite.setDepth(entry.depth);
-            this.fitCover(sprite);
+
+            const extraShiftY =
+                entry.key === 'cg-beginning-smoke'
+                    ? SMOKE_RISE_PX
+                    : 0;
+
+            this.fitCover(
+                sprite,
+                entry.strength,
+                extraShiftY
+            );
+
+
 
             return {
+
                 key: entry.key,
+
                 sprite,
-                strength: entry.strength
+
+                strength: entry.strength,
+
+                isWish: entry.isWish ?? false,
+
+                wishRotate: entry.wishRotate ?? false,
+
+                wishSwap: entry.wishSwap ?? false
+
             };
+
         });
+
+        this.wishTextureIndex = 0;
+
+
 
         this.startLayerAnimations();
 
+
+
         this.uiRoot =
+
             this.add.container(0, 0).setDepth(10);
+
+
+
+        this.menuButtons = [];
+
+
 
         this.buildUi();
 
+
+
         this.input.on(
+
             'pointermove',
+
             pointer => this.setParallaxTarget(pointer)
+
         );
+
+
+
+        playEnterIfNeeded(this);
+
     }
 
-    fitCover(image)
+
+
+    fitCover(image, parallaxStrength = 0, extraShiftY = 0)
+
     {
-        const scaleX = this.scale.width / image.width;
-        const scaleY = this.scale.height / image.height;
 
-        image.setScale(Math.max(scaleX, scaleY));
+        const vw = this.scale.width;
+
+        const vh = this.scale.height;
+
+        const scaleX = vw / image.width;
+
+        const scaleY = vh / image.height;
+
+
+
+        let cover = Math.max(scaleX, scaleY);
+
+
+
+        const padX =
+            Math.abs(parallaxStrength) * PARALLAX_OVERSHOOT;
+
+        const padY =
+            Math.abs(parallaxStrength) * PARALLAX_OVERSHOOT
+            + extraShiftY;
+
+
+
+        cover *= Math.max(
+
+            (vw + padX * 2) / vw,
+
+            (vh + padY * 2) / vh
+
+        );
+
+
+
+        image.setScale(cover);
+
     }
+
+
 
     setParallaxTarget(pointer)
+
     {
+
         const halfW = this.scale.width / 2;
+
         const halfH = this.scale.height / 2;
 
+
+
         this.parallaxTarget.x =
-            ((pointer.x - this.centerX) / halfW);
+
+            PhaserMath.Clamp(
+
+                (pointer.x - this.centerX) / halfW,
+
+                -1,
+
+                1
+
+            );
+
         this.parallaxTarget.y =
-            ((pointer.y - this.centerY) / halfH);
+
+            PhaserMath.Clamp(
+
+                (pointer.y - this.centerY) / halfH,
+
+                -1,
+
+                1
+
+            );
+
     }
 
+
+
     update(_time, delta)
+
     {
+
         const dt = Math.min(delta / 1000, 0.05);
 
+
+
         const dx =
+
             this.parallaxTarget.x - this.parallaxOffset.x;
+
         const dy =
+
             this.parallaxTarget.y - this.parallaxOffset.y;
 
+
+
         this.parallaxVelocity.x +=
+
             (dx * PARALLAX_SPRING
+
                 - this.parallaxVelocity.x * PARALLAX_DAMPING)
+
             * dt;
+
         this.parallaxVelocity.y +=
+
             (dy * PARALLAX_SPRING
+
                 - this.parallaxVelocity.y * PARALLAX_DAMPING)
+
             * dt;
+
+
 
         this.parallaxOffset.x +=
+
             this.parallaxVelocity.x * dt;
+
         this.parallaxOffset.y +=
+
             this.parallaxVelocity.y * dt;
 
-        const nx = this.parallaxOffset.x;
-        const ny = this.parallaxOffset.y;
+
+
+        const nx =
+            PhaserMath.Clamp(this.parallaxOffset.x, -1, 1);
+
+        const ny =
+            PhaserMath.Clamp(this.parallaxOffset.y, -1, 1);
+
+
 
         for (const layer of this.bgLayers)
+
         {
+
             let x =
+
                 this.centerX + nx * layer.strength;
+
             let y =
+
                 this.centerY + ny * layer.strength;
 
+
+
             if (layer.key === 'cg-beginning-smoke')
+
             {
+
                 y -= this.smokeRiseAnim.rise * SMOKE_RISE_PX;
+
             }
+
+
 
             layer.sprite.setPosition(x, y);
 
-            if (layer.key === 'cg-beginning-wish')
+
+
+            if (layer.wishRotate)
+
             {
+
                 layer.sprite.setRotation(
+
                     PhaserMath.DegToRad(
+
                         this.wishSwingAnim.angle
+
                     )
+
                 );
+
             }
+
         }
+
+
 
         const uiStrength = PARALLAX_STRENGTH.ui;
 
-        this.uiRoot.setPosition(
-            nx * uiStrength,
-            ny * uiStrength
-        );
+        const uiOffsetX = nx * uiStrength;
+
+        const uiOffsetY = ny * uiStrength;
+
+
+
+        this.uiRoot.setPosition(uiOffsetX, uiOffsetY);
+
+
+
+        for (const entry of this.menuButtons)
+
+        {
+
+            entry.button.setPosition(
+
+                entry.baseX + uiOffsetX,
+
+                entry.baseY + uiOffsetY
+
+            );
+
+        }
+
     }
+
+
 
     buildUi()
+
     {
+
         const cx = this.centerX;
+
         const ui = this.uiRoot;
 
+
+
         ui.add(
+
             this.add.text(
+
                 cx,
+
                 120,
+
                 '隐现的工作周报',
+
                 {
+
                     fontSize: '42px',
+
                     color: '#f5f0e8',
+
                     fontStyle: 'bold',
+
                     stroke: '#1a1208',
+
                     strokeThickness: 6
+
                 }
+
             ).setOrigin(0.5)
+
         );
 
+
+
         ui.add(
+
             this.add.text(
+
                 cx,
+
                 180,
+
                 '没在工作才是好员工啊',
+
                 {
+
                     fontSize: '20px',
+
                     color: '#d4c8b8',
+
                     stroke: '#1a1208',
+
                     strokeThickness: 3
+
                 }
+
             ).setOrigin(0.5)
+
         );
 
-        const startButton =
-            this.createButton(cx, 320, '上班');
 
-        startButton.on('pointerdown', () =>
-        {
-            this.scene.start('LevelScene', { level: 1 });
-        });
 
-        ui.add(startButton);
+        this.addMenuButton(
 
-        const collectionButton =
-            this.createButton(cx, 400, '查看收集物');
+            cx,
 
-        collectionButton.on('pointerdown', () =>
-        {
-            this.scene.start('CollectionScene');
-        });
+            280,
 
-        ui.add(collectionButton);
+            '继续上班',
+
+            () =>
+
+            {
+
+                if (!GameState.hasSave())
+
+                {
+
+                    return;
+
+                }
+
+
+
+                transitionToScene(this, 'LevelScene', {
+
+                    continueGame: true
+
+                });
+
+            },
+
+            { enabled: GameState.hasSave() }
+
+        );
+
+
+
+        this.addMenuButton(
+
+            cx,
+
+            350,
+
+            '上班',
+
+            () =>
+
+            {
+
+                GameState.resetForNewGame();
+
+                GameState.clearSave();
+
+                transitionToScene(this, 'LevelScene', {
+
+                    level: 1
+
+                });
+
+            }
+
+        );
+
+
+
+        this.addMenuButton(
+
+            cx,
+
+            420,
+
+            '查看收集物',
+
+            () =>
+
+            {
+
+                transitionToScene(this, 'CollectionScene');
+
+            }
+
+        );
+
+
 
         ui.add(
+
             this.add.text(
+
                 cx,
+
                 540,
+
                 'Powered by Phaser',
+
                 {
+
                     fontSize: '14px',
+
                     color: '#8a7f72'
+
                 }
+
             ).setOrigin(0.5)
+
         );
+
     }
 
-    createButton(x, y, text)
+
+
+    addMenuButton(x, y, text, onClick, options = {})
+
     {
-        const button = this.add.text(
-            x,
-            y,
-            text,
-            {
-                fontSize: '28px',
-                backgroundColor: 'rgba(20, 16, 12, 0.55)',
-                color: '#f5f0e8',
-                padding: {
-                    left: 24,
-                    right: 24,
-                    top: 12,
-                    bottom: 12
-                }
-            }
-        )
-        .setOrigin(0.5)
-        .setInteractive({ useHandCursor: true });
 
-        button.on('pointerover', () =>
+        const { enabled = true } = options;
+
+
+
+        const button = this.createButton(x, y, text);
+
+
+
+        button.setDepth(11);
+
+
+
+        if (enabled)
+
         {
-            button.setStyle({
-                backgroundColor: 'rgba(48, 38, 28, 0.72)',
-                color: '#fff8ee'
-            });
+
+            button.on('pointerdown', onClick);
+
+        }
+
+        else
+
+        {
+
+            button.setAlpha(0.45);
+
+            button.disableInteractive();
+
+        }
+
+
+
+        this.menuButtons.push({
+
+            button,
+
+            baseX: x,
+
+            baseY: y
+
         });
 
-        button.on('pointerout', () =>
-        {
-            button.setStyle({
-                backgroundColor: 'rgba(20, 16, 12, 0.55)',
-                color: '#f5f0e8'
-            });
-        });
+
 
         return button;
+
     }
 
-    startLayerAnimations()
+
+
+    createButton(x, y, text)
+
     {
+
+        const button = this.add.text(
+
+            x,
+
+            y,
+
+            text,
+
+            {
+
+                fontSize: '28px',
+
+                backgroundColor: 'rgba(20, 16, 12, 0.55)',
+
+                color: '#f5f0e8',
+
+                padding: {
+
+                    left: 24,
+
+                    right: 24,
+
+                    top: 12,
+
+                    bottom: 12
+
+                }
+
+            }
+
+        )
+
+        .setOrigin(0.5)
+
+        .setInteractive({ useHandCursor: true });
+
+
+
+        button.on('pointerover', () =>
+
+        {
+
+            button.setStyle({
+
+                backgroundColor: 'rgba(48, 38, 28, 0.72)',
+
+                color: '#fff8ee'
+
+            });
+
+        });
+
+
+
+        button.on('pointerout', () =>
+
+        {
+
+            button.setStyle({
+
+                backgroundColor: 'rgba(20, 16, 12, 0.55)',
+
+                color: '#f5f0e8'
+
+            });
+
+        });
+
+
+
+        return button;
+
+    }
+
+
+
+    startLayerAnimations()
+
+    {
+
         this.smokeRiseAnim = { rise: 0 };
 
+
+
         this.tweens.add({
+
             targets: this.smokeRiseAnim,
+
             rise: 1,
+
             duration: SMOKE_RISE_MS,
+
             ease: 'Linear',
+
             repeat: -1
+
         });
+
+
 
         this.wishSwingAnim = { angle: 0 };
 
+
+
         const wishAngles = [
+
             WISH_SWING_DEG,
+
             0,
+
             -WISH_SWING_DEG,
+
             0
+
         ];
+
+
 
         let wishStepIndex = 0;
 
+        const wishSwapLayer =
+            this.bgLayers.find(layer => layer.wishSwap);
+
+
+
         this.time.addEvent({
+
             delay: WISH_STEP_MS,
+
             loop: true,
+
             callback: () =>
+
             {
+
                 this.wishSwingAnim.angle =
+
                     wishAngles[
+
                         wishStepIndex % wishAngles.length
+
                     ];
 
+
+
                 wishStepIndex += 1;
+
+
+
+                if (wishSwapLayer)
+                {
+                    this.wishTextureIndex =
+                        (this.wishTextureIndex + 1)
+                        % WISH_TEXTURE_KEYS.length;
+
+                    wishSwapLayer.sprite.setTexture(
+                        WISH_TEXTURE_KEYS[
+                            this.wishTextureIndex
+                        ]
+                    );
+
+                    this.fitCover(
+                        wishSwapLayer.sprite,
+                        PARALLAX_STRENGTH.wish
+                    );
+                }
+
             }
+
         });
+
     }
+
 }
+
+

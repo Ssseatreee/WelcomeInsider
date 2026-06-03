@@ -529,6 +529,18 @@ export class Preloader extends Scene
                 `${beginningCgPath}/turn/${i}.png`
             );
         }
+
+        const bgmPath = '../../../public/assets/BGM';
+
+        this.load.audio(
+            'bgm-the-cafe',
+            `${bgmPath}/Track 4 (The Cafe).wav`
+        );
+
+        this.load.audio(
+            'bgm-traffic-lights',
+            `${bgmPath}/Track 6 (Traffic Lights).wav`
+        );
     }
 
     create ()

@@ -18,6 +18,10 @@ const FALL_MS = 480;
 const HOLD_MS = 1000;
 const RISE_MS = 480;
 
+/** 幕布落下 + 停顿，BGM 渐停（切场景前完成） */
+export const CURTAIN_BGM_FADE_OUT_MS =
+    FALL_MS + HOLD_MS;
+
 function getSceneSize(scene)
 {
     return {
@@ -273,6 +277,18 @@ export function transitionToScene(
     }
 
     scene._curtainTransitioning = true;
+
+    const bgmManager = scene.game?.bgmManager;
+
+    if (
+        bgmManager?.shouldFadeOnTransition(
+            scene.scene.key,
+            targetKey
+        )
+    )
+    {
+        bgmManager.fadeOutForTransition(scene);
+    }
 
     if (scene.input)
     {

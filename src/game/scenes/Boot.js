@@ -1,5 +1,7 @@
 import { Scene } from 'phaser';
 import NPCManager from '../../systems/NPCManager';
+import BgmManager from '../../systems/BgmManager.js';
+import AudioSettings from '../../systems/AudioSettings.js';
 import levels from '../../data/levels';
 // npc映射
 import npcMap from '../../gameObjects/npcs/npcs';
@@ -30,6 +32,12 @@ export class Boot extends Scene
         // =========================
         this.game.npcManager =
             new NPCManager();
+
+        AudioSettings.load();
+        AudioSettings.bindGame(this.game);
+
+        this.game.bgmManager =
+            new BgmManager(this.game);
 
         // =========================
         // 当前关卡数据

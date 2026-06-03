@@ -65,6 +65,8 @@ export default class CollectionScene extends Scene
         }
 
         playEnterIfNeeded(this);
+
+        this.game.bgmManager?.playMenu(this);
     }
 
     update()

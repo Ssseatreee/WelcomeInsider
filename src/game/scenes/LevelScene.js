@@ -26,6 +26,7 @@ import LevelResultOverlay from '../../systems/LevelResultOverlay.js';
 
 import mapDisplayNames from '../../data/mapDisplayNames.js';
 import miniMapLayout from '../../data/miniMapLayout.js';
+import { createLevelHudVolumeControls } from '../../systems/VolumeSettingsPanel.js';
 import workBacklogConfig from '../../data/workBacklogConfig.js';
 import items, { resolveItem } from '../../data/items.js';
 
@@ -391,6 +392,8 @@ export default class LevelScene extends Phaser.Scene
             this,
             this._curtainHandle
         );
+
+        this.game.bgmManager?.playLevel(this);
         }
         finally
         {
@@ -452,6 +455,23 @@ export default class LevelScene extends Phaser.Scene
         {
             this.cameras.main.ignore(this.backButton);
             this.rightHudCamera?.ignore(this.backButton);
+        }
+
+        if (this.settingsButton)
+        {
+            this.cameras.main.ignore(this.settingsButton);
+            this.rightHudCamera?.ignore(this.settingsButton);
+        }
+
+        if (this.volumeSettingsPanel?.container)
+        {
+            this.cameras.main.ignore(
+                this.volumeSettingsPanel.container
+            );
+
+            this.rightHudCamera?.ignore(
+                this.volumeSettingsPanel.container
+            );
         }
 
         if (this.workBacklog?.container)
@@ -1512,13 +1532,15 @@ export default class LevelScene extends Phaser.Scene
             );
         }
 
-        if (this._onBackPointerUp)
+        if (this._onHudTopPointerUp)
         {
             this.input.off(
                 'pointerup',
-                this._onBackPointerUp
+                this._onHudTopPointerUp
             );
         }
+
+        this.volumeSettingsPanel?.destroy();
 
         this.mapManager?.clearCurrentMap();
     }
@@ -1581,46 +1603,16 @@ export default class LevelScene extends Phaser.Scene
                 (GAME_HEIGHT - miniMapLayout.panelHeight) / 2
             );
 
-        const cx = miniMapLayout.panelWidth / 2;
-        const y = panelTop - 28;
-
-        this.backButton =
-            this.add.text(
-                cx,
-                y,
-                '← 返回',
-                {
-                    fontSize: '20px',
-                    color: '#f5f0e8',
-                    backgroundColor: 'rgba(20, 16, 12, 0.55)',
-                    padding: {
-                        left: 14,
-                        right: 14,
-                        top: 8,
-                        bottom: 8
-                    }
-                }
-            )
-            .setOrigin(0.5)
-            .setScrollFactor(0)
-            .setDepth(601)
-            .setInteractive({ useHandCursor: true });
-
-        this.backButton.on('pointerover', () =>
-        {
-            this.backButton.setStyle({
-                backgroundColor: 'rgba(48, 38, 28, 0.72)',
-                color: '#fff8ee'
+        const hudControls =
+            createLevelHudVolumeControls(this, {
+                panelTop,
+                panelWidth: miniMapLayout.panelWidth,
+                panelLeft: miniMapLayout.panelOffsetLeft ?? 0
             });
-        });
 
-        this.backButton.on('pointerout', () =>
-        {
-            this.backButton.setStyle({
-                backgroundColor: 'rgba(20, 16, 12, 0.55)',
-                color: '#f5f0e8'
-            });
-        });
+        this.backButton = hudControls.backButton;
+        this.settingsButton = hudControls.settingsButton;
+        this.volumeSettingsPanel = hudControls.volumePanel;
 
         this.backButton.on('pointerup', () =>
         {
@@ -1628,25 +1620,34 @@ export default class LevelScene extends Phaser.Scene
         });
 
         // 多相机时 Text 的 hitTest 可能失效，用 HUD 区点击作兜底
-        this._onBackPointerUp = (pointer) =>
+        this._onHudTopPointerUp = (pointer) =>
         {
             if (pointer.x > HUD_WIDTH)
             {
                 return;
             }
 
-            const bounds =
+            const backBounds =
                 this.backButton.getBounds();
 
-            if (bounds.contains(pointer.x, pointer.y))
+            if (backBounds.contains(pointer.x, pointer.y))
             {
                 this.returnToMainMenu();
+                return;
+            }
+
+            const settingsBounds =
+                this.settingsButton.getBounds();
+
+            if (settingsBounds.contains(pointer.x, pointer.y))
+            {
+                this.volumeSettingsPanel.toggle();
             }
         };
 
         this.input.on(
             'pointerup',
-            this._onBackPointerUp
+            this._onHudTopPointerUp
         );
 
         if (this.input.keyboard)

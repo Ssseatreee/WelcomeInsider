@@ -2,6 +2,8 @@ import { Scene, Math as PhaserMath } from 'phaser';
 
 import GameState from '../../systems/GameState.js';
 
+import VolumeSettingsPanel from '../../systems/VolumeSettingsPanel.js';
+
 import {
 
     playEnterIfNeeded,
@@ -230,6 +232,7 @@ export default class MainMenuScene extends Scene
 
         playEnterIfNeeded(this);
 
+        this.game.bgmManager?.playMenu(this);
     }
 
 
@@ -599,13 +602,61 @@ export default class MainMenuScene extends Scene
 
 
 
+        this.addMenuButton(
+
+            cx,
+
+            490,
+
+            '设置',
+
+            () =>
+
+            {
+
+                this.settingsPanelVisible =
+                    !this.settingsPanelVisible;
+
+                this.volumeSettings?.setVisible(
+                    this.settingsPanelVisible
+                );
+
+            }
+
+        );
+
+
+
+        this.settingsPanelVisible = false;
+
+        this.volumeSettings =
+            new VolumeSettingsPanel(this, {
+
+                centerX: cx,
+
+                topY: 548,
+
+                width: 340,
+
+                visible: false,
+
+                depth: 12
+
+            });
+
+        this.uiRoot.add(
+            this.volumeSettings.container
+        );
+
+
+
         ui.add(
 
             this.add.text(
 
                 cx,
 
-                540,
+                600,
 
                 'Powered by Phaser',
 

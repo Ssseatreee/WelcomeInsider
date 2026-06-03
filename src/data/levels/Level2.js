@@ -57,7 +57,7 @@ const level2 = {
     ],
 
     mission: {
-        title: '第二关',
+        title: 'Tues',
         mode: 'all',
         objectives: [
             {
@@ -73,6 +73,16 @@ const level2 = {
                 label: '与艾泽尔搭话'
             }
         ]
+    },
+
+    intro: {
+        portrait: { npc: 'aze', expression: 'normal' },
+        title: '后辈很可靠',
+        text:
+            '偶尔也会有工作太多忙不过来的情况，\n'
+            + '这种时候我会考虑让后辈来做，这对年轻人来说也是一种历练嘛。\n'
+            + '他做事认真，很可靠，除此之外——\n'
+            + '咖啡泡得也很好。'
     }
 };
 

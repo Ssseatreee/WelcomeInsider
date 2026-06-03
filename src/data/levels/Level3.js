@@ -66,7 +66,7 @@ const level3 = {
     ],
 
     mission: {
-        title: '第三关',
+        title: 'Wed',
         mode: 'all',
         objectives: [
             {
@@ -76,6 +76,15 @@ const level3 = {
                 label: '坚持 40 秒不被抓捕'
             }
         ]
+    },
+
+    intro: {
+        portrait: { npc: 'sply', expression: 'normal' },
+        title: '同僚心情难测',
+        text:
+            '拉特兰常常是晴天，我们不必像其他地区那样抱怨天气预报。\n'
+            + '但是萨科塔人跳脱的思维弥补了这一点。\n'
+            + '比如教皇厅里那位您也认识的同僚，她总是凭心情行事。尽管有共感，我也很难预测。'
     }
 };
 

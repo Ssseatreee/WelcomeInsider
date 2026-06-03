@@ -66,7 +66,7 @@ const level5 = {
     ],
 
     mission: {
-        title: '第五关',
+        title: 'Fri',
         passOnCatch: true,
         objectives: [
             {
@@ -75,6 +75,16 @@ const level5 = {
                 label: '尽量坚持更长时间'
             }
         ]
+    },
+
+    intro: {
+        portrait: { npc: 'federico', expression: 'stress' },
+        title: '公证所的工作永无止境',
+        text:
+            '终于熬到周五了！\n'
+            + '的确，公证所加班也不少，但是这周我不怎么担心这个。\n'
+            + '明天我要到本舰报道，好歹我也是罗德岛的干员嘛。\n'
+            + '顺便，我带了圈圈圈甜甜圈店的新品，您或许可以期待下。'
     }
 };
 

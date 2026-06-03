@@ -1,6 +1,8 @@
 // import { use } from 'matter';
 import * as Phaser from 'phaser';
 import items from '../data/items.js';
+import TypewriterText from './TypewriterText.js';
+import { TYPEWRITER_OPTIONS } from '../data/typewriterConfig.js';
 import {
     GAME_HEIGHT,
     PLAY_AREA_UI_CENTER_X
@@ -49,6 +51,12 @@ export default class DialogueManager
         this.box.setVisible(false);
         this.box.setDepth(200);
         this.box.setScrollFactor(0);
+        this.box.setInteractive({ useHandCursor: true });
+
+        this.box.on('pointerdown', () =>
+        {
+            this.handleDialogueBoxClick();
+        });
 
         // 文本
         this.text = scene.add.text(
@@ -78,6 +86,7 @@ export default class DialogueManager
             }
         );
         this.text.setScrollFactor(0);
+        this.text.setOrigin(0, 0);
         this.objectDialogText.setScrollFactor(0);
         this.objectDialogText.setOrigin(0, 0);
         this.objectDialogText.setVisible(false);
@@ -182,6 +191,87 @@ export default class DialogueManager
 
         this.cursors =
             scene.input.keyboard.createCursorKeys();
+
+        this.dialogueTypewriter =
+            new TypewriterText(scene, this.text, TYPEWRITER_OPTIONS);
+
+        this.objectTypewriter =
+            new TypewriterText(
+                scene,
+                this.objectDialogText,
+                TYPEWRITER_OPTIONS
+            );
+    }
+
+    handleDialogueBoxClick()
+    {
+        if (this.isShowingObjectDialogue)
+        {
+            if (!this.objectTypewriter.isComplete)
+            {
+                this.objectTypewriter.skip();
+            }
+
+            return;
+        }
+
+        if (
+            this.isShowingEffect
+            &&
+            this.effectPhase === 'message'
+            &&
+            !this.dialogueTypewriter.isComplete
+        )
+        {
+            this.dialogueTypewriter.skip();
+            return;
+        }
+
+        if (
+            !this.isPlaying
+            ||
+            this.isShowingChoices
+            ||
+            this.isShowingEffect
+        )
+        {
+            return;
+        }
+
+        if (!this.dialogueTypewriter.isComplete)
+        {
+            this.dialogueTypewriter.skip();
+        }
+    }
+
+    playDialogueText(fullText)
+    {
+        this.dialogueTypewriter.start(fullText);
+    }
+
+    playObjectDialogText(fullText)
+    {
+        this.objectTypewriter.start(fullText);
+    }
+
+    handleDialogueSpaceAdvance()
+    {
+        if (!this.dialogueTypewriter.isComplete)
+        {
+            this.dialogueTypewriter.skip();
+            return;
+        }
+
+        this.dialogIndex++;
+
+        if (this.dialogIndex >= this.dialogues.length)
+        {
+            this.tryFinishOrShowEffect();
+        }
+        else
+        {
+            this.showCurrentDialogue();
+        }
     }
 
     start(dialogues)
@@ -228,11 +318,19 @@ export default class DialogueManager
         {
             if (Phaser.Input.Keyboard.JustDown(this.spaceKey))
             {
+                if (!this.objectTypewriter.isComplete)
+                {
+                    this.objectTypewriter.skip();
+                    return;
+                }
+
                 console.log('关闭物品对话');
 
                 this.box.setVisible(false);
 
                 this.objectDialogText.setVisible(false);
+
+                this.objectTypewriter.stop();
 
                 this.isShowingObjectDialogue = false;
 
@@ -250,17 +348,26 @@ export default class DialogueManager
 
         // ===== 选项效果（仍在对话中）=====
 
-        if (this.isShowingEffect)
+        if (
+            this.isShowingEffect
+            &&
+            this.effectPhase === 'message'
+            &&
+            Phaser.Input.Keyboard.JustDown(this.spaceKey)
+        )
         {
-            if (
-                this.effectPhase === 'message'
-                &&
-                Phaser.Input.Keyboard.JustDown(this.spaceKey)
-            )
+            if (!this.dialogueTypewriter.isComplete)
             {
-                this.finishEffectAndEnd();
+                this.dialogueTypewriter.skip();
+                return;
             }
 
+            this.finishEffectAndEnd();
+            return;
+        }
+
+        if (this.isShowingEffect)
+        {
             return;
         }
 
@@ -313,16 +420,7 @@ export default class DialogueManager
 
         if (Phaser.Input.Keyboard.JustDown(this.spaceKey))
         {
-            this.dialogIndex++;
-
-            if (this.dialogIndex >= this.dialogues.length)
-            {
-                this.tryFinishOrShowEffect();
-            }
-            else
-            {
-                this.showCurrentDialogue();
-            }
+            this.handleDialogueSpaceAdvance();
         }
     }
 
@@ -383,7 +481,7 @@ export default class DialogueManager
                 this.scene.time.delayedCall(2000, () =>
                 {
                     this.resetDialogueTextLayout();
-                    this.text.setText(
+                    this.playDialogueText(
                         items.azeCoffee.effectMessage
                     );
                     this.text.setVisible(true);
@@ -395,7 +493,7 @@ export default class DialogueManager
         {
             this.effectImage.setVisible(false);
             this.resetDialogueTextLayout();
-            this.text.setText(
+            this.playDialogueText(
                 items.clearWork.effectMessage
             );
             this.text.setVisible(true);
@@ -411,7 +509,7 @@ export default class DialogueManager
                 this.scene.time.delayedCall(2000, () =>
                 {
                     this.resetDialogueTextLayout();
-                    this.text.setText(
+                    this.playDialogueText(
                         items.drone.effectMessage
                     );
                     this.text.setVisible(true);
@@ -429,7 +527,7 @@ export default class DialogueManager
                 this.scene.time.delayedCall(2000, () =>
                 {
                     this.resetDialogueTextLayout();
-                    this.text.setText(
+                    this.playDialogueText(
                         items.splyRefuse.effectMessage
                     );
                     this.text.setVisible(true);
@@ -464,7 +562,7 @@ export default class DialogueManager
 
         this.hideChoices();
         this.resetDialogueTextLayout();
-        this.text.setText(current.text);
+        this.playDialogueText(current.text);
         this.updatePortrait(current);
     }
 
@@ -589,21 +687,13 @@ export default class DialogueManager
                 24
             );
 
-        this.objectDialogText.setText(
-            wrappedText
-        );
         this.box.setVisible(true);
 
         this.objectDialogText.setVisible(true);
 
+        this.playObjectDialogText(wrappedText);
+
         this.isShowingObjectDialogue = true;
-        this.objectDialogCanClose = false;
-
-        this.scene.time.delayedCall(150, () => {
-
-            this.objectDialogCanClose = true;
-
-        });
     }
 
     wrapChineseText(text, maxCharsPerLine = 24)
@@ -691,6 +781,9 @@ export default class DialogueManager
     {
         this.clearEffectTimers();
         this.hideChoices();
+
+        this.dialogueTypewriter.stop();
+        this.objectTypewriter.stop();
 
         this.isShowingEffect = false;
         this.effectPhase = null;

@@ -23,6 +23,7 @@ import MissionPanel from '../../systems/MissionPanel.js';
 import ItemInventoryPanel from '../../systems/ItemInventoryPanel.js';
 import ItemObtainNotice from '../../systems/ItemObtainNotice.js';
 import LevelResultOverlay from '../../systems/LevelResultOverlay.js';
+import LevelIntroOverlay from '../../systems/LevelIntroOverlay.js';
 
 import mapDisplayNames from '../../data/mapDisplayNames.js';
 import miniMapLayout from '../../data/miniMapLayout.js';
@@ -202,6 +203,7 @@ export default class LevelScene extends Phaser.Scene
                 ? this.saveData.survivalMs
                 : 0;
         this.isResultShowing = false;
+        this.isIntroShowing = false;
 
         // ===== 关卡任务 =====
         this.levelData = levelData;
@@ -224,6 +226,9 @@ export default class LevelScene extends Phaser.Scene
 
         this.resultOverlay =
             new LevelResultOverlay(this);
+
+        this.introOverlay =
+            new LevelIntroOverlay(this);
 
         // ===== 对话管理器 =====
         this.dialogueManager =
@@ -273,6 +278,8 @@ export default class LevelScene extends Phaser.Scene
                 // ===== 触发对话 =====
                 if (
                     !this.isResultShowing
+                    &&
+                    !this.isIntroShowing
                     &&
                     !this.dialogueManager.isPlaying
                 )
@@ -394,6 +401,8 @@ export default class LevelScene extends Phaser.Scene
         );
 
         this.game.bgmManager?.playLevel(this);
+
+        this.maybeShowLevelIntro();
         }
         finally
         {
@@ -526,6 +535,17 @@ export default class LevelScene extends Phaser.Scene
 
             this.rightHudCamera?.ignore(
                 this.resultOverlay.container
+            );
+        }
+
+        if (this.introOverlay?.container)
+        {
+            this.hudCamera?.ignore(
+                this.introOverlay.container
+            );
+
+            this.rightHudCamera?.ignore(
+                this.introOverlay.container
             );
         }
 
@@ -1038,6 +1058,35 @@ export default class LevelScene extends Phaser.Scene
         );
     }
 
+    maybeShowLevelIntro()
+    {
+        if (this.continueGame)
+        {
+            return;
+        }
+
+        const intro = this.levelData?.intro;
+
+        if (!intro?.text)
+        {
+            return;
+        }
+
+        this.isIntroShowing = true;
+
+        this.player?.setVelocity(0, 0);
+
+        this.npcSprites?.forEach(sprite =>
+        {
+            sprite.setVelocity(0, 0);
+        });
+
+        this.introOverlay.show(intro, () =>
+        {
+            this.isIntroShowing = false;
+        });
+    }
+
     showLevelResult(type, onConfirm)
     {
         if (this.isResultShowing)
@@ -1154,6 +1203,8 @@ export default class LevelScene extends Phaser.Scene
             &&
             !this.isResultShowing
             &&
+            !this.isIntroShowing
+            &&
             !this.dialogueManager.isPlaying
         )
         {
@@ -1167,6 +1218,23 @@ export default class LevelScene extends Phaser.Scene
             {
                 sprite.setVelocity(0, 0);
             });
+            return;
+        }
+
+        if (this.isIntroShowing)
+        {
+            this.player?.setVelocity(0, 0);
+            this.npcSprites?.forEach(sprite =>
+            {
+                sprite.setVelocity(0, 0);
+            });
+
+            this.introOverlay.update();
+            this.miniMap?.update(
+                this.currentMap,
+                this.player
+            );
+
             return;
         }
 
@@ -1354,13 +1422,13 @@ export default class LevelScene extends Phaser.Scene
 
     triggerDialog(npc)
     {
-        if (this.isResultShowing)
+        if (this.isResultShowing || this.isIntroShowing)
         {
             return;
         }
 
         this.currentDialogNPC = npc;
-        
+
         // 防止重复触发
         this.dialogTriggered = true;
 
@@ -1541,6 +1609,8 @@ export default class LevelScene extends Phaser.Scene
         }
 
         this.volumeSettingsPanel?.destroy();
+
+        this.introOverlay?.destroy();
 
         this.mapManager?.clearCurrentMap();
     }

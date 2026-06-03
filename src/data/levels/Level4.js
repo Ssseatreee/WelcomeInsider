@@ -66,7 +66,7 @@ const level4 = {
     ],
 
     mission: {
-        title: '第四关',
+        title: 'Thurs',
         mode: 'all',
         objectives: [
             {
@@ -82,6 +82,17 @@ const level4 = {
                 label: '与奥伦搭话'
             }
         ]
+    },
+
+    intro: {
+        portrait: { npc: 'oren', expression: 'normal' },
+        title: '老同学很麻烦',
+        text:
+            '尽管您没见过他，但我想您早已经听说了。\n'
+            + '我是有一位，呃，挺有自己想法的同学。\n'
+            + '虽然他为了拉特兰，总是闹出些事情，让人下意识警觉，\n'
+            + '但人不算坏，而且——'
+            + '一说起他来，我的事情就能先放一边了呢。'
     }
 };
 

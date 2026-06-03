@@ -4,6 +4,8 @@ import GameState from '../../systems/GameState.js';
 
 import VolumeSettingsPanel from '../../systems/VolumeSettingsPanel.js';
 
+import beginningClockConfig from '../../data/beginningClockConfig.js';
+
 import {
 
     playEnterIfNeeded,
@@ -41,9 +43,46 @@ const WISH_TEXTURE_KEYS = [
     'cg-beginning-wish2'
 ];
 
+/** 钟表指针：顺时针角速度（度/秒），sec_red > sec > min > hour */
+const CLOCK_SPEED_DEG = beginningClockConfig.speedDeg;
+
+const CLOCK_PIVOT = beginningClockConfig.pivot;
+
 const BG_LAYERS = [
 
     { key: 'cg-beginning-back', strength: PARALLAX_STRENGTH.back, depth: 0 },
+
+    {
+        key: 'cg-beginning-hour',
+        strength: PARALLAX_STRENGTH.back,
+        depth: 0.2,
+        clockRotate: true,
+        clockSpeedDeg: CLOCK_SPEED_DEG.hour
+    },
+
+    {
+        key: 'cg-beginning-min',
+        strength: PARALLAX_STRENGTH.back,
+        depth: 0.4,
+        clockRotate: true,
+        clockSpeedDeg: CLOCK_SPEED_DEG.min
+    },
+
+    {
+        key: 'cg-beginning-sec',
+        strength: PARALLAX_STRENGTH.back,
+        depth: 0.6,
+        clockRotate: true,
+        clockSpeedDeg: CLOCK_SPEED_DEG.sec
+    },
+
+    {
+        key: 'cg-beginning-sec-red',
+        strength: PARALLAX_STRENGTH.back,
+        depth: 0.8,
+        clockRotate: true,
+        clockSpeedDeg: CLOCK_SPEED_DEG.sec_red
+    },
 
     {
         key: 'cg-beginning-wish',
@@ -151,6 +190,73 @@ export default class MainMenuScene extends Scene
 
         {
 
+            const extraShiftY =
+                entry.key === 'cg-beginning-smoke'
+                    ? SMOKE_RISE_PX
+                    : 0;
+
+            if (entry.clockRotate)
+            {
+                const container =
+                    this.add.container(
+                        this.centerX,
+                        this.centerY
+                    );
+
+                container.setDepth(entry.depth);
+
+                const sprite =
+                    this.add.image(0, 0, entry.key);
+
+                this.fitCover(
+                    sprite,
+                    entry.strength,
+                    extraShiftY
+                );
+
+                const dialOffsetX =
+                    (CLOCK_PIVOT.x - 0.5)
+                    * sprite.displayWidth;
+
+                const dialOffsetY =
+                    (CLOCK_PIVOT.y - 0.5)
+                    * sprite.displayHeight;
+
+                sprite.setPosition(
+                    -dialOffsetX,
+                    -dialOffsetY
+                );
+
+                container.add(sprite);
+
+                return {
+
+                    key: entry.key,
+
+                    container,
+
+                    sprite,
+
+                    dialOffsetX,
+
+                    dialOffsetY,
+
+                    strength: entry.strength,
+
+                    wishRotate: false,
+
+                    wishSwap: false,
+
+                    clockRotate: true,
+
+                    clockSpeedDeg: entry.clockSpeedDeg,
+
+                    clockAngle: 0
+
+                };
+
+            }
+
             const sprite =
 
                 this.add.image(
@@ -166,11 +272,6 @@ export default class MainMenuScene extends Scene
 
 
             sprite.setDepth(entry.depth);
-
-            const extraShiftY =
-                entry.key === 'cg-beginning-smoke'
-                    ? SMOKE_RISE_PX
-                    : 0;
 
             this.fitCover(
                 sprite,
@@ -192,7 +293,13 @@ export default class MainMenuScene extends Scene
 
                 wishRotate: entry.wishRotate ?? false,
 
-                wishSwap: entry.wishSwap ?? false
+                wishSwap: entry.wishSwap ?? false,
+
+                clockRotate: false,
+
+                clockSpeedDeg: 0,
+
+                clockAngle: 0
 
             };
 
@@ -396,23 +503,52 @@ export default class MainMenuScene extends Scene
 
 
 
-            layer.sprite.setPosition(x, y);
-
-
-
-            if (layer.wishRotate)
+            if (layer.clockRotate)
 
             {
 
-                layer.sprite.setRotation(
+                layer.container.setPosition(
 
-                    PhaserMath.DegToRad(
+                    x + layer.dialOffsetX,
 
-                        this.wishSwingAnim.angle
-
-                    )
+                    y + layer.dialOffsetY
 
                 );
+
+                layer.clockAngle +=
+                    layer.clockSpeedDeg * dt;
+
+                layer.container.setRotation(
+
+                    PhaserMath.DegToRad(layer.clockAngle)
+
+                );
+
+            }
+
+            else
+
+            {
+
+                layer.sprite.setPosition(x, y);
+
+
+
+                if (layer.wishRotate)
+
+                {
+
+                    layer.sprite.setRotation(
+
+                        PhaserMath.DegToRad(
+
+                            this.wishSwingAnim.angle
+
+                        )
+
+                    );
+
+                }
 
             }
 

@@ -498,6 +498,26 @@ export class Preloader extends Scene
         );
 
         this.load.image(
+            'cg-beginning-hour',
+            `${beginningCgPath}/hour.png`
+        );
+
+        this.load.image(
+            'cg-beginning-min',
+            `${beginningCgPath}/min.png`
+        );
+
+        this.load.image(
+            'cg-beginning-sec',
+            `${beginningCgPath}/sec.png`
+        );
+
+        this.load.image(
+            'cg-beginning-sec-red',
+            `${beginningCgPath}/sec_red.png`
+        );
+
+        this.load.image(
             'cg-beginning-wish',
             `${beginningCgPath}/wish.png`
         );

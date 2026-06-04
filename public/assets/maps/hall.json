@@ -2194,6 +2194,30 @@
                 }, 
                 {
                  "id":26,
+                 "objectgroup":
+                    {
+                     "draworder":"index",
+                     "id":2,
+                     "name":"",
+                     "objects":[
+                            {
+                             "height":4.87948844072799,
+                             "id":1,
+                             "name":"",
+                             "opacity":1,
+                             "rotation":0,
+                             "type":"",
+                             "visible":true,
+                             "width":33.2120019675357,
+                             "x":0,
+                             "y":0
+                            }],
+                     "opacity":1,
+                     "type":"objectgroup",
+                     "visible":true,
+                     "x":0,
+                     "y":0
+                    },
                  "properties":[
                         {
                          "name":"collides",

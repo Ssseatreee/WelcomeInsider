@@ -696,7 +696,7 @@ export default class MainMenuScene extends Scene
 
             350,
 
-            '上班',
+            '新的一周',
 
             () =>
 

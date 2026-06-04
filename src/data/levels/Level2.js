@@ -1,8 +1,9 @@
 const level2 = {
 
     playerSpawn: {
+        mapKey: 'office',
         x: 100,
-        y: 300
+        y: 251
     },
 
     npcs:
@@ -11,7 +12,7 @@ const level2 = {
             name: 'v2',
             x: 500,
             y: 300,
-            mapKey: 'drinkingroom',
+            mapKey: 'hall',
             type: 'hunter',
             hasEmpathy: true,
             moveSpeed: 2
@@ -44,15 +45,6 @@ const level2 = {
             mapKey: 'drinkingroom',
             type: 'neutral',
             moveSpeed: 0.7
-        },
-
-        {
-            name: 'oren',
-            x: 420,
-            y: 280,
-            mapKey: 'drinkingroom',
-            type: 'neutral',
-            moveSpeed: 1.8
         }
     ],
 

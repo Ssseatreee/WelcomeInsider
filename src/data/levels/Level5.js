@@ -1,8 +1,9 @@
 const level5 = {
 
     playerSpawn: {
+        mapKey: 'office',
         x: 100,
-        y: 300
+        y: 251
     },
 
     npcs:
@@ -11,7 +12,7 @@ const level5 = {
             name: 'v2',
             x: 500,
             y: 300,
-            mapKey: 'drinkingroom',
+            mapKey: 'hall',
             type: 'hunter',
             hasEmpathy: true,
             moveSpeed: 2
@@ -20,7 +21,7 @@ const level5 = {
         {
             name: 'federico',
             x: 500,
-            y: 200,
+            y: 300,
             mapKey: 'hall',
             type: 'hunter',
             hasEmpathy: false,

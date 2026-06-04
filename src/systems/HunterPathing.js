@@ -179,6 +179,16 @@ export default class HunterPathing
         this.pickRandomDirection(mapKey);
     }
 
+    /** 对话结束后的短暂游荡（时长由关卡逻辑传入） */
+    startGraceWander(mapKey, durationMs)
+    {
+        this.wanderTimer = durationMs;
+        this.wanderDirTimer = HunterPathing.WANDER_DIR_MS;
+        this.stuckTimer = 0;
+        this.recentWanderDirs = [];
+        this.pickRandomDirection(mapKey);
+    }
+
     pickRandomDirection(mapKey)
     {
         const dirs = [

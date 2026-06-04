@@ -16,6 +16,11 @@ export default class NPCManager
         );
     }
 
+    clear()
+    {
+        this.npcs.clear();
+    }
+
     update(context, delta)
     {
         for (const npc of this.npcs.values())

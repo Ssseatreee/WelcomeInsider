@@ -132,7 +132,7 @@ const GameState = {
             version: 1,
             level: snapshot.level ?? 1,
             currentLevel: this.currentLevel,
-            currentMap: snapshot.currentMap || 'drinkingroom',
+            currentMap: snapshot.currentMap || 'office',
             playerX:
                 Number.isFinite(playerX)
                     ? playerX

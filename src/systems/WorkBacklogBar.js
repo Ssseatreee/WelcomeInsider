@@ -26,6 +26,9 @@ export default class WorkBacklogBar
         this.fillDurationMs =
             workBacklogConfig.fillDurationMs;
 
+        this.drainDurationMs =
+            workBacklogConfig.drainDurationMs;
+
         this.speedBoostThreshold =
             workBacklogConfig.speedBoostThreshold;
 
@@ -37,6 +40,7 @@ export default class WorkBacklogBar
         this.fullWarningShown = false;
 
         this.onSpeedBoost = null;
+        this.onSpeedBoostRevert = null;
         this.onFull = null;
 
         const panelLeft =
@@ -137,37 +141,73 @@ export default class WorkBacklogBar
         return this.progress;
     }
 
-    update(delta)
+    update(delta, isWorking = false)
     {
-        if (this.progress >= 1)
+        if (isWorking)
+        {
+            if (this.progress > 0)
+            {
+                const prevProgress = this.progress;
+
+                this.progress = Math.max(
+                    0,
+                    this.progress - delta / this.drainDurationMs
+                );
+
+                if (
+                    this.speedBoostApplied
+                    &&
+                    prevProgress >= this.speedBoostThreshold
+                    &&
+                    this.progress < this.speedBoostThreshold
+                )
+                {
+                    this.speedBoostApplied = false;
+                    this.onSpeedBoostRevert?.();
+                }
+
+                if (
+                    this.fullWarningShown
+                    &&
+                    this.progress < 1
+                )
+                {
+                    this.fullWarningShown = false;
+                    this.warningText.setVisible(false);
+                }
+            }
+        }
+        else if (this.progress >= 1)
         {
             return;
         }
-
-        this.progress = Math.min(
-            1,
-            this.progress + delta / this.fillDurationMs
-        );
-
-        if (
-            !this.speedBoostApplied
-            &&
-            this.progress >= this.speedBoostThreshold
-        )
+        else
         {
-            this.speedBoostApplied = true;
-            this.onSpeedBoost?.();
-        }
+            this.progress = Math.min(
+                1,
+                this.progress + delta / this.fillDurationMs
+            );
 
-        if (
-            !this.fullWarningShown
-            &&
-            this.progress >= 1
-        )
-        {
-            this.fullWarningShown = true;
-            this.warningText.setVisible(true);
-            this.onFull?.();
+            if (
+                !this.speedBoostApplied
+                &&
+                this.progress >= this.speedBoostThreshold
+            )
+            {
+                this.speedBoostApplied = true;
+                this.onSpeedBoost?.();
+            }
+
+            if (
+                !this.fullWarningShown
+                &&
+                this.progress >= 1
+            )
+            {
+                this.fullWarningShown = true;
+                this.warningText.setVisible(true);
+                this.onFull?.();
+            }
         }
 
         this.drawBar();

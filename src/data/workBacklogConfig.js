@@ -2,6 +2,9 @@ export default {
     /** 积满所需时间（毫秒） */
     fillDurationMs: 30000,
 
+    /** 工作时待处理工作减少至 0 所需时间（毫秒） */
+    drainDurationMs: 30000,
+
     /** 达到此比例时提升追捕者速度 */
     speedBoostThreshold: 0.5,
 

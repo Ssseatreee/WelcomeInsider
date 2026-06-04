@@ -1,8 +1,9 @@
 const level3 = {
 
     playerSpawn: {
+        mapKey: 'office',
         x: 100,
-        y: 300
+        y: 251
     },
 
     npcs:
@@ -11,7 +12,7 @@ const level3 = {
             name: 'v2',
             x: 500,
             y: 300,
-            mapKey: 'drinkingroom',
+            mapKey: 'hall',
             type: 'hunter',
             hasEmpathy: true,
             moveSpeed: 2
@@ -20,7 +21,7 @@ const level3 = {
         {
             name: 'federico',
             x: 500,
-            y: 200,
+            y: 300,
             mapKey: 'hall',
             type: 'hunter',
             hasEmpathy: false,
@@ -38,28 +39,10 @@ const level3 = {
         },
 
         {
-            name: 'aze',
-            x: 350,
-            y: 260,
-            mapKey: 'drinkingroom',
-            type: 'neutral',
-            moveSpeed: 0.7
-        },
-
-        {
-            name: 'oren',
-            x: 420,
-            y: 280,
-            mapKey: 'drinkingroom',
-            type: 'neutral',
-            moveSpeed: 1.8
-        },
-
-        {
             name: 'sply',
             x: 380,
             y: 220,
-            mapKey: 'hall',
+            mapKey: 'office_1',
             type: 'neutral',
             moveSpeed: 1.2
         }

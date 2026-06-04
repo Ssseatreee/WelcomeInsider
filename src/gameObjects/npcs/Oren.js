@@ -93,7 +93,7 @@ export default class Oren extends NPC
     tryStartPortalSeek(portalRegistry)
     {
         const portals =
-            portalRegistry.getPortalsOnMap(this.currentMap);
+            portalRegistry.getNpcPortalsOnMap(this.currentMap);
 
         if (portals.length === 0)
         {

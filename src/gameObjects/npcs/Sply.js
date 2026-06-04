@@ -11,6 +11,7 @@ export default class Sply extends NPC
         super({
             ...config,
             name: 'sply',
+            hasEmpathy: true,
             type: 'neutral',
             mapKey: config.mapKey ?? 'hall',
             minimapColor: 0x88b2c5,

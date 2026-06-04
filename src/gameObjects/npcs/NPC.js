@@ -73,7 +73,19 @@ export default class NPC
             this.hasEmpathy
         )
         {
-            this.updateHunter(context, delta);
+            if (
+                context.hunterGraceActive
+                ||
+                context.playerWorking
+            )
+            {
+                this.updateHunterGrace(context, delta);
+            }
+            else
+            {
+                this.updateHunter(context, delta);
+            }
+
             return;
         }
 
@@ -207,10 +219,13 @@ export default class NPC
                     this.worldY
                 );
 
-            if (!portal)
+            if (
+                !portal
+                ||
+                portalRegistry.isBlockedMapForNpc(playerMap)
+            )
             {
-                this.vx = 0;
-                this.vy = 0;
+                this.updateHunterFreeRoam(context, delta);
                 return;
             }
 
@@ -271,6 +286,97 @@ export default class NPC
             this.portalCooldown = 600;
             this.pathing.reset();
         }
+    }
+
+    /** 无法追击玩家时（如玩家在卫生间）或抓捕冷却期内：随机游荡 */
+    updateHunterFreeRoam(context, delta)
+    {
+        const { sceneMap, portalRegistry } = context;
+
+        if (this.portalCooldown > 0)
+        {
+            this.portalCooldown -= delta;
+        }
+
+        const onSceneMap =
+            this.currentMap === sceneMap;
+
+        const graceRemaining =
+            context.hunterGraceRemaining ?? 0;
+
+        if (this.pathing.wanderTimer <= 0)
+        {
+            if (graceRemaining > 0)
+            {
+                this.pathing.startGraceWander(
+                    this.currentMap,
+                    graceRemaining
+                );
+            }
+            else
+            {
+                this.pathing.startWander(this.currentMap);
+            }
+        }
+
+        const movement =
+            onSceneMap
+                ? this.pathing.getVelocity(
+                    this.worldX,
+                    this.worldY,
+                    this.currentMap,
+                    delta
+                )
+                : this.pathing.getBlindVelocity(
+                    this.currentMap,
+                    delta
+                );
+
+        if (movement.vx !== 0 || movement.vy !== 0)
+        {
+            if (onSceneMap)
+            {
+                this.vx = movement.vx;
+                this.vy = movement.vy;
+            }
+            else
+            {
+                HunterPathing.applyOffSceneWanderStep(
+                    this,
+                    movement.dx,
+                    movement.dy,
+                    delta,
+                    this.currentMap
+                );
+                this.vx = 0;
+                this.vy = 0;
+            }
+
+            this.updateFacing(movement.dx, movement.dy);
+        }
+        else
+        {
+            this.vx = 0;
+            this.vy = 0;
+        }
+
+        if (
+            !onSceneMap
+            &&
+            this.portalCooldown <= 0
+            &&
+            portalRegistry.tryPortalTransition(this)
+        )
+        {
+            this.portalCooldown = 600;
+            this.pathing.reset();
+        }
+    }
+
+    /** 抓捕对话结束后的短暂游荡 */
+    updateHunterGrace(context, delta)
+    {
+        this.updateHunterFreeRoam(context, delta);
     }
 
     updateFacing(dx, dy)

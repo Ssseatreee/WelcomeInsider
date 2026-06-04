@@ -28,7 +28,12 @@ import LevelIntroOverlay from '../../systems/LevelIntroOverlay.js';
 import mapDisplayNames from '../../data/mapDisplayNames.js';
 import miniMapLayout from '../../data/miniMapLayout.js';
 import { createLevelHudVolumeControls } from '../../systems/VolumeSettingsPanel.js';
+import npcMap from '../../gameObjects/npcs/npcs.js';
 import workBacklogConfig from '../../data/workBacklogConfig.js';
+import {
+    getWorkZonesFromMap,
+    boundsOverlapWorkZones
+} from '../../systems/workZones.js';
 import items, { resolveItem } from '../../data/items.js';
 
 import {
@@ -114,7 +119,10 @@ export default class LevelScene extends Phaser.Scene
             &&
             this.saveData?.currentMap
                 ? this.saveData.currentMap
-                : 'drinkingroom';
+                : (
+                    levelData.playerSpawn.mapKey
+                    ?? 'office'
+                );
 
         // ===== 当前地图 =====
         this.currentMap = startMap;
@@ -131,7 +139,12 @@ export default class LevelScene extends Phaser.Scene
         this.npcManager =
             this.game.npcManager;
 
-        this.resetNPCsFromLevel(levelData);
+        if (this.level === 5)
+        {
+            this.resetFinaleNpcFlags();
+        }
+
+        this.rebuildNPCsFromLevel(levelData);
 
         if (this.continueGame && this.saveData)
         {
@@ -196,6 +209,9 @@ export default class LevelScene extends Phaser.Scene
         this.pendingNeutralEffect = null;
         this.grantedSecondChance = false;
         this.missionCompleting = false;
+        this.isWorking = true;
+        this.officeWorkZones =
+            getWorkZonesFromMap(this, 'office');
         this.survivalMs =
             this.continueGame
             &&
@@ -243,6 +259,9 @@ export default class LevelScene extends Phaser.Scene
         // ===== Matter碰撞监听 =====
         this.npcDialogCooldown = new Set();
 
+        /** 追捕对话结束后剩余冷却（毫秒） */
+        this.hunterGraceRemaining = 0;
+
         this._onCollisionStart = (event) => {
 
             event.pairs.forEach((pair) => {
@@ -269,6 +288,19 @@ export default class LevelScene extends Phaser.Scene
                     (bodyB === playerBody && bodyA === npcSprite.body);
 
                 if (!isPlayerNpc) return;
+
+                if (
+                    (
+                        this.hunterGraceRemaining > 0
+                        ||
+                        this.isWorking
+                    )
+                    &&
+                    npcSprite.entity.type === 'hunter'
+                )
+                {
+                    return;
+                }
 
                 // ===== NPC 冷却（关键）=====
                 if (this.npcDialogCooldown.has(npcSprite.entity)) return;
@@ -378,6 +410,9 @@ export default class LevelScene extends Phaser.Scene
 
         this.workBacklog.onSpeedBoost =
             () => this.applyHunterSpeedBoost();
+
+        this.workBacklog.onSpeedBoostRevert =
+            () => this.revertHunterSpeedBoost();
 
         this.itemPanel =
             new ItemInventoryPanel(this);
@@ -901,6 +936,18 @@ export default class LevelScene extends Phaser.Scene
 
     getMapObjectInteractHint(obj)
     {
+        if (this.getProperty(obj, 'work'))
+        {
+            if (this.isWorking)
+            {
+                return this.getProperty(obj, 'dialog')
+                    ? '[SPACE] 工作中 / 查看'
+                    : null;
+            }
+
+            return '[SPACE] 开始工作';
+        }
+
         const itemKey =
             this.getProperty(obj, 'getItem');
 
@@ -964,6 +1011,11 @@ export default class LevelScene extends Phaser.Scene
 
     updateSurvival(delta)
     {
+        if (this.isWorking)
+        {
+            return;
+        }
+
         if (!this.objectives?.needsSurvivalTimer())
         {
             return;
@@ -1241,13 +1293,6 @@ export default class LevelScene extends Phaser.Scene
         this.interactHint.setVisible(false);
         this.dialogueManager.update();
 
-        // NPC 对话期间不累积待处理工作
-        if (!this.dialogueManager.isPlaying)
-        {
-            this.workBacklog?.update(delta);
-            this.updateSurvival(delta);
-        }
-
         // 剧情/抓捕对话：全局暂停
         if (this.dialogueManager.isPlaying)
         {
@@ -1351,6 +1396,11 @@ export default class LevelScene extends Phaser.Scene
                         )
                     )
                     {
+                        if (this.getProperty(obj, 'work'))
+                        {
+                            this.isWorking = true;
+                        }
+
                         const gainedNewItem =
                             this.tryPickupMapItem(obj);
 
@@ -1391,13 +1441,44 @@ export default class LevelScene extends Phaser.Scene
             });
         }
 
+        if (
+            !this.dialogueManager.isPlaying
+            &&
+            !this.dialogueManager.isShowingObjectDialogue
+        )
+        {
+            this.updateWorkingState();
+            this.workBacklog?.update(
+                delta,
+                this.isWorking
+            );
+
+            if (!this.isWorking)
+            {
+                this.updateSurvival(delta);
+            }
+        }
+
         // ===== NPC移动 =====
+        if (this.hunterGraceRemaining > 0)
+        {
+            this.hunterGraceRemaining = Math.max(
+                0,
+                this.hunterGraceRemaining - delta
+            );
+        }
+
         this.npcManager.update(
             {
                 player: this.player,
                 playerMap: this.currentMap,
                 sceneMap: this.currentMap,
                 portalRegistry: this.portalRegistry,
+                hunterGraceActive:
+                    this.hunterGraceRemaining > 0,
+                hunterGraceRemaining:
+                    this.hunterGraceRemaining,
+                playerWorking: this.isWorking,
                 ensureNavGrid: (mapKey) =>
                 {
                     this.mapManager.warmNavigationGrid(
@@ -1423,6 +1504,19 @@ export default class LevelScene extends Phaser.Scene
     triggerDialog(npc)
     {
         if (this.isResultShowing || this.isIntroShowing)
+        {
+            return;
+        }
+
+        if (
+            (
+                this.hunterGraceRemaining > 0
+                ||
+                this.isWorking
+            )
+            &&
+            npc.type === 'hunter'
+        )
         {
             return;
         }
@@ -1635,6 +1729,7 @@ export default class LevelScene extends Phaser.Scene
         else
         {
             this.resolveHunterCatchOutcome(npc);
+            this.startHunterGracePeriod();
         }
 
         if (npc.type === 'neutral')
@@ -1653,6 +1748,53 @@ export default class LevelScene extends Phaser.Scene
         console.log('=== DIALOG END ===');
         console.log(this.npcCatchCount);
         console.log('level:', this.level);
+    }
+
+    startHunterGracePeriod(durationMs = 5000)
+    {
+        this.hunterGraceRemaining = durationMs;
+
+        this.npcManager.getAllNPCs().forEach(npc =>
+        {
+            if (
+                npc.type !== 'hunter'
+                ||
+                npc.removed
+                ||
+                !npc.pathing
+            )
+            {
+                return;
+            }
+
+            npc.pathing.startGraceWander(
+                npc.currentMap,
+                durationMs
+            );
+        });
+    }
+
+    updateWorkingState()
+    {
+        const onOffice =
+            this.currentMap === 'office';
+
+        if (!onOffice)
+        {
+            this.isWorking = false;
+            return;
+        }
+
+        const inWorkZone =
+            boundsOverlapWorkZones(
+                this.player.getBounds(),
+                this.officeWorkZones
+            );
+
+        if (!inWorkZone)
+        {
+            this.isWorking = false;
+        }
     }
 
     getProperty(obj, propertyName)
@@ -1823,23 +1965,52 @@ export default class LevelScene extends Phaser.Scene
         }
     }
 
-    resetNPCsFromLevel(levelData)
+    resetFinaleNpcFlags()
     {
+        GameState.setFlag('azeGone', false);
+        GameState.setFlag('orenGone', false);
+        GameState.setFlag('splyGone', false);
+        GameState.setFlag('orenBetrayed', false);
+    }
+
+    rebuildNPCsFromLevel(levelData)
+    {
+        this.npcManager.clear();
+
+        const applyGoneFlags = this.level < 5;
+
         levelData.npcs.forEach((npcData, index) =>
         {
-            const npc =
-                this.npcManager.getNPC(
-                    `npc_${index}`
+            const NPCClass = npcMap[npcData.name];
+
+            if (!NPCClass)
+            {
+                console.warn(
+                    `NPC class not found: ${npcData.name}`
                 );
 
-            if (!npc)
-            {
                 return;
             }
 
-            if (npcData.mapKey != null)
+            const npc = new NPCClass({
+                id: `npc_${index}`,
+                name: npcData.name,
+                x: npcData.x,
+                y: npcData.y,
+                mapKey: npcData.mapKey,
+                type: npcData.type,
+                moveSpeed: npcData.moveSpeed,
+                hasEmpathy: npcData.hasEmpathy
+            });
+
+            if (npcData.type != null)
             {
-                npc.currentMap = npcData.mapKey;
+                npc.type = npcData.type;
+            }
+
+            if (npcData.hasEmpathy != null)
+            {
+                npc.hasEmpathy = npcData.hasEmpathy;
             }
 
             if (npc.npcName === 'sply')
@@ -1847,26 +2018,10 @@ export default class LevelScene extends Phaser.Scene
                 npc.wanderMapKey = npc.currentMap;
             }
 
-            if (npcData.x != null)
-            {
-                npc.worldX = npcData.x;
-            }
-
-            if (npcData.y != null)
-            {
-                npc.worldY = npcData.y;
-            }
-
             HunterPathing.clampEntity(
                 npc,
                 npc.currentMap
             );
-
-            if (npcData.moveSpeed != null)
-            {
-                npc.moveSpeed = npcData.moveSpeed;
-                npc.baseMoveSpeed = npcData.moveSpeed;
-            }
 
             npc._speedBoosted = false;
             npc.vx = 0;
@@ -1876,6 +2031,8 @@ export default class LevelScene extends Phaser.Scene
             npc.pathing?.reset();
 
             if (
+                applyGoneFlags
+                &&
                 npc.npcName === 'aze'
                 &&
                 GameState.getFlag('azeGone')
@@ -1883,7 +2040,11 @@ export default class LevelScene extends Phaser.Scene
             {
                 npc.removed = true;
             }
-            else if (npc.npcName === 'oren')
+            else if (
+                applyGoneFlags
+                &&
+                npc.npcName === 'oren'
+            )
             {
                 if (GameState.getFlag('orenBetrayed'))
                 {
@@ -1906,6 +2067,8 @@ export default class LevelScene extends Phaser.Scene
                 }
             }
             else if (
+                applyGoneFlags
+                &&
                 npc.npcName === 'sply'
                 &&
                 GameState.getFlag('splyGone')
@@ -1922,6 +2085,8 @@ export default class LevelScene extends Phaser.Scene
             {
                 npc.resetWander();
             }
+
+            this.npcManager.register(npc);
         });
 
         this.workBacklog?.reset();

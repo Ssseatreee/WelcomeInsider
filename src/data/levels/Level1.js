@@ -1,8 +1,9 @@
 const level1 = {
 
     playerSpawn: {
+        mapKey: 'office',
         x: 100,
-        y: 300
+        y: 251
     },
 
     npcs:
@@ -11,7 +12,7 @@ const level1 = {
             name:'v2',
             x:500,
             y:300,
-            mapKey: 'drinkingroom',
+            mapKey: 'hall',
             type: 'hunter',
             hasEmpathy: true,
             moveSpeed: 2
@@ -20,7 +21,7 @@ const level1 = {
         {
             name:'federico',
             x:500,
-            y:200,
+            y:300,
             mapKey: 'hall',
             type: 'hunter',
             hasEmpathy: false,
@@ -35,34 +36,8 @@ const level1 = {
             type: 'hunter',
             hasEmpathy: true,
             moveSpeed: 2
-        },
-
-        {
-            name: 'aze',
-            x: 350,
-            y: 260,
-            mapKey: 'drinkingroom',
-            type: 'neutral',
-            moveSpeed: 0.7
-        },
-
-        {
-            name: 'oren',
-            x: 420,
-            y: 280,
-            mapKey: 'drinkingroom',
-            type: 'neutral',
-            moveSpeed: 1.8
-        },
-
-        {
-            name: 'sply',
-            x: 280,
-            y: 240,
-            mapKey: 'drinkingroom',
-            type: 'neutral',
-            moveSpeed: 1.2
         }
+
     ],
 
     mission: {
@@ -82,7 +57,7 @@ const level1 = {
         portrait: { npc: 'v2', expression: 'normal' },
         title: '领导们很厉害',
         text:
-            '...如您所知，尽管拉特兰人天性散漫，但教皇厅的领导们可都不简单。\n'
+            '...如您所知，尽管拉特兰人天性散漫，但教皇厅的领导们都不简单。\n'
             + '枢机，还有年轻的圣徒，\n'
             + '在几位手下工作，没什么偷懒的机会。\n'
             +'我？\n'

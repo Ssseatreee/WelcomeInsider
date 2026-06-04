@@ -1,5 +1,10 @@
 import portalData from '../data/portalData.js';
 
+/** NPC 不可进入的地图 */
+const BLOCKED_NPC_MAPS = new Set([
+    'toilet'
+]);
+
 export default class PortalRegistry
 {
     constructor()
@@ -47,8 +52,26 @@ export default class PortalRegistry
         );
     }
 
+    isBlockedMapForNpc(mapKey)
+    {
+        return BLOCKED_NPC_MAPS.has(mapKey);
+    }
+
+    getNpcPortalsOnMap(mapKey)
+    {
+        return this.getPortalsOnMap(mapKey).filter(
+            portal =>
+                !this.isBlockedMapForNpc(portal.targetMap)
+        );
+    }
+
     findMapPath(fromMap, toMap)
     {
+        if (this.isBlockedMapForNpc(toMap))
+        {
+            return null;
+        }
+
         if (fromMap === toMap)
         {
             return [fromMap];
@@ -64,6 +87,11 @@ export default class PortalRegistry
 
             for (const neighbor of this._adjacency[current] || [])
             {
+                if (this.isBlockedMapForNpc(neighbor))
+                {
+                    continue;
+                }
+
                 if (neighbor === toMap)
                 {
                     return [...path, neighbor];
@@ -137,6 +165,11 @@ export default class PortalRegistry
         for (const portal of portals)
         {
             if (!this.containsPoint(portal, entity.worldX, entity.worldY))
+            {
+                continue;
+            }
+
+            if (this.isBlockedMapForNpc(portal.targetMap))
             {
                 continue;
             }

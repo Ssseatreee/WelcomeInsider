@@ -20,9 +20,9 @@ export class Boot extends Scene
 
         //         this.load.image('background', 'assets/bg.png');
 
-        this.load.image('ui-left', 'assets/UI/left.png');
-        this.load.image('ui-right', 'assets/UI/right.png');
-        this.load.image('ui-donut', 'assets/UI/donut.png');
+        this.load.image('ui-left', './assets/UI/left.png');
+        this.load.image('ui-right', './assets/UI/right.png');
+        this.load.image('ui-donut', './assets/UI/donut.png');
     }
 
     create ()

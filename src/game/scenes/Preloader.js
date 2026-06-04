@@ -159,78 +159,75 @@ export class Preloader extends Scene
 
     preload ()
     {
-        //  Load the assets for the game - Replace with your own assets
-        this.load.setPath('assets');
-
         // player
         this.load.spritesheet(
             'player', 
-            '../../../public/assets/sprites/richele_sprite.png', 
+            './assets/sprites/richele_sprite.png', 
             { frameWidth: 32, frameHeight: 32 }
         );
 
         // npc（使用 npc- 前缀，避免与地图 tileset 键冲突）
         this.load.spritesheet(
             'npc-v2',
-            '../../../public/assets/sprites/v2_sprite.png',
+            './assets/sprites/v2_sprite.png',
             { frameWidth: 32, frameHeight: 32 }
         );
 
         this.load.spritesheet(
             'npc-federico',
-            '../../../public/assets/sprites/federico_sprite.png',
+            './assets/sprites/federico_sprite.png',
             { frameWidth: 32, frameHeight: 32 }
         );
 
         this.load.spritesheet(
             'npc-lemuen',
-            '../../../public/assets/sprites/lemuen_sprite.png',
+            './assets/sprites/lemuen_sprite.png',
             { frameWidth: 32, frameHeight: 32 }
         );
 
         this.load.spritesheet(
             'npc-aze',
-            '../../../public/assets/sprites/aze_sprite.png',
+            './assets/sprites/aze_sprite.png',
             { frameWidth: 32, frameHeight: 32 }
         );
 
         this.load.spritesheet(
             'npc-oren',
-            '../../../public/assets/sprites/oren_sprite.png',
+            './assets/sprites/oren_sprite.png',
             { frameWidth: 32, frameHeight: 32 }
         );
 
         this.load.spritesheet(
             'npc-sply',
-            '../../../public/assets/sprites/sply_sprite.png',
+            './assets/sprites/sply_sprite.png',
             { frameWidth: 32, frameHeight: 32 }
         );
 
-        this.load.image('logo', 'logo.png');
+        this.load.image('logo', './assets/logo.png');
 
         this.load.image(
             'item-coffee',
-            '../../../public/assets/items/coffee.png'
+            './assets/items/coffee.png'
         );
 
         this.load.image(
             'item-donut',
-            '../../../public/assets/items/donut.png'
+            './assets/items/donut.png'
         );
 
         this.load.image(
             'item-drone',
-            '../../../public/assets/items/drone.png'
+            './assets/items/drone.png'
         );
 
         this.load.image(
             'level-pass-portrait',
-            '../../../public/assets/level/过关里凯莱_白纸稿.png'
+            './assets/level/过关里凯莱_白纸稿.png'
         );
 
         this.load.image(
             'level-fail-portrait',
-            '../../../public/assets/level/不过关里凯莱_白纸稿.png'
+            './assets/level/不过关里凯莱_白纸稿.png'
         );
 
         this.loadPortraits();
@@ -244,155 +241,155 @@ export class Preloader extends Scene
         // richele
         this.load.image(
             'portrait-richele-normal',
-            '../../../public/assets/portraits/richele/normal.png'
+            './assets/portraits/richele/normal.png'
         );
         this.load.image(
             'portrait-richele-happy',
-            '../../../public/assets/portraits/richele/happy.png'
+            './assets/portraits/richele/happy.png'
         );
         this.load.image(
             'portrait-richele-stress',
-            '../../../public/assets/portraits/richele/stress.png'
+            './assets/portraits/richele/stress.png'
         );
         this.load.image(
             'portrait-richele-suprise',
-            '../../../public/assets/portraits/richele/suprise.png'
+            './assets/portraits/richele/suprise.png'
         );
         this.load.image(
             'portrait-richele-strict',
-            '../../../public/assets/portraits/richele/strict.png'
+            './assets/portraits/richele/strict.png'
         );
         this.load.image(
             'portrait-richele-biyan_speak',
-            '../../../public/assets/portraits/richele/biyan_speak.png'
+            './assets/portraits/richele/biyan_speak.png'
         );
         this.load.image(
             'portrait-richele-smile',
-            '../../../public/assets/portraits/richele/smile.png'
+            './assets/portraits/richele/smile.png'
         );
 
         // v2
         this.load.image(
             'portrait-v2-normal',
-            '../../../public/assets/portraits/v2/normal.png'
+            './assets/portraits/v2/normal.png'
         );
         this.load.image(
             'portrait-v2-smile',
-            '../../../public/assets/portraits/v2/smile.png'
+            './assets/portraits/v2/smile.png'
         );
         this.load.image(
             'portrait-v2-thinking',
-            '../../../public/assets/portraits/v2/thinking.png'
+            './assets/portraits/v2/thinking.png'
         );
         this.load.image(
             'portrait-v2-stress',
-            '../../../public/assets/portraits/v2/stress.png'
+            './assets/portraits/v2/stress.png'
         );
         this.load.image(
             'portrait-v2-biyan_smile',
-            '../../../public/assets/portraits/v2/biyan_smile.png'
+            './assets/portraits/v2/biyan_smile.png'
         );
 
         // federico
         this.load.image(
             'portrait-federico-normal',
-            '../../../public/assets/portraits/federico/normal.png'
+            './assets/portraits/federico/normal.png'
         );
         this.load.image(
             'portrait-federico-smile',
-            '../../../public/assets/portraits/federico/smile.png'
+            './assets/portraits/federico/smile.png'
         );
         this.load.image(
             'portrait-federico-stress',
-            '../../../public/assets/portraits/federico/stress.png'
+            './assets/portraits/federico/stress.png'
         );
         this.load.image(
             'portrait-federico-biyan',
-            '../../../public/assets/portraits/federico/biyan.png'
+            './assets/portraits/federico/biyan.png'
         );
 
         // lemuen
         this.load.image(
             'portrait-lemuen-normal',
-            '../../../public/assets/portraits/lemuen/normal.png'
+            './assets/portraits/lemuen/normal.png'
         );
         this.load.image(
             'portrait-lemuen-smile',
-            '../../../public/assets/portraits/lemuen/smile.png'
+            './assets/portraits/lemuen/smile.png'
         );
         this.load.image(
             'portrait-lemuen-strict',
-            '../../../public/assets/portraits/lemuen/strict.png'
+            './assets/portraits/lemuen/strict.png'
         );
         this.load.image(
             'portrait-lemuen-thinking',
-            '../../../public/assets/portraits/lemuen/thinking.png'
+            './assets/portraits/lemuen/thinking.png'
         );
 
         // aze
         this.load.image(
             'portrait-aze-normal',
-            '../../../public/assets/portraits/aze/normal.png'
+            './assets/portraits/aze/normal.png'
         );
         this.load.image(
             'portrait-aze-smile',
-            '../../../public/assets/portraits/aze/smile.png'
+            './assets/portraits/aze/smile.png'
         );
         this.load.image(
             'portrait-aze-strict',
-            '../../../public/assets/portraits/aze/strict.png'
+            './assets/portraits/aze/strict.png'
         );
         this.load.image(
             'portrait-aze-suprise',
-            '../../../public/assets/portraits/aze/suprise.png'
+            './assets/portraits/aze/suprise.png'
         );
 
         // oren
         this.load.image(
             'portrait-oren-normal',
-            '../../../public/assets/portraits/oren/normal.png'
+            './assets/portraits/oren/normal.png'
         );
         this.load.image(
             'portrait-oren-smile',
-            '../../../public/assets/portraits/oren/smile.png'
+            './assets/portraits/oren/smile.png'
         );
         this.load.image(
             'portrait-oren-strict',
-            '../../../public/assets/portraits/oren/strict.png'
+            './assets/portraits/oren/strict.png'
         );
         this.load.image(
             'portrait-oren-angry',
-            '../../../public/assets/portraits/oren/angry.png'
+            './assets/portraits/oren/angry.png'
         );
         this.load.image(
             'portrait-oren-yin',
-            '../../../public/assets/portraits/oren/yin.png'
+            './assets/portraits/oren/yin.png'
         );
 
         // sply
         this.load.image(
             'portrait-sply-normal',
-            '../../../public/assets/portraits/sply/normal.png'
+            './assets/portraits/sply/normal.png'
         );
         this.load.image(
             'portrait-sply-smile',
-            '../../../public/assets/portraits/sply/smile.png'
+            './assets/portraits/sply/smile.png'
         );
         this.load.image(
             'portrait-sply-biyan_smile',
-            '../../../public/assets/portraits/sply/biyan_smile.png'
+            './assets/portraits/sply/biyan_smile.png'
         );
         this.load.image(
             'portrait-sply-biyan_bad',
-            '../../../public/assets/portraits/sply/biyan_bad.png'
+            './assets/portraits/sply/biyan_bad.png'
         );
         this.load.image(
             'portrait-sply-biyan_cat',
-            '../../../public/assets/portraits/sply/biyan_cat.png'
+            './assets/portraits/sply/biyan_cat.png'
         );
         this.load.image(
             'portrait-sply-cat_thinking',
-            '../../../public/assets/portraits/sply/cat_thinking.png'
+            './assets/portraits/sply/cat_thinking.png'
         );
 
     }
@@ -402,68 +399,68 @@ export class Preloader extends Scene
         // tilemap
         this.load.tilemapTiledJSON(
             'hall',
-            '../../../public/assets/maps/hall.json'
+            './assets/maps/hall.json'
         );
 
         this.load.tilemapTiledJSON(
             'office',
-            '../../../public/assets/maps/office.json'
+            './assets/maps/office.json'
         );
 
         this.load.tilemapTiledJSON(
             'office_1',
-            '../../../public/assets/maps/office_1.json'
+            './assets/maps/office_1.json'
         );
 
         this.load.tilemapTiledJSON(
             'left',
-            '../../../public/assets/maps/left.json'
+            './assets/maps/left.json'
         );
 
         this.load.tilemapTiledJSON(
             'right',
-            '../../../public/assets/maps/right.json'
+            './assets/maps/right.json'
         );
 
         this.load.tilemapTiledJSON(
             'drinkingroom',
-            '../../../public/assets/maps/drinkingroom.json'
+            './assets/maps/drinkingroom.json'
         );
 
         this.load.tilemapTiledJSON(
             'toilet',
-            '../../../public/assets/maps/toilet.json'
+            './assets/maps/toilet.json'
         );
 
         // tileset
         this.load.image(
             'tileset-hall',
-            '../../../public/assets/tilesets/hall.png'
+            './assets/tilesets/hall.png'
         );
 
         this.load.image(
             'tileset-drinkingroom',
-            '../../../public/assets/tilesets/drinkingroom.png'
+            './assets/tilesets/drinkingroom.png'
         );
 
         this.load.image(
             'tileset-office',
-            '../../../public/assets/tilesets/office.png'
+            './assets/tilesets/office.png'
         );
 
         this.load.image(
             'tileset-border',
-            '../../../public/assets/tilesets/border.png'
+            './assets/tilesets/border.png'
         );
 
         this.load.image(
             'tileset-toilet',
-            '../../../public/assets/tilesets/toilet.png'
+            './assets/tilesets/toilet.png'
         );
 
         this.load.image(
             'tileset-Interiors_free_32x32',
-            '../../../public/assets/tilesets/Interiors_free_32x32.png'
+            './assets/tilesets/Interiors_free_32x32.png'
         );
 
         // office_essential 为 Tiled 图片集合，键名须与文件名一致
@@ -485,12 +482,12 @@ export class Preloader extends Scene
         {
             this.load.image(
                 fileName,
-                `../../../public/assets/tilesets/office_essential/${fileName}`
+                `./assets/tilesets/office_essential/${fileName}`
             );
         });
 
         const beginningCgPath =
-            '../../../public/assets/CG/beginning';
+            './assets/CG/beginning';
 
         this.load.image(
             'cg-beginning-back',
@@ -550,7 +547,7 @@ export class Preloader extends Scene
             );
         }
 
-        const bgmPath = '../../../public/assets/BGM';
+        const bgmPath = './assets/BGM';
 
         this.load.audio(
             'bgm-the-cafe',

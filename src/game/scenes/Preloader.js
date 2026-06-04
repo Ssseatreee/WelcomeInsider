@@ -221,6 +221,31 @@ export class Preloader extends Scene
         );
 
         this.load.image(
+            'achievement-goodSenior',
+            './assets/achievements/goodSenior.png'
+        );
+
+        this.load.image(
+            'achievement-plantCare',
+            './assets/achievements/plantCare.png'
+        );
+
+        this.load.image(
+            'achievement-accidentZone',
+            './assets/achievements/accidentZone.png'
+        );
+
+        this.load.image(
+            'achievement-peoplesRep',
+            './assets/achievements/peoplesRep.png'
+        );
+
+        this.load.image(
+            'achievement-gatherTogether',
+            './assets/achievements/gatherTogether.png'
+        );
+
+        this.load.image(
             'level-pass-portrait',
             './assets/level/过关里凯莱_白纸稿.png'
         );
@@ -266,6 +291,10 @@ export class Preloader extends Scene
         this.load.image(
             'portrait-richele-smile',
             './assets/portraits/richele/smile.png'
+        );
+        this.load.image(
+            'portrait-richele-dc',
+            './assets/portraits/richele/dc.png'
         );
 
         // v2

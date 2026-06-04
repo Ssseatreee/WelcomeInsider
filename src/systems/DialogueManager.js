@@ -7,6 +7,16 @@ import {
     GAME_HEIGHT,
     PLAY_AREA_UI_CENTER_X
 } from '../game/layout.js';
+import {
+    DIALOGUE_BOX_Y,
+    DIALOGUE_BOX_CENTER_X,
+    DIALOGUE_PORTRAIT_SCALE,
+    DIALOGUE_LEFT_PORTRAIT_X,
+    DIALOGUE_LEFT_PORTRAIT_Y,
+    DIALOGUE_TEXT_X,
+    DIALOGUE_TEXT_Y,
+    DIALOGUE_TEXT_STYLE
+} from '../data/dialoguePortraitLayout.js';
 
 export default class DialogueManager
 {
@@ -36,11 +46,11 @@ export default class DialogueManager
         /** 各角色最近一次说话时的表情 */
         this.lastExpressions = {};
 
-        const boxY = GAME_HEIGHT - 110;
+        const boxY = DIALOGUE_BOX_Y;
 
         // 背景
         this.box = scene.add.rectangle(
-            PLAY_AREA_UI_CENTER_X,
+            DIALOGUE_BOX_CENTER_X,
             boxY,
             900,
             180,
@@ -60,24 +70,19 @@ export default class DialogueManager
 
         // 文本
         this.text = scene.add.text(
-            this.box.x - 420,
-            this.box.y - 70,
+            DIALOGUE_TEXT_X,
+            DIALOGUE_TEXT_Y,
             '',
             {
-                fontSize: '30px',
-                color: '#ffffff',
-                wordWrap: {
-                    width: 840
-                }
+                ...DIALOGUE_TEXT_STYLE
             }
         );
         this.objectDialogText = scene.add.text(
-            this.box.x - 420,
-            this.box.y - 70,
+            DIALOGUE_TEXT_X,
+            DIALOGUE_TEXT_Y,
             '',
             {
-                fontSize: '30px',
-                color: '#ffffff',
+                ...DIALOGUE_TEXT_STYLE,
                 wordWrap: {
                     width: 840,
                     useAdvancedWrap: true
@@ -106,21 +111,21 @@ export default class DialogueManager
         this.effectImage.setVisible(false);
 
         this.leftPortrait = scene.add.image(
-            this.box.x - 320,
-            this.box.y - 50,
+            DIALOGUE_LEFT_PORTRAIT_X,
+            DIALOGUE_LEFT_PORTRAIT_Y,
             ''
         );
         this.leftPortrait.setVisible(false);
-        this.leftPortrait.setScale(1.3);
+        this.leftPortrait.setScale(DIALOGUE_PORTRAIT_SCALE);
         this.leftPortrait.setDepth(180);
 
         this.rightPortrait = scene.add.image(
-            this.box.x + 320,
-            this.box.y - 50,
+            DIALOGUE_BOX_CENTER_X + 320,
+            DIALOGUE_LEFT_PORTRAIT_Y,
             ''
         );
         this.rightPortrait.setVisible(false);
-        this.rightPortrait.setScale(1.3);
+        this.rightPortrait.setScale(DIALOGUE_PORTRAIT_SCALE);
         this.rightPortrait.setDepth(180);
 
         this.leftPortrait.setScrollFactor(0);

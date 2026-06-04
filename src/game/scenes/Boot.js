@@ -2,6 +2,7 @@ import { Scene } from 'phaser';
 import NPCManager from '../../systems/NPCManager';
 import BgmManager from '../../systems/BgmManager.js';
 import AudioSettings from '../../systems/AudioSettings.js';
+import AchievementManager from '../../systems/AchievementManager.js';
 
 export class Boot extends Scene
 {
@@ -32,6 +33,8 @@ export class Boot extends Scene
 
         AudioSettings.load();
         AudioSettings.bindGame(this.game);
+
+        AchievementManager.load();
 
         this.game.bgmManager =
             new BgmManager(this.game);

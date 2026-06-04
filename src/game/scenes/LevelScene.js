@@ -34,6 +34,9 @@ import {
     getWorkZonesFromMap,
     boundsOverlapWorkZones
 } from '../../systems/workZones.js';
+import AchievementManager from '../../systems/AchievementManager.js';
+import AchievementUnlockNotice from '../../systems/AchievementUnlockNotice.js';
+import AchievementHud from '../../systems/AchievementHud.js';
 import items, { resolveItem } from '../../data/items.js';
 
 import {
@@ -420,6 +423,12 @@ export default class LevelScene extends Phaser.Scene
         this.itemObtainNotice =
             new ItemObtainNotice(this);
 
+        this.achievementUnlockNotice =
+            new AchievementUnlockNotice(this);
+
+        this.achievementHud =
+            new AchievementHud(this);
+
         this.currentCatchIsBusy = false;
 
         this.applyCameraFilters();
@@ -559,6 +568,28 @@ export default class LevelScene extends Phaser.Scene
 
             this.rightHudCamera?.ignore(
                 this.itemObtainNotice.container
+            );
+        }
+
+        if (this.achievementUnlockNotice?.container)
+        {
+            this.hudCamera?.ignore(
+                this.achievementUnlockNotice.container
+            );
+
+            this.rightHudCamera?.ignore(
+                this.achievementUnlockNotice.container
+            );
+        }
+
+        if (this.achievementHud?.container)
+        {
+            this.hudCamera?.ignore(
+                this.achievementHud.container
+            );
+
+            this.rightHudCamera?.ignore(
+                this.achievementHud.container
             );
         }
 
@@ -856,6 +887,17 @@ export default class LevelScene extends Phaser.Scene
         });
     }
 
+    tryUnlockAchievement(achievementId)
+    {
+        if (!AchievementManager.unlock(achievementId))
+        {
+            return;
+        }
+
+        this.achievementUnlockNotice?.show(achievementId);
+        this.achievementHud?.refresh();
+    }
+
     grantAzeCoffee()
     {
         if (GameState.hasCollectedItem('azeCoffee'))
@@ -876,6 +918,7 @@ export default class LevelScene extends Phaser.Scene
 
         this.itemPanel?.refresh();
         this.itemObtainNotice?.show(items.azeCoffee);
+        this.tryUnlockAchievement('goodSenior');
     }
 
     tryPickupMapItem(obj)
@@ -979,6 +1022,11 @@ export default class LevelScene extends Phaser.Scene
         }
 
         if (hasDialog)
+        {
+            return '[SPACE] 查看';
+        }
+
+        if (this.getProperty(obj, 'getAchievement'))
         {
             return '[SPACE] 查看';
         }
@@ -1104,6 +1152,15 @@ export default class LevelScene extends Phaser.Scene
 
         this.missionCompleting = true;
 
+        if (
+            this.level === 4
+            &&
+            !GameState.getFlag('orenBetrayed')
+        )
+        {
+            this.tryUnlockAchievement('plantCare');
+        }
+
         this.showLevelResult(
             'pass',
             () => this.advanceLevel()
@@ -1190,6 +1247,7 @@ export default class LevelScene extends Phaser.Scene
     {
         if (this.level >= 5)
         {
+            this.tryUnlockAchievement('gatherTogether');
             this.returnToMainMenu();
             return;
         }
@@ -1399,6 +1457,19 @@ export default class LevelScene extends Phaser.Scene
                         if (this.getProperty(obj, 'work'))
                         {
                             this.isWorking = true;
+                        }
+
+                        const achievementId =
+                            this.getProperty(
+                                obj,
+                                'getAchievement'
+                            );
+
+                        if (achievementId)
+                        {
+                            this.tryUnlockAchievement(
+                                achievementId
+                            );
                         }
 
                         const gainedNewItem =
@@ -2156,6 +2227,11 @@ export default class LevelScene extends Phaser.Scene
             type: 'visitMap',
             mapKey: targetMap
         });
+
+        if (targetMap === 'toilet')
+        {
+            this.tryUnlockAchievement('accidentZone');
+        }
 
         console.log(
             'npcs:',

@@ -5,7 +5,9 @@ import {
     INTRO_TYPEWRITER_OPTIONS
 } from '../../data/typewriterConfig.js';
 import {
-    ENDING_EPILOG_TEXT,
+    ENDING_EPILOG_LINES,
+    ENDING_EPILOG_LINE_FADE_MS,
+    ENDING_EPILOG_LINE_GAP_MS,
     ENDING_SPACE_HINT,
     ENDING_WELCOME_BUTTON,
     ENDING_DIALOGUE_TEXT,
@@ -47,6 +49,7 @@ export default class EndingScene extends Scene
         this.dialogueDelayTimer = null;
         this.buttonDelayTimer = null;
         this.buttonFadeInTween = null;
+        this.epilogLineGapTimer = null;
         this.laughShowingFirst = true;
         this.buttonPulseTween = null;
 
@@ -82,31 +85,60 @@ export default class EndingScene extends Scene
                 Phaser.Input.Keyboard.KeyCodes.SPACE
             );
 
-        this.epilogTypewriter.start(
-            ENDING_EPILOG_TEXT,
-            () => this.onEpilogComplete()
-        );
+        this.startEpilogFadeIn();
     }
 
     buildEpilog()
     {
-        this.epilogText =
-            this.add.text(
+        const lineStyle = {
+            fontSize: '28px',
+            color: '#ffffff',
+            align: 'center',
+            wordWrap: { width: 820 }
+        };
+
+        const lineStep = 52;
+        const blockHeight =
+            (ENDING_EPILOG_LINES.length - 1) * lineStep;
+        const startY = this.centerY - blockHeight / 2;
+
+        this.epilogLineTexts =
+            ENDING_EPILOG_LINES.map((line, index) =>
+            {
+                const text =
+                    this.add.text(
+                        this.centerX,
+                        startY + index * lineStep,
+                        line,
+                        lineStyle
+                    );
+
+                text.setOrigin(0.5);
+                text.setScrollFactor(0);
+                text.setDepth(9100);
+                text.setAlpha(0);
+
+                return text;
+            });
+
+        this.epilogClickZone =
+            this.add.rectangle(
                 this.centerX,
                 this.centerY,
-                '',
-                {
-                    fontSize: '30px',
-                    color: '#ffffff',
-                    align: 'center',
-                    wordWrap: { width: 760 },
-                    lineSpacing: 10
-                }
+                this.scale.width,
+                this.scale.height,
+                0x000000,
+                0
             );
 
-        this.epilogText.setOrigin(0.5);
-        this.epilogText.setScrollFactor(0);
-        this.epilogText.setDepth(9100);
+        this.epilogClickZone.setScrollFactor(0);
+        this.epilogClickZone.setDepth(9050);
+        this.epilogClickZone.setInteractive({ useHandCursor: true });
+
+        this.epilogClickZone.on('pointerup', () =>
+        {
+            this.skipEpilogLines();
+        });
 
         this.spaceHintText =
             this.add.text(
@@ -123,19 +155,59 @@ export default class EndingScene extends Scene
         this.spaceHintText.setScrollFactor(0);
         this.spaceHintText.setDepth(9100);
         this.spaceHintText.setVisible(false);
+    }
 
-        this.epilogTypewriter =
-            new TypewriterText(
-                this,
-                this.epilogText,
-                INTRO_TYPEWRITER_OPTIONS
-            );
-
-        this.epilogText.setInteractive({ useHandCursor: true });
-
-        this.epilogText.on('pointerup', () =>
+    startEpilogFadeIn(lineIndex = 0)
+    {
+        if (this.phase !== PHASE.EPILOG)
         {
-            this.skipEpilogTypewriter();
+            return;
+        }
+
+        if (lineIndex >= this.epilogLineTexts.length)
+        {
+            this.onEpilogComplete();
+            return;
+        }
+
+        const line = this.epilogLineTexts[lineIndex];
+
+        this.tweens.add({
+            targets: line,
+            alpha: 1,
+            duration: ENDING_EPILOG_LINE_FADE_MS,
+            ease: 'Sine.easeOut',
+            onComplete: () =>
+            {
+                if (this.phase !== PHASE.EPILOG)
+                {
+                    return;
+                }
+
+                this.epilogLineGapTimer =
+                    this.time.delayedCall(
+                        ENDING_EPILOG_LINE_GAP_MS,
+                        () =>
+                        {
+                            this.epilogLineGapTimer = null;
+                            this.startEpilogFadeIn(lineIndex + 1);
+                        }
+                    );
+            }
+        });
+    }
+
+    stopEpilogFadeIn()
+    {
+        if (this.epilogLineGapTimer)
+        {
+            this.epilogLineGapTimer.remove();
+            this.epilogLineGapTimer = null;
+        }
+
+        this.epilogLineTexts?.forEach(line =>
+        {
+            this.tweens.killTweensOf(line);
         });
     }
 
@@ -312,12 +384,21 @@ export default class EndingScene extends Scene
         this.spaceHintText.setVisible(true);
     }
 
-    skipEpilogTypewriter()
+    skipEpilogLines()
     {
-        if (!this.epilogTypewriter.isComplete)
+        if (this.phase !== PHASE.EPILOG)
         {
-            this.epilogTypewriter.skip();
+            return;
         }
+
+        this.stopEpilogFadeIn();
+
+        this.epilogLineTexts.forEach(line =>
+        {
+            line.setAlpha(1);
+        });
+
+        this.onEpilogComplete();
     }
 
     skipDialogueTypewriter()
@@ -337,7 +418,11 @@ export default class EndingScene extends Scene
 
         this.phase = PHASE.CG;
         this.spaceHintText.setVisible(false);
-        this.epilogText.setVisible(false);
+        this.epilogLineTexts.forEach(line =>
+        {
+            line.setVisible(false);
+        });
+        this.epilogClickZone.setVisible(false);
 
         this.cgBackground.setVisible(true);
         this.cgContainer.setVisible(true);
@@ -566,7 +651,7 @@ export default class EndingScene extends Scene
             Phaser.Input.Keyboard.JustDown(this.spaceKey)
         )
         {
-            this.skipEpilogTypewriter();
+            this.skipEpilogLines();
             return;
         }
 

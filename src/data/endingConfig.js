@@ -1,10 +1,19 @@
-/** 第五关通关后 — 黑屏中央打字机文案（可稍后替换） */
-export const ENDING_EPILOG_TEXT =
-    '（结局文字待填写）';
+/** 第五关通关后 — 黑屏中央文案（三行，逐行渐显） */
+export const ENDING_EPILOG_LINES = [
+    '看完这封邮件后，大概就到他信中所说的时间了。',
+    '你听到走廊里脚步声伴随着三两声寒暄，由近及远到达办公室门外，',
+    '敲门声轻轻响起————'
+];
+
+/** 每行渐显时长 */
+export const ENDING_EPILOG_LINE_FADE_MS = 1200;
+
+/** 行间停顿 */
+export const ENDING_EPILOG_LINE_GAP_MS = 500;
 
 export const ENDING_SPACE_HINT = '按 SPACE 继续';
 
-export const ENDING_WELCOME_BUTTON = '欢迎来罗德岛，隐现';
+export const ENDING_WELCOME_BUTTON = '欢迎回到罗德岛，隐现';
 
 export const ENDING_DIALOGUE_TEXT = '“博士！”';
 

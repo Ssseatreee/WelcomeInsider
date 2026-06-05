@@ -181,8 +181,12 @@ export default class LevelResultOverlay
 
             const callback = this.onConfirm;
 
-            this.hide();
             callback?.();
+
+            if (!this.scene.isEndingStarting)
+            {
+                this.hide();
+            }
         });
     }
 

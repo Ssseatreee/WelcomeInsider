@@ -5,6 +5,10 @@ export const BGM_MENU = 'bgm-the-cafe';
 
 export const BGM_LEVEL = 'bgm-traffic-lights';
 
+export const BGM_WARM_INTRO = 'bgm-warm-intro';
+
+export const BGM_WARM_LOOP = 'bgm-warm-loop';
+
 const MENU_SCENE_KEYS = [
     'MainMenuScene',
     'CollectionScene'
@@ -140,6 +144,95 @@ export default class BgmManager
     playLevel(scene, delayMs = LEVEL_DELAY_MS)
     {
         this.schedule(scene, BGM_LEVEL, delayMs);
+    }
+
+    /** 结局：warm_intro 播一遍后循环 warm_loop */
+    playEndingWarm(scene, fadeInMs = FADE_IN_MS)
+    {
+        this.cancelPending();
+
+        const hasIntro =
+            this.game.cache.audio.exists(BGM_WARM_INTRO);
+        const hasLoop =
+            this.game.cache.audio.exists(BGM_WARM_LOOP);
+
+        if (!hasIntro && !hasLoop)
+        {
+            return;
+        }
+
+        this.stop();
+
+        const targetVolume = this.getTargetVolume();
+
+        if (!hasIntro)
+        {
+            this.play(BGM_WARM_LOOP, scene, fadeInMs);
+            return;
+        }
+
+        this.music =
+            this.game.sound.add(BGM_WARM_INTRO, {
+                loop: false,
+                volume: fadeInMs > 0 ? 0 : targetVolume
+            });
+
+        this.music.play();
+        this.currentKey = BGM_WARM_INTRO;
+
+        let loopStarted = false;
+
+        const startLoop = () =>
+        {
+            if (loopStarted || !hasLoop)
+            {
+                return;
+            }
+
+            loopStarted = true;
+
+            if (this.currentKey !== BGM_WARM_INTRO)
+            {
+                return;
+            }
+
+            this.play(BGM_WARM_LOOP, scene, fadeInMs);
+        };
+
+        this.music.once('complete', startLoop);
+
+        const introDuration = this.music.duration;
+
+        if (Number.isFinite(introDuration) && introDuration > 0)
+        {
+            scene.time.delayedCall(
+                introDuration * 1000 + 50,
+                startLoop
+            );
+        }
+
+        if (fadeInMs > 0 && scene?.tweens)
+        {
+            this.cancelFadeTween();
+            this.fadeScene = scene;
+
+            this.fadeTween =
+                scene.tweens.add({
+                    targets: this.music,
+                    volume: targetVolume,
+                    duration: fadeInMs,
+                    ease: 'Linear',
+                    onComplete: () =>
+                    {
+                        this.fadeTween = null;
+                        this.fadeScene = null;
+                    }
+                });
+        }
+        else if (this.music)
+        {
+            this.music.volume = targetVolume;
+        }
     }
 
     schedule(scene, key, delayMs)

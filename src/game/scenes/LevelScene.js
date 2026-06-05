@@ -44,8 +44,11 @@ import {
     PLAY_AREA_WIDTH,
     PLAY_AREA_X,
     HUD_WIDTH,
-    RIGHT_HUD_X
+    RIGHT_HUD_X,
+    TOTAL_WIDTH
 } from '../layout.js';
+import { fadeSceneToBlack } from '../../systems/fullScreenFade.js';
+import { ENDING_FADE_MS } from '../../data/endingConfig.js';
 
 import * as  Phaser from 'phaser';
 
@@ -222,6 +225,7 @@ export default class LevelScene extends Phaser.Scene
                 ? this.saveData.survivalMs
                 : 0;
         this.isResultShowing = false;
+        this.isEndingStarting = false;
         this.isIntroShowing = false;
 
         // ===== 关卡任务 =====
@@ -1248,12 +1252,43 @@ export default class LevelScene extends Phaser.Scene
         if (this.level >= 5)
         {
             this.tryUnlockAchievement('gatherTogether');
-            this.returnToMainMenu();
+            this.startEnding();
             return;
         }
 
         this.scene.restart({
             level: this.level + 1
+        });
+    }
+
+    startEnding()
+    {
+        if (this.isEndingStarting)
+        {
+            return;
+        }
+
+        this.isEndingStarting = true;
+        this.input.enabled = false;
+
+        GameState.setFlag('gameComplete', true);
+
+        GameState.saveProgress(
+            GameState.buildSaveFromScene(this)
+        );
+
+        this.game.bgmManager?.fadeOutForTransition(
+            this,
+            ENDING_FADE_MS
+        );
+
+        fadeSceneToBlack(this, {
+            durationMs: ENDING_FADE_MS,
+            onComplete: () =>
+            {
+                this.resultOverlay?.hide();
+                this.scene.start('EndingScene');
+            }
         });
     }
 
@@ -1313,6 +1348,8 @@ export default class LevelScene extends Phaser.Scene
             &&
             !this.isResultShowing
             &&
+            !this.isEndingStarting
+            &&
             !this.isIntroShowing
             &&
             !this.dialogueManager.isPlaying
@@ -1321,7 +1358,7 @@ export default class LevelScene extends Phaser.Scene
             this.returnToMainMenu();
         }
 
-        if (this.isResultShowing)
+        if (this.isResultShowing || this.isEndingStarting)
         {
             this.player?.setVelocity(0, 0);
             this.npcSprites?.forEach(sprite =>

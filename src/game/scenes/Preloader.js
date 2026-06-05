@@ -587,6 +587,33 @@ export class Preloader extends Scene
             'bgm-traffic-lights',
             `${bgmPath}/Track 6 (Traffic Lights).wav`
         );
+
+        this.load.audio(
+            'bgm-warm-intro',
+            `${bgmPath}/warm_intro.wav`
+        );
+
+        this.load.audio(
+            'bgm-warm-loop',
+            `${bgmPath}/warm_loop.wav`
+        );
+
+        const endingCgPath = './assets/CG/ending';
+
+        this.load.image(
+            'ending-richele',
+            `${endingCgPath}/richele.png`
+        );
+
+        this.load.image(
+            'ending-laugh1',
+            `${endingCgPath}/laugh1.png`
+        );
+
+        this.load.image(
+            'ending-laugh2',
+            `${endingCgPath}/laugh2.png`
+        );
     }
 
     create ()

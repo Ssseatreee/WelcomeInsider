@@ -3,6 +3,7 @@ import CollectionScene from './scenes/CollectionScene';
 import { Game as MainGame } from './scenes/Game';
 import { GameOver } from './scenes/GameOver';
 import LevelScene from './scenes/LevelScene';
+import EndingScene from './scenes/EndingScene';
 import { MainMenu } from './scenes/MainMenu';
 import MainMenuScene from './scenes/MainMenuScene';
 import { Preloader } from './scenes/Preloader';
@@ -47,7 +48,8 @@ const config = {
         MainMenuScene,
         CollectionScene,
 
-        LevelScene
+        LevelScene,
+        EndingScene
     ]
 };
 

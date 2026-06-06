@@ -9,13 +9,13 @@ export const ENDING_EPILOG_LINES = [
 export const ENDING_EPILOG_LINE_FADE_MS = 1200;
 
 /** 行间停顿 */
-export const ENDING_EPILOG_LINE_GAP_MS = 500;
+export const ENDING_EPILOG_LINE_GAP_MS = 800;
 
 export const ENDING_SPACE_HINT = '按 SPACE 继续';
 
-export const ENDING_WELCOME_BUTTON = '欢迎回到罗德岛，隐现';
+export const ENDING_WELCOME_BUTTON = '欢迎回到罗德岛，干员隐现';
 
-export const ENDING_DIALOGUE_TEXT = '“博士！”';
+export const ENDING_DIALOGUE_TEXT = '“你也可以选择先休息一下，博士。要尝尝这个吗？”';
 
 /** 关卡结束 → 结局渐暗（与关卡 BGM 渐停同步） */
 export const ENDING_FADE_MS = 2800;
@@ -30,14 +30,17 @@ export const ENDING_FADE_BRIGHT_MS = 2800;
 export const ENDING_DIALOGUE_DELAY_MS = 3000;
 
 /** 台词播完后再延迟显示按钮 */
-export const ENDING_BUTTON_DELAY_MS = 2500;
+export const ENDING_BUTTON_DELAY_MS = 3800;
 
 /** 按钮渐显时长 */
 export const ENDING_BUTTON_FADE_IN_MS = 1200;
 
 export const ENDING_LAUGH_ALT_MS = 420;
 
-/** 按钮隐现：在较高透明度区间呼吸，保证文字始终清晰 */
+/** 按钮：在较高透明度区间呼吸，保证文字始终清晰 */
 export const ENDING_BUTTON_PULSE_MS = 1600;
 
 export const ENDING_BGM_FADE_OUT_MS = 2800;
+
+/** 结局按钮 — 彩带迸出 + 下落，结束后才渐暗 */
+export const ENDING_RIBBON_BURST_MS = 1300;

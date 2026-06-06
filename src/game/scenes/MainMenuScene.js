@@ -18,6 +18,13 @@ import {
 
 } from '../../systems/CurtainTransition.js';
 
+import {
+    withButtonTextStyle,
+    withTextPadding
+} from '../../data/textStyle.js';
+
+import MenuTitleTypewriterSequence from '../../systems/MenuTitleTypewriterSequence.js';
+
 
 
 /** 视差强度：鼠标在屏幕边缘时各层最大位移（像素），越远层幅度越大 */
@@ -129,6 +136,25 @@ const SMOKE_RISE_MS = 5200;
 const WISH_SWING_DEG = 15;
 
 const WISH_STEP_MS = 600;
+
+const MENU_TITLE_TEXT = '忙里偷闲的邮件数则';
+
+const MENU_SUBTITLE_TEXT = '——FROM Insider';
+
+const MENU_TITLE_SEQUENCE = {
+    titleCharDelayMs: 78,
+    subtitleCharDelayMs: 62,
+    eraseMs: 42,
+    afterTitleHoldMs: 500,
+    afterBothHoldMs: 3600,
+    loopPauseMs: 900
+};
+
+const MENU_BUTTON_HINT_STYLE = withTextPadding({
+    fontSize: '13px',
+    color: '#ffe733',
+    fontStyle: 'italic'
+});
 
 
 
@@ -580,6 +606,17 @@ export default class MainMenuScene extends Scene
 
             );
 
+            if (entry.hint)
+            {
+                entry.hint.setPosition(
+
+                    entry.baseX + uiOffsetX + entry.hintOffsetX,
+
+                    entry.baseY + uiOffsetY + entry.hintOffsetY
+
+                );
+            }
+
         }
 
     }
@@ -598,15 +635,15 @@ export default class MainMenuScene extends Scene
 
         ui.add(
 
-            this.add.text(
+            this.titleText = this.add.text(
 
                 cx,
 
                 120,
 
-                '隐现的工作周报',
+                '',
 
-                {
+                withTextPadding({
 
                     fontSize: '42px',
 
@@ -618,7 +655,7 @@ export default class MainMenuScene extends Scene
 
                     strokeThickness: 6
 
-                }
+                })
 
             ).setOrigin(0.5)
 
@@ -628,15 +665,15 @@ export default class MainMenuScene extends Scene
 
         ui.add(
 
-            this.add.text(
+            this.subtitleText = this.add.text(
 
                 cx,
 
                 180,
 
-                '没在工作才是好员工啊',
+                '',
 
-                {
+                withTextPadding({
 
                     fontSize: '20px',
 
@@ -646,11 +683,25 @@ export default class MainMenuScene extends Scene
 
                     strokeThickness: 3
 
-                }
+                })
 
             ).setOrigin(0.5)
 
         );
+
+        this.menuTitleSequence =
+            new MenuTitleTypewriterSequence(
+                this,
+                this.titleText,
+                this.subtitleText,
+                {
+                    title: MENU_TITLE_TEXT,
+                    subtitle: MENU_SUBTITLE_TEXT,
+                    ...MENU_TITLE_SEQUENCE
+                }
+            );
+
+        this.menuTitleSequence.start();
 
 
 
@@ -684,7 +735,7 @@ export default class MainMenuScene extends Scene
 
             },
 
-            { enabled: GameState.hasSave() }
+            { enabled: GameState.hasSave(), hint: 'Continue' }
 
         );
 
@@ -712,7 +763,9 @@ export default class MainMenuScene extends Scene
 
                 });
 
-            }
+            },
+
+            { hint: 'New Game' }
 
         );
 
@@ -724,7 +777,7 @@ export default class MainMenuScene extends Scene
 
             420,
 
-            '查看收集物',
+            '摸鱼之路',
 
             () =>
 
@@ -732,7 +785,9 @@ export default class MainMenuScene extends Scene
 
                 transitionToScene(this, 'CollectionScene');
 
-            }
+            },
+
+            { hint: 'Achievements' }
 
         );
 
@@ -757,7 +812,9 @@ export default class MainMenuScene extends Scene
                     this.settingsPanelVisible
                 );
 
-            }
+            },
+
+            { hint: 'Settings' }
 
         );
 
@@ -786,27 +843,27 @@ export default class MainMenuScene extends Scene
 
 
 
-        ui.add(
+        // ui.add(
 
-            this.add.text(
+        //     this.add.text(
 
-                cx,
+        //         cx,
 
-                600,
+        //         600,
 
-                'Powered by Phaser',
+        //         'Powered by Phaser',
 
-                {
+        //         {
 
-                    fontSize: '14px',
+        //             fontSize: '14px',
 
-                    color: '#8a7f72'
+        //             color: '#8a7f72'
 
-                }
+        //         }
 
-            ).setOrigin(0.5)
+        //     ).setOrigin(0.5)
 
-        );
+        // );
 
     }
 
@@ -816,7 +873,7 @@ export default class MainMenuScene extends Scene
 
     {
 
-        const { enabled = true } = options;
+        const { enabled = true, hint = '' } = options;
 
 
 
@@ -848,13 +905,48 @@ export default class MainMenuScene extends Scene
 
 
 
+        let hintText = null;
+
+        let hintOffsetX = 0;
+
+        let hintOffsetY = 0;
+
+        if (hint)
+        {
+            hintOffsetX = button.displayWidth / 2 - 4;
+            hintOffsetY = -button.displayHeight / 2 - 8;
+
+            hintText =
+                this.add.text(
+                    x + hintOffsetX,
+                    y + hintOffsetY,
+                    hint,
+                    MENU_BUTTON_HINT_STYLE
+                )
+                .setOrigin(1, 0)
+                .setDepth(12);
+
+            if (!enabled)
+            {
+                hintText.setAlpha(0.45);
+            }
+        }
+
+
+
         this.menuButtons.push({
 
             button,
 
+            hint: hintText,
+
             baseX: x,
 
-            baseY: y
+            baseY: y,
+
+            hintOffsetX,
+
+            hintOffsetY
 
         });
 
@@ -878,7 +970,7 @@ export default class MainMenuScene extends Scene
 
             text,
 
-            {
+            withButtonTextStyle({
 
                 fontSize: '28px',
 
@@ -892,13 +984,13 @@ export default class MainMenuScene extends Scene
 
                     right: 24,
 
-                    top: 12,
+                    top: 16,
 
-                    bottom: 12
+                    bottom: 14
 
                 }
 
-            }
+            })
 
         )
 

@@ -5,6 +5,7 @@ import {
     GAME_HEIGHT,
     HUD_WIDTH
 } from '../game/layout.js';
+import { withTextPadding } from '../data/textStyle.js';
 
 export default class ItemInventoryPanel
 {
@@ -77,10 +78,10 @@ export default class ItemInventoryPanel
                 this.panelLeft + panelWidth / 2,
                 this.panelTop + 16,
                 itemPanel.title ?? '物品',
-                {
+                withTextPadding({
                     fontSize: '20px',
                     color: '#ffffff'
-                }
+                })
             );
 
         this.titleText.setOrigin(0.5, 0);
@@ -92,10 +93,10 @@ export default class ItemInventoryPanel
                 this.panelLeft + panelWidth / 2,
                 this.panelTop + 56,
                 '暂无物品',
-                {
+                withTextPadding({
                     fontSize: '16px',
                     color: '#666666'
-                }
+                })
             );
 
         this.emptyText.setOrigin(0.5, 0);
@@ -184,14 +185,14 @@ export default class ItemInventoryPanel
                 0,
                 this.iconSize / 2 + 4,
                 '',
-                {
+                withTextPadding({
                     fontSize: this.labelFontSize,
                     color: '#aaaaaa',
                     align: 'center',
                     wordWrap: {
                         width: this.iconSize + 12
                     }
-                }
+                })
             );
 
         label.setOrigin(0.5, 0);
@@ -203,7 +204,7 @@ export default class ItemInventoryPanel
                 0,
                 this.iconSize / 2 + this.labelHeight + 18,
                 '',
-                {
+                withTextPadding({
                     fontSize: this.detailFontSize,
                     color: '#dddddd',
                     align: 'center',
@@ -211,7 +212,7 @@ export default class ItemInventoryPanel
                         width: this.detailWrapWidth - 20
                     },
                     lineSpacing: 4
-                }
+                })
             );
 
         detailText.setOrigin(0.5, 0);

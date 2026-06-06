@@ -6,7 +6,7 @@ const itemRegistry = {
         speedMultiplier: 1.5,
         effectMessage: '移速上升',
         description:
-            '艾泽尔前辈亲手泡的咖啡。喝下后脚步会轻快许多。'
+            '艾泽尔亲手泡的咖啡。喝下后脚步会轻快许多。'
     },
 
     donut: {
@@ -28,7 +28,7 @@ const itemRegistry = {
 
     splyRefuse: {
         effectMessage:
-            '费德里科似乎察觉到了你的位置……'
+            '斯普莉雅告知了费德里科你的位置'
     },
 
     clearWork: {

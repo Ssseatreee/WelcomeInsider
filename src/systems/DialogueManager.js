@@ -17,6 +17,10 @@ import {
     DIALOGUE_TEXT_Y,
     DIALOGUE_TEXT_STYLE
 } from '../data/dialoguePortraitLayout.js';
+import {
+    withButtonTextStyle,
+    withTextPadding
+} from '../data/textStyle.js';
 
 export default class DialogueManager
 {
@@ -131,12 +135,18 @@ export default class DialogueManager
         this.leftPortrait.setScrollFactor(0);
         this.rightPortrait.setScrollFactor(0);
 
-        const choiceStyle = {
-            fontSize: '26px',
-            color: '#ffffff',
-            backgroundColor: '#333333',
-            padding: { left: 12, right: 12, top: 6, bottom: 6 }
-        };
+        const choiceStyle =
+            withButtonTextStyle({
+                fontSize: '26px',
+                color: '#ffffff',
+                backgroundColor: '#333333',
+                padding: {
+                    left: 12,
+                    right: 12,
+                    top: 14,
+                    bottom: 10
+                }
+            });
 
         for (let i = 0; i < 2; i++)
         {
@@ -179,10 +189,10 @@ export default class DialogueManager
             this.box.x - 420,
             this.box.y + 95,
             '↑↓ 选择  ·  空格确认',
-            {
+            withTextPadding({
                 fontSize: '18px',
                 color: '#888888'
-            }
+            })
         );
 
         this.choiceHint.setScrollFactor(0);

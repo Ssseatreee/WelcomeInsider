@@ -2,6 +2,10 @@ import * as Phaser from 'phaser';
 import TypewriterText from './TypewriterText.js';
 import { INTRO_TYPEWRITER_OPTIONS } from '../data/typewriterConfig.js';
 import {
+    withButtonTextStyle,
+    withTextPadding
+} from '../data/textStyle.js';
+import {
     GAME_HEIGHT,
     PLAY_AREA_UI_CENTER_X
 } from '../game/layout.js';
@@ -130,11 +134,11 @@ export default class LevelIntroOverlay
                 this.centerX,
                 boxTop + 28,
                 '',
-                {
+                withTextPadding({
                     fontSize: '26px',
                     color: '#222222',
                     fontStyle: 'bold'
-                }
+                })
             );
 
         this.titleText.setOrigin(0.5, 0);
@@ -146,7 +150,7 @@ export default class LevelIntroOverlay
                 boxLeft + this.portraitAreaWidth + 16,
                 boxTop + 68,
                 '',
-                {
+                withTextPadding({
                     fontSize: '16px',
                     color: '#333333',
                     wordWrap: {
@@ -156,8 +160,8 @@ export default class LevelIntroOverlay
                             - 32,
                         useAdvancedWrap: true
                     },
-                    lineSpacing: 6
-                }
+                    lineSpacing: 10
+                })
             );
 
         this.bodyText.setScrollFactor(0);
@@ -168,17 +172,17 @@ export default class LevelIntroOverlay
                 this.centerX + this.portraitAreaWidth / 4,
                 boxTop + this.boxHeight - 44,
                 '开始',
-                {
+                withButtonTextStyle({
                     fontSize: '22px',
                     color: '#ffffff',
                     backgroundColor: '#333333',
                     padding: {
                         left: 22,
                         right: 22,
-                        top: 8,
-                        bottom: 8
+                        top: 14,
+                        bottom: 12
                     }
-                }
+                })
             );
 
         this.button.setOrigin(0.5);

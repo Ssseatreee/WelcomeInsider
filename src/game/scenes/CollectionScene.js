@@ -26,6 +26,10 @@ import {
     DIALOGUE_TEXT_STYLE,
     applyDialogueLeftPortrait
 } from '../../data/dialoguePortraitLayout.js';
+import {
+    withButtonTextStyle,
+    withTextPadding
+} from '../../data/textStyle.js';
 
 const SCALE = 1.5;
 
@@ -34,7 +38,7 @@ const GAP = Math.round(18 * SCALE);
 const COLS = 3;
 
 /** 方框尺寸不变，仅放大格内贴图 */
-const ACHIEVEMENT_ICON_SIZE = Math.round(72 * SCALE * 1.4);
+const ACHIEVEMENT_ICON_SIZE = Math.round(72 * SCALE * 2.0);
 
 const GRID_LEFT = 680;
 const GRID_TOP = 130;
@@ -62,15 +66,15 @@ export default class CollectionScene extends Scene
 
         this.cameras.main.setBackgroundColor('#1a1a1a');
 
-        this.add.text(
-            TOTAL_WIDTH / 2,
-            48,
-            '成就',
-            {
-                fontSize: '36px',
-                color: '#ffffff'
-            }
-        ).setOrigin(0.5);
+        // this.add.text(
+        //     TOTAL_WIDTH / 2,
+        //     48,
+        //     '成就',
+        //     withTextPadding({
+        //         fontSize: '36px',
+        //         color: '#ffffff'
+        //     })
+        // ).setOrigin(0.5);
 
         this.createPortraitPanel();
         this.createAchievementGrid();
@@ -80,16 +84,17 @@ export default class CollectionScene extends Scene
                 TOTAL_WIDTH - 32,
                 GAME_HEIGHT - 32,
                 '返回主菜单',
-                {
+                withButtonTextStyle({
                     fontSize: '22px',
+                    color: '#ffffff',
                     backgroundColor: '#333333',
                     padding: {
                         left: 18,
                         right: 18,
-                        top: 10,
-                        bottom: 10
+                        top: 14,
+                        bottom: 12
                     }
-                }
+                })
             )
             .setOrigin(1, 1)
             .setInteractive({ useHandCursor: true });
@@ -105,7 +110,14 @@ export default class CollectionScene extends Scene
                 this.input.keyboard.addKey(
                     Phaser.Input.Keyboard.KeyCodes.ESC
                 );
+
+            this.spaceKey =
+                this.input.keyboard.addKey(
+                    Phaser.Input.Keyboard.KeyCodes.SPACE
+                );
         }
+
+        this.quoteDialogueVisible = true;
 
         playEnterIfNeeded(this);
 
@@ -146,6 +158,7 @@ export default class CollectionScene extends Scene
 
         this.quoteText.setOrigin(0, 0);
         this.quoteText.setDepth(250);
+        this.quoteText.setInteractive({ useHandCursor: true });
 
         this.quoteTypewriter =
             new TypewriterText(
@@ -158,14 +171,19 @@ export default class CollectionScene extends Scene
 
         this.dialogueBox.on('pointerup', () =>
         {
-            this.skipQuoteTypewriter();
+            this.handleQuoteDismiss();
         });
 
         this.portraitImage.setInteractive({ useHandCursor: true });
 
         this.portraitImage.on('pointerup', () =>
         {
-            this.skipQuoteTypewriter();
+            this.handleQuoteDismiss();
+        });
+
+        this.quoteText.on('pointerup', () =>
+        {
+            this.handleQuoteDismiss();
         });
 
         this.quoteTypewriter.start(DEFAULT_COLLECTION_QUOTE);
@@ -269,11 +287,11 @@ export default class CollectionScene extends Scene
                 x,
                 y + CELL / 2 - Math.round(22 * SCALE),
                 achievement.title,
-                {
+                withTextPadding({
                     fontSize: `${Math.round(18 * SCALE)}px`,
                     color: unlocked ? '#ffffff' : '#777777',
                     align: 'center'
-                }
+                })
             );
 
         title.setOrigin(0.5);
@@ -328,6 +346,8 @@ export default class CollectionScene extends Scene
         const display =
             getAchievementDisplay(achievement, unlocked);
 
+        this.showQuoteDialogue();
+
         if (!this.quoteTypewriter.isComplete)
         {
             this.quoteTypewriter.skip();
@@ -342,12 +362,33 @@ export default class CollectionScene extends Scene
         this.quoteTypewriter.start(display.quote);
     }
 
-    skipQuoteTypewriter()
+    handleQuoteDismiss()
     {
         if (!this.quoteTypewriter.isComplete)
         {
             this.quoteTypewriter.skip();
+            return;
         }
+
+        if (this.quoteDialogueVisible)
+        {
+            this.hideQuoteDialogue();
+        }
+    }
+
+    showQuoteDialogue()
+    {
+        this.quoteDialogueVisible = true;
+        this.portraitImage.setVisible(true);
+        this.dialogueBox.setVisible(true);
+        this.quoteText.setVisible(true);
+    }
+
+    hideQuoteDialogue()
+    {
+        this.quoteDialogueVisible = false;
+        this.dialogueBox.setVisible(false);
+        this.quoteText.setVisible(false);
     }
 
     fitIcon(image, maxSize)
@@ -363,7 +404,7 @@ export default class CollectionScene extends Scene
             Math.min(
                 maxSize / frame.width,
                 maxSize / frame.height,
-                2.4
+                3.2
             )
         );
     }
@@ -377,6 +418,18 @@ export default class CollectionScene extends Scene
         )
         {
             this.returnToMainMenu();
+            return;
+        }
+
+        if (
+            this.spaceKey
+            &&
+            Phaser.Input.Keyboard.JustDown(this.spaceKey)
+            &&
+            !this._returningToMenu
+        )
+        {
+            this.handleQuoteDismiss();
         }
     }
 

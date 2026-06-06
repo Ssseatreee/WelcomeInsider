@@ -1,9 +1,7 @@
 import { Scene } from 'phaser';
 import * as Phaser from 'phaser';
 import TypewriterText from '../../systems/TypewriterText.js';
-import {
-    INTRO_TYPEWRITER_OPTIONS
-} from '../../data/typewriterConfig.js';
+import EndingRibbonBurst from '../../systems/EndingRibbonBurst.js';
 import {
     ENDING_EPILOG_LINES,
     ENDING_EPILOG_LINE_FADE_MS,
@@ -18,8 +16,12 @@ import {
     ENDING_BUTTON_FADE_IN_MS,
     ENDING_LAUGH_ALT_MS,
     ENDING_BUTTON_PULSE_MS,
-    ENDING_BGM_FADE_OUT_MS
+    ENDING_BGM_FADE_OUT_MS,
+    ENDING_RIBBON_BURST_MS
 } from '../../data/endingConfig.js';
+import {
+    INTRO_TYPEWRITER_OPTIONS
+} from '../../data/typewriterConfig.js';
 import {
     DIALOGUE_BOX_Y,
     DIALOGUE_BOX_CENTER_X_FULL,
@@ -27,6 +29,10 @@ import {
     DIALOGUE_TEXT_Y,
     DIALOGUE_TEXT_STYLE
 } from '../../data/dialoguePortraitLayout.js';
+import {
+    withButtonTextStyle,
+    withTextPadding
+} from '../../data/textStyle.js';
 
 const PHASE = {
     EPILOG: 'epilog',
@@ -52,6 +58,7 @@ export default class EndingScene extends Scene
         this.epilogLineGapTimer = null;
         this.laughShowingFirst = true;
         this.buttonPulseTween = null;
+        this.ribbonBurst = null;
 
         this.centerX = this.scale.width / 2;
         this.centerY = this.scale.height / 2;
@@ -90,12 +97,14 @@ export default class EndingScene extends Scene
 
     buildEpilog()
     {
-        const lineStyle = {
-            fontSize: '28px',
-            color: '#ffffff',
-            align: 'center',
-            wordWrap: { width: 820 }
-        };
+        const lineStyle =
+            withTextPadding({
+                fontSize: '28px',
+                color: '#ffffff',
+                align: 'center',
+                wordWrap: { width: 820 },
+                lineSpacing: 12
+            });
 
         const lineStep = 52;
         const blockHeight =
@@ -145,10 +154,10 @@ export default class EndingScene extends Scene
                 this.centerX,
                 this.scale.height - 52,
                 ENDING_SPACE_HINT,
-                {
+                withTextPadding({
                     fontSize: '22px',
                     color: '#aaaaaa'
-                }
+                })
             );
 
         this.spaceHintText.setOrigin(0.5);
@@ -315,17 +324,17 @@ export default class EndingScene extends Scene
                 DIALOGUE_BOX_CENTER_X_FULL,
                 DIALOGUE_BOX_Y + 52,
                 ENDING_WELCOME_BUTTON,
-                {
+                withButtonTextStyle({
                     fontSize: '28px',
                     color: '#ffffff',
                     backgroundColor: '#333333',
                     padding: {
                         left: 32,
                         right: 32,
-                        top: 14,
-                        bottom: 14
+                        top: 18,
+                        bottom: 16
                     }
-                }
+                })
             );
 
         this.welcomeButton.setOrigin(0.5);
@@ -624,6 +633,30 @@ export default class EndingScene extends Scene
 
         this.stopButtonPulse();
 
+        this.welcomeButton.setVisible(false);
+        this.dialogueContainer.setAlpha(0.35);
+
+        this.ribbonBurst = new EndingRibbonBurst(this);
+
+        this.ribbonFinished = false;
+
+        this.ribbonBurst.play(
+            ENDING_RIBBON_BURST_MS,
+            () =>
+            {
+                if (this.ribbonFinished)
+                {
+                    return;
+                }
+
+                this.ribbonFinished = true;
+                this.fadeToMainMenu();
+            }
+        );
+    }
+
+    fadeToMainMenu()
+    {
         this.game.bgmManager?.fadeOutForTransition(
             this,
             ENDING_BGM_FADE_OUT_MS
@@ -636,6 +669,8 @@ export default class EndingScene extends Scene
             ease: 'Sine.easeIn',
             onComplete: () =>
             {
+                this.ribbonBurst?.destroy();
+                this.ribbonBurst = null;
                 this.scene.start('MainMenuScene');
             }
         });

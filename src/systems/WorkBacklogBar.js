@@ -3,6 +3,7 @@ import {
     GAME_HEIGHT,
     HUD_WIDTH
 } from '../game/layout.js';
+import { withTextPadding } from '../data/textStyle.js';
 
 export default class WorkBacklogBar
 {
@@ -82,10 +83,10 @@ export default class WorkBacklogBar
                 panelLeft + panelWidth / 2,
                 panelTop + 28,
                 title,
-                {
+                withTextPadding({
                     fontSize: '20px',
                     color: '#cccccc'
-                }
+                })
             );
 
         this.titleText.setOrigin(0.5);
@@ -106,12 +107,12 @@ export default class WorkBacklogBar
                 panelLeft + panelWidth / 2,
                 panelTop + panelHeight - 28,
                 fullWarning,
-                {
+                withTextPadding({
                     fontSize: '16px',
                     color: '#ff8866',
                     align: 'center',
                     wordWrap: { width: panelWidth - 24 }
-                }
+                })
             );
 
         this.warningText.setOrigin(0.5);

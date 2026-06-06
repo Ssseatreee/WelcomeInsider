@@ -1,12 +1,15 @@
 import * as Phaser from 'phaser';
 import { getAchievementById } from '../data/achievements.js';
+import { withTextPadding } from '../data/textStyle.js';
 import {
     GAME_HEIGHT,
-    PLAY_AREA_X
+    HUD_WIDTH
 } from '../game/layout.js';
 
-const DISPLAY_MS = 2800;
-const MARGIN = 20;
+const DISPLAY_MS = 3200;
+const MARGIN = 16;
+const PANEL_W = 280;
+const PANEL_H = 72;
 
 export default class AchievementUnlockNotice
 {
@@ -15,10 +18,14 @@ export default class AchievementUnlockNotice
         this.scene = scene;
         this.hideTimer = null;
 
+        // 右侧 HUD 相机与左侧共用世界坐标原点，x 取 viewport 宽度内（非 RIGHT_HUD_X 偏移）
+        this.anchorX = HUD_WIDTH - MARGIN;
+        this.anchorY = GAME_HEIGHT - MARGIN;
+
         this.container =
             scene.add.container(
-                PLAY_AREA_X + MARGIN,
-                GAME_HEIGHT - MARGIN
+                this.anchorX,
+                this.anchorY
             );
 
         this.container.setScrollFactor(0);
@@ -30,32 +37,32 @@ export default class AchievementUnlockNotice
             scene.add.rectangle(
                 0,
                 0,
-                280,
-                72,
+                PANEL_W,
+                PANEL_H,
                 0x111111,
                 0.92
             );
 
-        this.panel.setOrigin(0, 1);
+        this.panel.setOrigin(1, 1);
         this.panel.setStrokeStyle(2, 0xffcc66, 0.9);
         this.container.add(this.panel);
 
         this.icon =
-            scene.add.image(28, -36, 'achievement-goodSenior');
+            scene.add.image(-PANEL_W + 28, -36, 'achievement-goodSenior');
 
         this.icon.setOrigin(0.5);
         this.container.add(this.icon);
 
         this.titleText =
             scene.add.text(
-                56,
+                -PANEL_W + 56,
                 -52,
                 '',
-                {
+                withTextPadding({
                     fontSize: '20px',
                     color: '#ffdd88',
                     fontStyle: 'bold'
-                }
+                })
             );
 
         this.titleText.setOrigin(0, 0);
@@ -63,13 +70,13 @@ export default class AchievementUnlockNotice
 
         this.subtitleText =
             scene.add.text(
-                56,
+                -PANEL_W + 56,
                 -28,
                 '成就解锁',
-                {
+                withTextPadding({
                     fontSize: '15px',
                     color: '#cccccc'
-                }
+                })
             );
 
         this.subtitleText.setOrigin(0, 0);
@@ -107,12 +114,12 @@ export default class AchievementUnlockNotice
         this.titleText.setText(achievement.title);
         this.container.setVisible(true);
         this.container.setAlpha(0);
-        this.container.y = GAME_HEIGHT - MARGIN + 12;
+        this.container.y = this.anchorY + 12;
 
         this.scene.tweens.add({
             targets: this.container,
             alpha: 1,
-            y: GAME_HEIGHT - MARGIN,
+            y: this.anchorY,
             duration: 220,
             ease: 'Back.easeOut'
         });
@@ -131,7 +138,7 @@ export default class AchievementUnlockNotice
         this.scene.tweens.add({
             targets: this.container,
             alpha: 0,
-            y: GAME_HEIGHT - MARGIN + 8,
+            y: this.anchorY + 8,
             duration: 180,
             ease: 'Sine.easeIn',
             onComplete: () =>

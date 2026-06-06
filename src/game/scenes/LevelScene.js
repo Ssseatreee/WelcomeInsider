@@ -28,6 +28,10 @@ import LevelIntroOverlay from '../../systems/LevelIntroOverlay.js';
 import mapDisplayNames from '../../data/mapDisplayNames.js';
 import miniMapLayout from '../../data/miniMapLayout.js';
 import { createLevelHudVolumeControls } from '../../systems/VolumeSettingsPanel.js';
+import {
+    withButtonTextStyle,
+    withTextPadding
+} from '../../data/textStyle.js';
 import npcMap from '../../gameObjects/npcs/npcs.js';
 import workBacklogConfig from '../../data/workBacklogConfig.js';
 import {
@@ -36,7 +40,6 @@ import {
 } from '../../systems/workZones.js';
 import AchievementManager from '../../systems/AchievementManager.js';
 import AchievementUnlockNotice from '../../systems/AchievementUnlockNotice.js';
-import AchievementHud from '../../systems/AchievementHud.js';
 import items, { resolveItem } from '../../data/items.js';
 
 import {
@@ -351,10 +354,10 @@ export default class LevelScene extends Phaser.Scene
             20,
             20,
             `Level ${this.level}`,
-            {
+            withTextPadding({
                 fontSize: '28px',
                 color: '#ffffff'
-            }
+            })
         );
 
         this.levelText.setScrollFactor(0);
@@ -363,10 +366,10 @@ export default class LevelScene extends Phaser.Scene
             20,
             60,
             '方向键移动 · 完成任务通关',
-            {
+            withTextPadding({
                 fontSize: '18px',
                 color: '#aaaaaa'
-            }
+            })
         );
 
         this.tipText.setScrollFactor(0);
@@ -390,14 +393,19 @@ export default class LevelScene extends Phaser.Scene
             0,
             0,
             '按 SPACE 查看',
-            {
+            withButtonTextStyle({
                 fontSize: '18px',
                 color: '#ffffff',
-                backgroundColor: '#000000'
-            }
+                backgroundColor: '#000000',
+                padding: {
+                    left: 10,
+                    right: 10,
+                    top: 12,
+                    bottom: 10
+                }
+            })
         );
 
-        this.interactHint.setPadding(6);
         this.interactHint.setDepth(500);
         this.interactHint.setOrigin(0.5);
         this.interactHint.setVisible(false);
@@ -429,9 +437,6 @@ export default class LevelScene extends Phaser.Scene
 
         this.achievementUnlockNotice =
             new AchievementUnlockNotice(this);
-
-        this.achievementHud =
-            new AchievementHud(this);
 
         this.currentCatchIsBusy = false;
 
@@ -577,23 +582,12 @@ export default class LevelScene extends Phaser.Scene
 
         if (this.achievementUnlockNotice?.container)
         {
-            this.hudCamera?.ignore(
+            this.cameras.main.ignore(
                 this.achievementUnlockNotice.container
             );
 
-            this.rightHudCamera?.ignore(
-                this.achievementUnlockNotice.container
-            );
-        }
-
-        if (this.achievementHud?.container)
-        {
             this.hudCamera?.ignore(
-                this.achievementHud.container
-            );
-
-            this.rightHudCamera?.ignore(
-                this.achievementHud.container
+                this.achievementUnlockNotice.container
             );
         }
 
@@ -899,7 +893,6 @@ export default class LevelScene extends Phaser.Scene
         }
 
         this.achievementUnlockNotice?.show(achievementId);
-        this.achievementHud?.refresh();
     }
 
     grantAzeCoffee()
@@ -1030,7 +1023,7 @@ export default class LevelScene extends Phaser.Scene
             return '[SPACE] 查看';
         }
 
-        if (this.getProperty(obj, 'getAchievement'))
+        if (this.resolveMapAchievementId(obj))
         {
             return '[SPACE] 查看';
         }
@@ -1497,10 +1490,7 @@ export default class LevelScene extends Phaser.Scene
                         }
 
                         const achievementId =
-                            this.getProperty(
-                                obj,
-                                'getAchievement'
-                            );
+                            this.resolveMapAchievementId(obj);
 
                         if (achievementId)
                         {
@@ -1913,6 +1903,15 @@ export default class LevelScene extends Phaser.Scene
             );
 
         return prop ? prop.value : null;
+    }
+
+    /** 地图物体 getAchievement 属性须为成就 id 字符串（如 peoplesRep） */
+    resolveMapAchievementId(obj)
+    {
+        const value =
+            this.getProperty(obj, 'getAchievement');
+
+        return typeof value === 'string' ? value : null;
     }
 
     createBackButton()

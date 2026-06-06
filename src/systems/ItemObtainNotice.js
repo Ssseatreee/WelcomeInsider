@@ -3,6 +3,7 @@ import {
     GAME_HEIGHT,
     PLAY_AREA_UI_CENTER_X
 } from '../game/layout.js';
+import { withTextPadding } from '../data/textStyle.js';
 
 const DISPLAY_MS = 2000;
 
@@ -37,12 +38,12 @@ export default class ItemObtainNotice
                 0,
                 24,
                 '',
-                {
+                withTextPadding({
                     fontSize: '32px',
                     color: '#ffffff',
                     fontStyle: 'bold',
                     align: 'center'
-                }
+                })
             );
 
         this.messageText.setOrigin(0.5, 0);

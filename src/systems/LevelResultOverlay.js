@@ -1,5 +1,9 @@
 import * as Phaser from 'phaser';
 import {
+    withButtonTextStyle,
+    withTextPadding
+} from '../data/textStyle.js';
+import {
     GAME_HEIGHT,
     PLAY_AREA_UI_CENTER_X,
     PLAY_AREA_WIDTH
@@ -86,11 +90,11 @@ export default class LevelResultOverlay
                 this.centerX,
                 boxTop + 34,
                 '',
-                {
+                withTextPadding({
                     fontSize: '34px',
                     color: '#222222',
                     fontStyle: 'bold'
-                }
+                })
             );
 
         this.headlineText.setOrigin(0.5);
@@ -140,17 +144,17 @@ export default class LevelResultOverlay
                 this.centerX,
                 boxTop + this.boxHeight - 44,
                 '',
-                {
+                withButtonTextStyle({
                     fontSize: '24px',
                     color: '#ffffff',
                     backgroundColor: '#333333',
                     padding: {
                         left: 20,
                         right: 20,
-                        top: 10,
-                        bottom: 10
+                        top: 16,
+                        bottom: 14
                     }
-                }
+                })
             );
 
         this.button.setOrigin(0.5);

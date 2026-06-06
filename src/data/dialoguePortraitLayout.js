@@ -3,6 +3,7 @@ import {
     PLAY_AREA_X,
     PLAY_AREA_UI_CENTER_X
 } from '../game/layout.js';
+import { withTextPadding } from './textStyle.js';
 
 /** 与 DialogueManager 对话框一致 */
 export const DIALOGUE_BOX_Y = GAME_HEIGHT - 110;
@@ -42,11 +43,12 @@ export const DIALOGUE_TEXT_Y =
 export const DIALOGUE_TEXT_X_FULL =
     DIALOGUE_BOX_CENTER_X_FULL - 420;
 
-export const DIALOGUE_TEXT_STYLE = {
+export const DIALOGUE_TEXT_STYLE = withTextPadding({
     fontSize: '30px',
     color: '#ffffff',
-    wordWrap: { width: 840 }
-};
+    wordWrap: { width: 840 },
+    lineSpacing: 12
+});
 
 export function applyDialogueLeftPortrait(image, fullScreen = false)
 {

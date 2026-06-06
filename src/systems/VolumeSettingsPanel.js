@@ -1,5 +1,9 @@
 import AudioSettings from './AudioSettings.js';
 import * as Phaser from 'phaser';
+import {
+    withButtonTextStyle,
+    withTextPadding
+} from '../data/textStyle.js';
 
 class VolumeSlider
 {
@@ -27,10 +31,10 @@ class VolumeSlider
                 0,
                 0,
                 label,
-                {
+                withTextPadding({
                     fontSize: '14px',
                     color: '#d4c8b8'
-                }
+                })
             );
 
         this.labelText.setOrigin(0, 0.5);
@@ -206,10 +210,10 @@ export default class VolumeSettingsPanel
                     0,
                     14,
                     title,
-                    {
+                    withTextPadding({
                         fontSize: '16px',
                         color: '#ffffff'
-                    }
+                    })
                 );
 
             titleText.setOrigin(0.5, 0);
@@ -271,17 +275,17 @@ export default class VolumeSettingsPanel
     }
 }
 
-const HUD_BUTTON_STYLE = {
+const HUD_BUTTON_STYLE = withButtonTextStyle({
     fontSize: '18px',
     color: '#f5f0e8',
     backgroundColor: 'rgba(20, 16, 12, 0.55)',
     padding: {
         left: 10,
         right: 10,
-        top: 7,
-        bottom: 7
+        top: 12,
+        bottom: 10
     }
-};
+});
 
 const HUD_BUTTON_HOVER = {
     backgroundColor: 'rgba(48, 38, 28, 0.72)',

@@ -2,6 +2,7 @@ import workBacklogConfig from '../data/workBacklogConfig.js';
 import {
     HUD_WIDTH
 } from '../game/layout.js';
+import { withTextPadding } from '../data/textStyle.js';
 
 export default class MissionPanel
 {
@@ -59,10 +60,10 @@ export default class MissionPanel
                 panelLeft + panelWidth / 2,
                 panelTop + 14,
                 mission?.title ?? '任务',
-                {
+                withTextPadding({
                     fontSize: '20px',
                     color: '#ffffff'
-                }
+                })
             );
 
         this.titleText.setOrigin(0.5, 0);
@@ -74,11 +75,11 @@ export default class MissionPanel
                 panelLeft + 16,
                 panelTop + 40,
                 '',
-                {
+                withTextPadding({
                     fontSize: '16px',
                     color: '#cccccc',
                     lineSpacing: 6
-                }
+                })
             );
 
         this.listText.setScrollFactor(0);
@@ -89,10 +90,10 @@ export default class MissionPanel
                 panelLeft + panelWidth / 2,
                 panelTop + missionHeight - 18,
                 '',
-                {
+                withTextPadding({
                     fontSize: '16px',
                     color: '#aaffaa'
-                }
+                })
             );
 
         this.completeText.setOrigin(0.5, 1);

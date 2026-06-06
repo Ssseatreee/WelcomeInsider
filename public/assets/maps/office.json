@@ -389,8 +389,8 @@
                         }, 
                         {
                          "name":"getAchievement",
-                         "type":"bool",
-                         "value":true
+                         "type":"string",
+                         "value":"peoplesRep"
                         }],
                  "rotation":0,
                  "type":"",

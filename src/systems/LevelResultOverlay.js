@@ -285,7 +285,7 @@ export default class LevelResultOverlay
         this.button.setText(
             isPass
                 ? '新的一天'
-                : '这个懒我一定要偷'
+                : '重试'
         );
 
         this.button.setX(

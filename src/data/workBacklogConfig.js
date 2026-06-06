@@ -28,10 +28,12 @@ export default {
         gap: 10,
         title: '物品',
         columns: 3,
-        iconSize: 72,
+        iconSize: 92,
         cellGap: 14,
-        labelHeight: 22,
-        labelFontSize: '14px'
+        gridTopOffset: 20,
+        labelHeight: 24,
+        labelFontSize: '14px',
+        detailFontSize: '13px'
     },
 
     barWidth: 260,

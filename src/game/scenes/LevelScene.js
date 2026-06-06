@@ -24,6 +24,7 @@ import ItemInventoryPanel from '../../systems/ItemInventoryPanel.js';
 import ItemObtainNotice from '../../systems/ItemObtainNotice.js';
 import LevelResultOverlay from '../../systems/LevelResultOverlay.js';
 import LevelIntroOverlay from '../../systems/LevelIntroOverlay.js';
+import WorkStatusIndicator from '../../systems/WorkStatusIndicator.js';
 
 import mapDisplayNames from '../../data/mapDisplayNames.js';
 import miniMapLayout from '../../data/miniMapLayout.js';
@@ -230,6 +231,9 @@ export default class LevelScene extends Phaser.Scene
         this.isResultShowing = false;
         this.isEndingStarting = false;
         this.isIntroShowing = false;
+
+        this.workStatusIndicator =
+            new WorkStatusIndicator(this, this.player);
 
         // ===== 关卡任务 =====
         this.levelData = levelData;
@@ -569,6 +573,17 @@ export default class LevelScene extends Phaser.Scene
             );
         }
 
+        if (this.itemPanel?.detailOverlay)
+        {
+            this.hudCamera?.ignore(
+                this.itemPanel.detailOverlay
+            );
+
+            this.rightHudCamera?.ignore(
+                this.itemPanel.detailOverlay
+            );
+        }
+
         if (this.itemObtainNotice?.container)
         {
             this.hudCamera?.ignore(
@@ -645,6 +660,12 @@ export default class LevelScene extends Phaser.Scene
         rightHudIgnore(this.levelText);
         rightHudIgnore(this.tipText);
         rightHudIgnore(this.interactHint);
+
+        if (this.workStatusIndicator?.container)
+        {
+            hudIgnore(this.workStatusIndicator.container);
+            rightHudIgnore(this.workStatusIndicator.container);
+        }
 
         Object.values(
             this.mapManager?.layers ?? {}
@@ -980,9 +1001,7 @@ export default class LevelScene extends Phaser.Scene
         {
             if (this.isWorking)
             {
-                return this.getProperty(obj, 'dialog')
-                    ? '[SPACE] 工作中 / 查看'
-                    : null;
+                return null;
             }
 
             return '[SPACE] 开始工作';
@@ -1096,7 +1115,13 @@ export default class LevelScene extends Phaser.Scene
         {
             this.showLevelResult(
                 'pass',
-                () => this.advanceLevel()
+                () => this.advanceLevel(),
+                () =>
+                {
+                    this.scene.restart({
+                        level: this.level
+                    });
+                }
             );
 
             return true;
@@ -1160,7 +1185,13 @@ export default class LevelScene extends Phaser.Scene
 
         this.showLevelResult(
             'pass',
-            () => this.advanceLevel()
+            () => this.advanceLevel(),
+            () =>
+            {
+                this.scene.restart({
+                    level: this.level
+                });
+            }
         );
     }
 
@@ -1193,7 +1224,7 @@ export default class LevelScene extends Phaser.Scene
         });
     }
 
-    showLevelResult(type, onConfirm)
+    showLevelResult(type, onConfirm, onRetry = null)
     {
         if (this.isResultShowing)
         {
@@ -1201,7 +1232,7 @@ export default class LevelScene extends Phaser.Scene
         }
 
         this.freezeForResultOverlay();
-        this.resultOverlay.show(type, onConfirm);
+        this.resultOverlay.show(type, onConfirm, onRetry);
     }
 
     freezeForResultOverlay()
@@ -1465,18 +1496,16 @@ export default class LevelScene extends Phaser.Scene
                     const hintText =
                         this.getMapObjectInteractHint(obj);
 
-                    if (!hintText)
+                    if (hintText)
                     {
-                        return;
+                        this.interactHint.setPosition(
+                            this.player.x,
+                            this.player.y - 48
+                        );
+
+                        this.interactHint.setText(hintText);
+                        this.interactHint.setVisible(true);
                     }
-
-                    this.interactHint.setPosition(
-                        this.player.x,
-                        this.player.y - 48
-                    );
-
-                    this.interactHint.setText(hintText);
-                    this.interactHint.setVisible(true);
 
                     if (
                         Phaser.Input.Keyboard.JustDown(
@@ -1557,6 +1586,20 @@ export default class LevelScene extends Phaser.Scene
             }
         }
 
+        this.workStatusIndicator?.setActive(
+            this.isWorking
+            &&
+            !this.isResultShowing
+            &&
+            !this.isIntroShowing
+            &&
+            !this.dialogueManager.isPlaying
+            &&
+            !this.dialogueManager.isShowingObjectDialogue
+        );
+
+        this.workStatusIndicator?.update();
+
         // ===== NPC移动 =====
         if (this.hunterGraceRemaining > 0)
         {
@@ -1604,6 +1647,11 @@ export default class LevelScene extends Phaser.Scene
         if (this.isResultShowing || this.isIntroShowing)
         {
             return;
+        }
+
+        if (this.dialogueManager.isShowingObjectDialogue)
+        {
+            this.dialogueManager.dismissObjectDialogue();
         }
 
         if (
@@ -1803,6 +1851,8 @@ export default class LevelScene extends Phaser.Scene
         this.volumeSettingsPanel?.destroy();
 
         this.introOverlay?.destroy();
+
+        this.workStatusIndicator?.destroy();
 
         this.mapManager?.clearCurrentMap();
     }

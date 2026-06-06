@@ -339,23 +339,7 @@ export default class DialogueManager
                     return;
                 }
 
-                console.log('关闭物品对话');
-
-                this.box.setVisible(false);
-
-                this.objectDialogText.setVisible(false);
-
-                this.objectTypewriter.stop();
-
-                this.isShowingObjectDialogue = false;
-
-                this.objectDialogCooldown = true;
-
-                this.scene.time.delayedCall(300, () => {
-
-                    this.objectDialogCooldown = false;
-
-                });
+                this.dismissObjectDialogue();
             }
 
             return;
@@ -667,6 +651,27 @@ export default class DialogueManager
         {
             this.tryFinishOrShowEffect();
         }
+    }
+
+    dismissObjectDialogue()
+    {
+        if (!this.isShowingObjectDialogue)
+        {
+            return false;
+        }
+
+        this.box.setVisible(false);
+        this.objectDialogText.setVisible(false);
+        this.objectTypewriter.stop();
+        this.isShowingObjectDialogue = false;
+        this.objectDialogCooldown = true;
+
+        this.scene.time.delayedCall(300, () =>
+        {
+            this.objectDialogCooldown = false;
+        });
+
+        return true;
     }
 
     showObjectDialogue(object)

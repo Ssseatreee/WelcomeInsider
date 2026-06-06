@@ -53,7 +53,7 @@ export default class LevelIntroOverlay
         this.centerY = GAME_HEIGHT / 2;
 
         this.boxWidth = 560;
-        this.boxHeight = 300;
+        this.boxHeight = 360;
         this.portraitAreaWidth = 190;
 
         this.build();
@@ -169,8 +169,8 @@ export default class LevelIntroOverlay
 
         this.button =
             this.scene.add.text(
-                this.centerX + this.portraitAreaWidth / 4,
-                boxTop + this.boxHeight - 44,
+                this.centerX,
+                boxTop + this.boxHeight - 36,
                 '开始',
                 withButtonTextStyle({
                     fontSize: '22px',

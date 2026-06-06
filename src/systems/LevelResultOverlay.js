@@ -9,23 +9,6 @@ import {
     PLAY_AREA_WIDTH
 } from '../game/layout.js';
 
-const OUTLINE_DIRS = [
-    { x: -1, y: 0 },
-    { x: 1, y: 0 },
-    { x: 0, y: -1 },
-    { x: 0, y: 1 },
-    { x: -0.707, y: -0.707 },
-    { x: 0.707, y: -0.707 },
-    { x: -0.707, y: 0.707 },
-    { x: 0.707, y: 0.707 }
-];
-
-const OUTLINE_PIXEL = 1.5;
-const OUTLINE_WOBBLE_RANGE = 6;
-const OUTLINE_JUMP_MIN_DELAY = 1000;
-const OUTLINE_JUMP_MAX_DELAY = 1800;
-const OUTLINE_COLOR = 0x000000;
-
 export default class LevelResultOverlay
 {
     constructor(scene)
@@ -41,7 +24,7 @@ export default class LevelResultOverlay
 
         this.workDotsTimer = null;
         this.workDotIndex = 0;
-        this.outlineWobbleActive = false;
+        this.onRetry = null;
 
         this.build();
         this.hide();
@@ -103,32 +86,6 @@ export default class LevelResultOverlay
 
         this.portraitY = this.centerY + 24;
 
-        this.portraitOutlineContainer =
-            this.scene.add.container(
-                this.centerX,
-                this.portraitY
-            );
-
-        this.portraitOutlineContainer.setScrollFactor(0);
-
-        this.outlineSprites =
-            OUTLINE_DIRS.map((dir) =>
-            {
-                const sprite =
-                    this.scene.add.image(0, 0, 'level-pass-portrait');
-
-                sprite.setOrigin(0.5);
-                sprite.setTint(OUTLINE_COLOR);
-                sprite.dir = dir;
-                sprite.wobble = { x: 0, y: 0 };
-                sprite.jumpDelay = null;
-                this.portraitOutlineContainer.add(sprite);
-
-                return sprite;
-            });
-
-        this.container.add(this.portraitOutlineContainer);
-
         this.portrait =
             this.scene.add.image(
                 this.centerX,
@@ -141,7 +98,7 @@ export default class LevelResultOverlay
 
         this.button =
             this.scene.add.text(
-                this.centerX,
+                this.centerX - 118,
                 boxTop + this.boxHeight - 44,
                 '',
                 withButtonTextStyle({
@@ -161,6 +118,30 @@ export default class LevelResultOverlay
         this.button.setScrollFactor(0);
         this.button.setInteractive({ useHandCursor: true });
         this.container.add(this.button);
+
+        this.retryButton =
+            this.scene.add.text(
+                this.centerX + 118,
+                boxTop + this.boxHeight - 44,
+                '再来一次',
+                withButtonTextStyle({
+                    fontSize: '24px',
+                    color: '#ffffff',
+                    backgroundColor: '#333333',
+                    padding: {
+                        left: 20,
+                        right: 20,
+                        top: 16,
+                        bottom: 14
+                    }
+                })
+            );
+
+        this.retryButton.setOrigin(0.5);
+        this.retryButton.setScrollFactor(0);
+        this.retryButton.setInteractive({ useHandCursor: true });
+        this.retryButton.setVisible(false);
+        this.container.add(this.retryButton);
 
         this.button.on('pointerover', () =>
         {
@@ -192,6 +173,37 @@ export default class LevelResultOverlay
                 this.hide();
             }
         });
+
+        this.retryButton.on('pointerover', () =>
+        {
+            this.retryButton.setStyle({
+                backgroundColor: '#555555'
+            });
+        });
+
+        this.retryButton.on('pointerout', () =>
+        {
+            this.retryButton.setStyle({
+                backgroundColor: '#333333'
+            });
+        });
+
+        this.retryButton.on('pointerdown', () =>
+        {
+            if (
+                !this.container.visible
+                ||
+                !this.retryButton.visible
+            )
+            {
+                return;
+            }
+
+            const callback = this.onRetry;
+
+            callback?.();
+            this.hide();
+        });
     }
 
     fitPortrait(textureKey)
@@ -210,110 +222,6 @@ export default class LevelResultOverlay
 
         this.portrait.setTexture(textureKey);
         this.portrait.setScale(scale);
-        this.syncPortraitOutline(textureKey, scale);
-    }
-
-    syncPortraitOutline(textureKey, scale = this.portrait.scaleX)
-    {
-        this.outlineSprites.forEach((sprite) =>
-        {
-            sprite.setTexture(textureKey);
-            sprite.setScale(scale);
-            sprite.x =
-                sprite.dir.x * OUTLINE_PIXEL +
-                sprite.wobble.x;
-            sprite.y =
-                sprite.dir.y * OUTLINE_PIXEL +
-                sprite.wobble.y;
-        });
-    }
-
-    resetOutlineWobble()
-    {
-        this.outlineSprites.forEach((sprite) =>
-        {
-            sprite.wobble.x = 0;
-            sprite.wobble.y = 0;
-        });
-
-        this.syncPortraitOutline(this.portrait.texture.key);
-    }
-
-    queueOutlineSpriteJump(sprite)
-    {
-        if (!this.outlineWobbleActive)
-        {
-            return;
-        }
-
-        if (sprite.jumpDelay)
-        {
-            sprite.jumpDelay.remove();
-            sprite.jumpDelay = null;
-        }
-
-        sprite.wobble.x =
-            Phaser.Math.FloatBetween(
-                -OUTLINE_WOBBLE_RANGE,
-                OUTLINE_WOBBLE_RANGE
-            );
-
-        sprite.wobble.y =
-            Phaser.Math.FloatBetween(
-                -OUTLINE_WOBBLE_RANGE,
-                OUTLINE_WOBBLE_RANGE
-            );
-
-        this.syncPortraitOutline(this.portrait.texture.key);
-
-        sprite.jumpDelay =
-            this.scene.time.delayedCall(
-                Phaser.Math.Between(
-                    OUTLINE_JUMP_MIN_DELAY,
-                    OUTLINE_JUMP_MAX_DELAY
-                ),
-                () =>
-                {
-                    sprite.jumpDelay = null;
-                    this.queueOutlineSpriteJump(sprite);
-                }
-            );
-    }
-
-    startOutlinePulse()
-    {
-        this.stopOutlinePulse();
-        this.resetOutlineWobble();
-        this.outlineWobbleActive = true;
-
-        this.outlineSprites.forEach((sprite) =>
-        {
-            sprite.jumpDelay =
-                this.scene.time.delayedCall(
-                    Phaser.Math.Between(0, 500),
-                    () =>
-                    {
-                        sprite.jumpDelay = null;
-                        this.queueOutlineSpriteJump(sprite);
-                    }
-                );
-        });
-    }
-
-    stopOutlinePulse()
-    {
-        this.outlineWobbleActive = false;
-
-        this.outlineSprites.forEach((sprite) =>
-        {
-            if (sprite.jumpDelay)
-            {
-                sprite.jumpDelay.remove();
-                sprite.jumpDelay = null;
-            }
-        });
-
-        this.resetOutlineWobble();
     }
 
     startWorkDotsAnimation()
@@ -350,9 +258,10 @@ export default class LevelResultOverlay
         }
     }
 
-    show(type, onConfirm)
+    show(type, onConfirm, onRetry = null)
     {
         this.onConfirm = onConfirm;
+        this.onRetry = onRetry;
 
         const isPass = type === 'pass';
 
@@ -373,21 +282,38 @@ export default class LevelResultOverlay
                 : 'level-fail-portrait'
         );
 
-        this.startOutlinePulse();
-
         this.button.setText(
             isPass
                 ? '新的一天'
                 : '这个懒我一定要偷'
         );
 
+        this.button.setX(
+            isPass
+                ? this.centerX - 118
+                : this.centerX
+        );
+
+        this.retryButton.setVisible(isPass && Boolean(onRetry));
+
         this.container.setVisible(true);
         this.container.setAlpha(0);
         this.box.setScale(0.3);
         this.headlineText.setAlpha(0);
-        this.portraitOutlineContainer.setAlpha(0);
         this.portrait.setAlpha(0);
         this.button.setAlpha(0);
+        this.retryButton.setAlpha(0);
+
+        const fadeTargets = [
+            this.headlineText,
+            this.portrait,
+            this.button
+        ];
+
+        if (isPass && onRetry)
+        {
+            fadeTargets.push(this.retryButton);
+        }
 
         this.scene.tweens.add({
             targets: this.container,
@@ -405,12 +331,7 @@ export default class LevelResultOverlay
         });
 
         this.scene.tweens.add({
-            targets: [
-                this.headlineText,
-                this.portraitOutlineContainer,
-                this.portrait,
-                this.button
-            ],
+            targets: fadeTargets,
             alpha: 1,
             duration: 280,
             delay: 180,
@@ -421,14 +342,15 @@ export default class LevelResultOverlay
     hide()
     {
         this.stopWorkDotsAnimation();
-        this.stopOutlinePulse();
         this.scene.isResultShowing = false;
         this.onConfirm = null;
+        this.onRetry = null;
         this.container.setVisible(false);
         this.box.setScale(1);
         this.headlineText.setAlpha(1);
-        this.portraitOutlineContainer.setAlpha(1);
         this.portrait.setAlpha(1);
         this.button.setAlpha(1);
+        this.retryButton.setAlpha(1);
+        this.retryButton.setVisible(false);
     }
 }

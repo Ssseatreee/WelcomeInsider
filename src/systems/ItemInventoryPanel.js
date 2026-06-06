@@ -1,9 +1,11 @@
 import workBacklogConfig from '../data/workBacklogConfig.js';
 import { resolveItem } from '../data/items.js';
 import GameState from './GameState.js';
+import * as Phaser from 'phaser';
 import {
     GAME_HEIGHT,
-    HUD_WIDTH
+    HUD_WIDTH,
+    PLAY_AREA_WIDTH
 } from '../game/layout.js';
 import { withTextPadding } from '../data/textStyle.js';
 
@@ -30,6 +32,7 @@ export default class ItemInventoryPanel
         const labelHeight = itemPanel.labelHeight ?? 18;
         const labelFontSize = itemPanel.labelFontSize ?? '14px';
         const detailFontSize = itemPanel.detailFontSize ?? '13px';
+        const gridTopOffset = itemPanel.gridTopOffset ?? 0;
 
         this.panelLeft =
             panelOffsetLeft
@@ -51,7 +54,7 @@ export default class ItemInventoryPanel
         this.labelHeight = labelHeight;
         this.labelFontSize = labelFontSize;
         this.detailFontSize = detailFontSize;
-        this.detailWrapWidth = panelWidth - 40;
+        this.detailWrapWidth = panelWidth - 48;
 
         this.container =
             scene.add.container(0, 0);
@@ -109,13 +112,55 @@ export default class ItemInventoryPanel
         this.slotsContainer.setScrollFactor(0);
         this.container.add(this.slotsContainer);
 
-        this.gridTop = this.panelTop + 44;
+        this.gridTop = this.panelTop + 44 + gridTopOffset;
         this.gridLeft =
             this.panelLeft +
             (panelWidth - (
                 columns * iconSize +
                 (columns - 1) * cellGap
             )) / 2;
+
+        this.detailOverlay =
+            scene.add.container(0, 0);
+
+        this.detailOverlay.setScrollFactor(0);
+        this.detailOverlay.setDepth(1500);
+        this.detailOverlay.setVisible(false);
+
+        this.floatingDetailBg =
+            scene.add.rectangle(
+                0,
+                0,
+                this.detailWrapWidth,
+                10,
+                0x1a1a1a,
+                0.98
+            );
+
+        this.floatingDetailBg.setStrokeStyle(1, 0x555555);
+        this.floatingDetailBg.setScrollFactor(0);
+        this.detailOverlay.add(this.floatingDetailBg);
+
+        this.floatingDetailText =
+            scene.add.text(
+                0,
+                0,
+                '',
+                withTextPadding({
+                    fontSize: this.detailFontSize,
+                    color: '#dddddd',
+                    align: 'left',
+                    wordWrap: {
+                        width: this.detailWrapWidth - 24,
+                        useAdvancedWrap: true
+                    },
+                    lineSpacing: 6
+                })
+            );
+
+        this.floatingDetailText.setOrigin(0.5, 0);
+        this.floatingDetailText.setScrollFactor(0);
+        this.detailOverlay.add(this.floatingDetailText);
 
         this.refresh();
     }
@@ -143,22 +188,6 @@ export default class ItemInventoryPanel
             this.scene.add.container(x, y);
 
         slotContainer.setScrollFactor(0);
-
-        const detailBg =
-            this.scene.add.rectangle(
-                0,
-                this.iconSize / 2 + this.labelHeight + 12,
-                this.detailWrapWidth,
-                10,
-                0x1a1a1a,
-                0.98
-            );
-
-        detailBg.setStrokeStyle(1, 0x555555);
-        detailBg.setScrollFactor(0);
-        detailBg.setVisible(false);
-        detailBg.setAlpha(0);
-        slotContainer.add(detailBg);
 
         const frame =
             this.scene.add.rectangle(
@@ -199,28 +228,6 @@ export default class ItemInventoryPanel
         label.setScrollFactor(0);
         slotContainer.add(label);
 
-        const detailText =
-            this.scene.add.text(
-                0,
-                this.iconSize / 2 + this.labelHeight + 18,
-                '',
-                withTextPadding({
-                    fontSize: this.detailFontSize,
-                    color: '#dddddd',
-                    align: 'center',
-                    wordWrap: {
-                        width: this.detailWrapWidth - 20
-                    },
-                    lineSpacing: 4
-                })
-            );
-
-        detailText.setOrigin(0.5, 0);
-        detailText.setScrollFactor(0);
-        detailText.setVisible(false);
-        detailText.setAlpha(0);
-        slotContainer.add(detailText);
-
         const hitHeight =
             this.iconSize +
             this.labelHeight +
@@ -249,11 +256,10 @@ export default class ItemInventoryPanel
             frame,
             icon,
             label,
-            detailBg,
-            detailText,
             hitArea,
             item: null,
-            expanded: false
+            expanded: false,
+            collapseTimer: null
         };
 
         hitArea.on('pointerover', () =>
@@ -263,10 +269,80 @@ export default class ItemInventoryPanel
 
         hitArea.on('pointerout', () =>
         {
-            this.collapseSlot(slot);
+            this.scheduleCollapseSlot(slot);
         });
 
         return slot;
+    }
+
+    scheduleCollapseSlot(slot)
+    {
+        if (slot.collapseTimer)
+        {
+            slot.collapseTimer.remove();
+        }
+
+        slot.collapseTimer =
+            this.scene.time.delayedCall(30, () =>
+            {
+                slot.collapseTimer = null;
+
+                if (this.activeSlot === slot)
+                {
+                    this.collapseSlot(slot);
+                }
+            });
+    }
+
+    cancelCollapseSlot(slot)
+    {
+        if (slot.collapseTimer)
+        {
+            slot.collapseTimer.remove();
+            slot.collapseTimer = null;
+        }
+    }
+
+    positionFloatingDetail(slotY, detailHeight)
+    {
+        const textPadding = 20;
+        const detailX =
+            PLAY_AREA_WIDTH
+            - this.detailWrapWidth / 2
+            - 16;
+
+        let detailTop =
+            slotY
+            - this.iconSize / 2
+            - this.labelHeight;
+
+        const maxTop =
+            GAME_HEIGHT - detailHeight - 12;
+
+        detailTop =
+            Phaser.Math.Clamp(
+                detailTop,
+                12,
+                maxTop
+            );
+
+        const centerY =
+            detailTop + detailHeight / 2;
+
+        this.floatingDetailText.setPosition(
+            detailX,
+            detailTop + textPadding
+        );
+
+        this.floatingDetailBg.setPosition(
+            detailX,
+            centerY
+        );
+
+        this.floatingDetailBg.setSize(
+            this.detailWrapWidth,
+            detailHeight
+        );
     }
 
     expandSlot(slot)
@@ -274,56 +350,52 @@ export default class ItemInventoryPanel
         if (
             !slot.item
             ||
-            slot.expanded
-            ||
             !slot.item.description
         )
         {
             return;
         }
 
-        if (
-            this.activeSlot
-            &&
-            this.activeSlot !== slot
-        )
+        if (this.activeSlot === slot)
         {
-            this.collapseSlot(this.activeSlot);
+            return;
+        }
+
+        this.scene.tweens.killTweensOf([
+            this.floatingDetailBg,
+            this.floatingDetailText
+        ]);
+
+        if (this.activeSlot)
+        {
+            this.cancelCollapseSlot(this.activeSlot);
+            this.activeSlot.expanded = false;
+            this.activeSlot.frame.setStrokeStyle(1, 0x333333);
         }
 
         slot.expanded = true;
         this.activeSlot = slot;
 
-        this.slotsContainer.bringToTop(slot.container);
+        slot.frame.setStrokeStyle(2, 0x888888);
 
-        slot.detailText.setText(slot.item.description);
-        slot.detailText.setVisible(true);
+        this.floatingDetailText.setText(slot.item.description);
+        this.floatingDetailText.setWordWrapWidth(
+            this.detailWrapWidth - 24,
+            true
+        );
 
+        const textPadding = 20;
         const detailHeight =
-            slot.detailText.height + 24;
+            this.floatingDetailText.height + textPadding * 2;
 
-        slot.detailBg.setSize(
-            this.detailWrapWidth,
+        this.positionFloatingDetail(
+            slot.container.y,
             detailHeight
         );
 
-        slot.detailBg.y =
-            slot.detailText.y +
-            detailHeight / 2 -
-            12;
-
-        slot.detailBg.setVisible(true);
-        slot.frame.setStrokeStyle(2, 0x888888);
-
-        this.scene.tweens.add({
-            targets: [
-                slot.detailBg,
-                slot.detailText
-            ],
-            alpha: 1,
-            duration: 160,
-            ease: 'Sine.easeOut'
-        });
+        this.detailOverlay.setVisible(true);
+        this.floatingDetailBg.setAlpha(1);
+        this.floatingDetailText.setAlpha(1);
     }
 
     collapseSlot(slot)
@@ -332,6 +404,8 @@ export default class ItemInventoryPanel
         {
             return;
         }
+
+        this.cancelCollapseSlot(slot);
 
         slot.expanded = false;
 
@@ -342,27 +416,52 @@ export default class ItemInventoryPanel
 
         slot.frame.setStrokeStyle(1, 0x333333);
 
-        this.scene.tweens.add({
-            targets: [
-                slot.detailBg,
-                slot.detailText
-            ],
-            alpha: 0,
-            duration: 120,
-            ease: 'Sine.easeIn',
-            onComplete: () =>
-            {
-                slot.detailBg.setVisible(false);
-                slot.detailText.setVisible(false);
-            }
-        });
+        if (!this.activeSlot)
+        {
+            this.scene.tweens.killTweensOf([
+                this.floatingDetailBg,
+                this.floatingDetailText
+            ]);
+
+            this.scene.tweens.add({
+                targets: [
+                    this.floatingDetailBg,
+                    this.floatingDetailText
+                ],
+                alpha: 0,
+                duration: 120,
+                ease: 'Sine.easeIn',
+                onComplete: () =>
+                {
+                    if (!this.activeSlot)
+                    {
+                        this.detailOverlay.setVisible(false);
+                    }
+                }
+            });
+        }
     }
 
     refresh()
     {
+        this.scene.tweens.killTweensOf([
+            this.floatingDetailBg,
+            this.floatingDetailText
+        ]);
+
+        this.detailOverlay.setVisible(false);
+        this.floatingDetailBg.setAlpha(1);
+        this.floatingDetailText.setAlpha(1);
+
         this.slotViews.forEach(slot =>
         {
-            this.collapseSlot(slot);
+            this.cancelCollapseSlot(slot);
+
+            if (slot.expanded)
+            {
+                slot.expanded = false;
+                slot.frame.setStrokeStyle(1, 0x333333);
+            }
         });
 
         this.activeSlot = null;
@@ -437,9 +536,9 @@ export default class ItemInventoryPanel
         }
 
         const scale = Math.min(
-            (this.iconSize - 6) / frame.width,
-            (this.iconSize - 6) / frame.height,
-            1
+            (this.iconSize - 4) / frame.width,
+            (this.iconSize - 4) / frame.height,
+            1.35
         );
 
         icon.setScale(scale);

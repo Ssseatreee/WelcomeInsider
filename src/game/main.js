@@ -34,8 +34,8 @@ const config = {
     physics: {
         default: 'matter',
         matter: {
-            gravity: { y: 0 },  // 顶视角/2D RPG 一般重力设0
-            debug: true          // 调试碰撞形状
+            gravity: { y: 0 },  // 顶视角/2D RPG 重力设0
+            debug: false          // 调试碰撞形状
         }
     },
     scene: [

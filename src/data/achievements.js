@@ -6,7 +6,8 @@ const achievements = [
         textureKey: 'achievement-goodSenior',
         portraitKey: 'portrait-richele-smile',
         quote:
-            '您或许也尝过他泡的咖啡？公证所的同事们都对他称赞有加。\n',
+            '虽然我的确算是艾泽尔的前辈，但他并不怎么需要我指导。\n'
+            + '公证所的同事们都很喜欢他...您或许也尝过他泡的咖啡？\n',
         lockedPortraitKey: 'portrait-richele-smile',
         lockedQuote:
             '艾泽尔的咖啡味道很好，\n'
@@ -40,7 +41,7 @@ const achievements = [
         id: 'peoplesRep',
         title: '民选代表',
         textureKey: 'achievement-peoplesRep',
-        portraitKey: 'portrait-richele-smile',
+        portraitKey: 'portrait-richele-normal',
         quote:
             '那天我也没想到就这样被同事们推着选上了代表……\n'
             + '再然后就来到了罗德岛。',

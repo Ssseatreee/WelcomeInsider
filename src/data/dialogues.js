@@ -141,7 +141,7 @@ const dialogues = {
         busyCatch: [
             {
                 speaker: 'federico',
-                expression: 'strict',
+                expression: 'stress',
                 text:'“执行者里凯莱，你今日对工作的懈怠已明显超出标准。”'
             },
             {

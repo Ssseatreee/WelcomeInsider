@@ -1,15 +1,47 @@
+import {
+    isPersistentItem
+} from '../data/items.js';
+
 const SAVE_KEY = 'welcome-insider-save';
+
+/** 每局关卡内重置的剧情标记（NPC 离场等） */
+export const LEVEL_FLAG_KEYS = [
+    'azeGone',
+    'splyGone',
+    'orenGone',
+    'orenMet',
+    'workClearedOnce'
+];
+
+/** 通关后保留、影响后续关卡的标记 */
+export const CAMPAIGN_PROGRESS_FLAG_KEYS = [
+    'orenBetrayed',
+    'federicoAware'
+];
+
+/** 整局游戏保留的标记 */
+export const CAMPAIGN_FLAG_KEYS = [
+    ...CAMPAIGN_PROGRESS_FLAG_KEYS,
+    'gameComplete'
+];
 
 const GameState = {
 
     currentLevel: 1,
 
-    collectedItems: [],
+    /** 跨关卡保留（如无人机） */
+    persistentCollectedItems: [],
 
-    /** 已拾取的地图物体："{mapKey}:{objectId}" */
+    /** 当前关卡内获得的物品 */
+    levelCollectedItems: [],
+
+    /** 已拾取的地图物体："{mapKey}:{objectId}"（按关卡重置） */
     pickedMapObjects: [],
 
     flags: {},
+
+    /** 通关后累积的剧情进度（如第四关出卖奥伦、斯普莉雅告密） */
+    campaignFlags: {},
 
     npcCatchCount: {},
 
@@ -36,25 +68,56 @@ const GameState = {
         }
     },
 
+    getItemList(itemId)
+    {
+        return isPersistentItem(itemId)
+            ? this.persistentCollectedItems
+            : this.levelCollectedItems;
+    },
+
     addCollectedItem(itemId)
     {
-        if (!this.collectedItems.includes(itemId))
+        const list = this.getItemList(itemId);
+
+        if (!list.includes(itemId))
         {
-            this.collectedItems.push(itemId);
+            list.push(itemId);
         }
     },
 
     hasCollectedItem(itemId)
     {
-        return this.collectedItems.includes(itemId);
+        return (
+            this.persistentCollectedItems.includes(itemId)
+            ||
+            this.levelCollectedItems.includes(itemId)
+        );
     },
 
     removeCollectedItem(itemId)
     {
-        this.collectedItems =
-            this.collectedItems.filter(
-                id => id !== itemId
-            );
+        const list = this.getItemList(itemId);
+
+        const next =
+            list.filter(id => id !== itemId);
+
+        if (isPersistentItem(itemId))
+        {
+            this.persistentCollectedItems = next;
+        }
+        else
+        {
+            this.levelCollectedItems = next;
+        }
+    },
+
+    /** 物品栏展示：跨关物品 + 本关物品 */
+    getInventoryItemIds()
+    {
+        return [
+            ...this.persistentCollectedItems,
+            ...this.levelCollectedItems
+        ];
     },
 
     hasDroneReveal()
@@ -62,13 +125,54 @@ const GameState = {
         return this.hasCollectedItem('drone');
     },
 
+    /** 进入新关卡 / 重试本关时调用（保留无人机等跨关物品与整局标记） */
+    resetLevelState()
+    {
+        this.resetLevelItems();
+
+        for (const key of LEVEL_FLAG_KEYS)
+        {
+            delete this.flags[key];
+        }
+
+        this.npcCatchCount = {};
+    },
+
+    resetLevelItems()
+    {
+        this.levelCollectedItems = [];
+        this.pickedMapObjects = [];
+    },
+
     resetForNewGame()
     {
         this.currentLevel = 1;
-        this.collectedItems = [];
+        this.persistentCollectedItems = [];
+        this.levelCollectedItems = [];
         this.pickedMapObjects = [];
         this.flags = {};
+        this.campaignFlags = {};
         this.npcCatchCount = {};
+    },
+
+    /** 关卡通关时，将本关剧情结果写入跨关进度 */
+    commitCampaignProgress()
+    {
+        for (const key of CAMPAIGN_PROGRESS_FLAG_KEYS)
+        {
+            if (this.flags[key])
+            {
+                this.campaignFlags[key] = true;
+            }
+        }
+    },
+
+    clearLevelFlags()
+    {
+        for (const key of LEVEL_FLAG_KEYS)
+        {
+            delete this.flags[key];
+        }
     },
 
     peekSave()
@@ -129,7 +233,7 @@ const GameState = {
         const playerY = Number(snapshot.playerY);
 
         const payload = {
-            version: 1,
+            version: 2,
             level: snapshot.level ?? 1,
             currentLevel: this.currentLevel,
             currentMap: snapshot.currentMap || 'office',
@@ -145,9 +249,15 @@ const GameState = {
             npcCatchCount:
                 snapshot.npcCatchCount || {},
             npcs: snapshot.npcs || [],
-            collectedItems: [...this.collectedItems],
+            persistentCollectedItems: [
+                ...this.persistentCollectedItems
+            ],
+            levelCollectedItems: [
+                ...this.levelCollectedItems
+            ],
             pickedMapObjects: [...this.pickedMapObjects],
-            flags: { ...this.flags }
+            flags: { ...this.flags },
+            campaignFlags: { ...this.campaignFlags }
         };
 
         try
@@ -179,15 +289,76 @@ const GameState = {
         return data;
     },
 
+    splitLegacyCollectedItems(collectedItems = [])
+    {
+        const persistent = [];
+        const level = [];
+
+        for (const itemId of collectedItems)
+        {
+            if (isPersistentItem(itemId))
+            {
+                if (!persistent.includes(itemId))
+                {
+                    persistent.push(itemId);
+                }
+            }
+            else if (!level.includes(itemId))
+            {
+                level.push(itemId);
+            }
+        }
+
+        return { persistent, level };
+    },
+
     applyFromSave(data)
     {
         this.currentLevel =
             data.currentLevel ?? data.level ?? 1;
-        this.collectedItems =
-            [...(data.collectedItems || [])];
+
+        if (
+            Array.isArray(data.persistentCollectedItems)
+            ||
+            Array.isArray(data.levelCollectedItems)
+        )
+        {
+            this.persistentCollectedItems = [
+                ...(data.persistentCollectedItems || [])
+            ];
+            this.levelCollectedItems = [
+                ...(data.levelCollectedItems || [])
+            ];
+        }
+        else
+        {
+            const split =
+                this.splitLegacyCollectedItems(
+                    data.collectedItems || []
+                );
+
+            this.persistentCollectedItems = split.persistent;
+            this.levelCollectedItems = split.level;
+        }
+
         this.pickedMapObjects =
             [...(data.pickedMapObjects || [])];
         this.flags = { ...(data.flags || {}) };
+        this.campaignFlags = {
+            ...(data.campaignFlags || {})
+        };
+
+        if (!data.campaignFlags)
+        {
+            for (const key of CAMPAIGN_PROGRESS_FLAG_KEYS)
+            {
+                if (this.flags[key])
+                {
+                    this.campaignFlags[key] = true;
+                }
+            }
+        }
+
         this.npcCatchCount =
             { ...(data.npcCatchCount || {}) };
     },
@@ -246,11 +417,31 @@ const GameState = {
 
     setFlag(key, value = true)
     {
+        if (key === 'gameComplete')
+        {
+            this.campaignFlags.gameComplete = value;
+            return;
+        }
+
         this.flags[key] = value;
     },
 
     getFlag(key)
     {
+        if (CAMPAIGN_PROGRESS_FLAG_KEYS.includes(key))
+        {
+            return Boolean(
+                this.campaignFlags[key]
+                ||
+                this.flags[key]
+            );
+        }
+
+        if (key === 'gameComplete')
+        {
+            return Boolean(this.campaignFlags.gameComplete);
+        }
+
         return this.flags[key];
     }
 };

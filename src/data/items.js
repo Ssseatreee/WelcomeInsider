@@ -61,4 +61,12 @@ export function getCollectibleItems()
     );
 }
 
+/** 跨关卡保留的物品 id（如斯普莉雅的无人机） */
+export const PERSISTENT_ITEM_IDS = ['drone'];
+
+export function isPersistentItem(itemId)
+{
+    return PERSISTENT_ITEM_IDS.includes(itemId);
+}
+
 export default itemRegistry;

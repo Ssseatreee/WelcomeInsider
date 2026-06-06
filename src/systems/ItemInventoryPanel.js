@@ -467,7 +467,7 @@ export default class ItemInventoryPanel
         this.activeSlot = null;
 
         const collected =
-            GameState.collectedItems
+            GameState.getInventoryItemIds()
                 .map(itemId => resolveItem(itemId))
                 .filter(Boolean);
 

@@ -89,7 +89,10 @@ export default class LevelScene extends Phaser.Scene
         else
         {
             this.level = data.level || 1;
+            GameState.resetLevelState();
         }
+
+        GameState.currentLevel = this.level;
     }
 
     create()
@@ -144,15 +147,10 @@ export default class LevelScene extends Phaser.Scene
             &&
             this.saveData?.npcCatchCount
                 ? { ...this.saveData.npcCatchCount }
-                : {};
+                : { ...GameState.npcCatchCount };
         // ===== NPCManager =====
         this.npcManager =
             this.game.npcManager;
-
-        if (this.level === 5)
-        {
-            this.resetFinaleNpcFlags();
-        }
 
         this.rebuildNPCsFromLevel(levelData);
 
@@ -1273,6 +1271,8 @@ export default class LevelScene extends Phaser.Scene
 
     advanceLevel()
     {
+        GameState.commitCampaignProgress();
+
         if (this.level >= 5)
         {
             this.tryUnlockAchievement('gatherTogether');
@@ -1295,6 +1295,7 @@ export default class LevelScene extends Phaser.Scene
         this.isEndingStarting = true;
         this.input.enabled = false;
 
+        GameState.commitCampaignProgress();
         GameState.setFlag('gameComplete', true);
 
         GameState.saveProgress(
@@ -2122,14 +2123,6 @@ export default class LevelScene extends Phaser.Scene
         }
     }
 
-    resetFinaleNpcFlags()
-    {
-        GameState.setFlag('azeGone', false);
-        GameState.setFlag('orenGone', false);
-        GameState.setFlag('splyGone', false);
-        GameState.setFlag('orenBetrayed', false);
-    }
-
     rebuildNPCsFromLevel(levelData)
     {
         this.npcManager.clear();
@@ -2188,6 +2181,15 @@ export default class LevelScene extends Phaser.Scene
             npc.pathing?.reset();
 
             if (
+                this.level === 5
+                &&
+                npc.npcName === 'oren'
+            )
+            {
+                npc.removed =
+                    !GameState.getFlag('orenBetrayed');
+            }
+            else if (
                 applyGoneFlags
                 &&
                 npc.npcName === 'aze'

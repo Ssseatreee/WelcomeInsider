@@ -796,7 +796,7 @@ export default class LevelScene extends Phaser.Scene
 
     applySplyRefuse()
     {
-        if (GameState.getFlag('federicoAware'))
+        if (GameState.flags.federicoAware)
         {
             return;
         }

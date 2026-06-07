@@ -17,7 +17,7 @@ export default class Federico extends NPC
 
     update(context, delta)
     {
-        if (GameState.getFlag('federicoAware'))
+        if (GameState.isFedericoChasingPlayer())
         {
             const savedEmpathy = this.hasEmpathy;
 

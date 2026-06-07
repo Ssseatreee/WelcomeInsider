@@ -10,7 +10,9 @@ export const LEVEL_FLAG_KEYS = [
     'splyGone',
     'orenGone',
     'orenMet',
-    'workClearedOnce'
+    'workClearedOnce',
+    /** 本关内斯普莉雅告密：重试/失败不保留；通关后写入 campaignFlags */
+    'federicoAware'
 ];
 
 /** 通关后保留、影响后续关卡的标记 */
@@ -413,6 +415,16 @@ const GameState = {
     getCatchCount(npcName)
     {
         return this.npcCatchCount[npcName] || 0;
+    },
+
+    /** 费德里科是否处于共感追击（本关告密 或 第三关通关后永久） */
+    isFedericoChasingPlayer()
+    {
+        return Boolean(
+            this.flags.federicoAware
+            ||
+            this.campaignFlags.federicoAware
+        );
     },
 
     setFlag(key, value = true)

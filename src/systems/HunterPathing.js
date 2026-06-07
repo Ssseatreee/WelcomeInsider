@@ -47,7 +47,7 @@ export default class HunterPathing
         this.recentWanderDirs = [];
     }
 
-    getVelocity(targetX, targetY, mapKey, delta)
+    getVelocity(targetX, targetY, mapKey, delta, onSceneMap = false)
     {
         this.updateStuckState(delta);
 
@@ -58,7 +58,7 @@ export default class HunterPathing
 
             if (this.wanderDirTimer <= 0)
             {
-                this.pickRandomDirection(mapKey);
+                this.pickRandomDirection(mapKey, onSceneMap);
                 this.wanderDirTimer = HunterPathing.WANDER_DIR_MS;
             }
 
@@ -84,7 +84,7 @@ export default class HunterPathing
 
         if (this.stuckTimer >= HunterPathing.STUCK_MS)
         {
-            this.startWander(mapKey);
+            this.startWander(mapKey, onSceneMap);
             this.lastX = this.entity.worldX;
             this.lastY = this.entity.worldY;
 
@@ -105,14 +105,14 @@ export default class HunterPathing
         return movement;
     }
 
-    getBlindVelocity(mapKey, delta)
+    getBlindVelocity(mapKey, delta, onSceneMap = false)
     {
         if (
             this.wanderVx === 0
             && this.wanderVy === 0
         )
         {
-            this.pickRandomDirection(mapKey);
+            this.pickRandomDirection(mapKey, onSceneMap);
             this.wanderDirTimer = HunterPathing.WANDER_DIR_MS;
         }
 
@@ -120,7 +120,7 @@ export default class HunterPathing
 
         if (this.wanderDirTimer <= 0)
         {
-            this.pickRandomDirection(mapKey);
+            this.pickRandomDirection(mapKey, onSceneMap);
             this.wanderDirTimer = HunterPathing.WANDER_DIR_MS;
         }
 
@@ -128,7 +128,7 @@ export default class HunterPathing
 
         if (this.stuckTimer >= HunterPathing.STUCK_MS)
         {
-            this.pickRandomDirection(mapKey);
+            this.pickRandomDirection(mapKey, onSceneMap);
             this.wanderDirTimer = HunterPathing.WANDER_DIR_MS;
             this.stuckTimer = 0;
         }
@@ -170,26 +170,26 @@ export default class HunterPathing
         this.stuckTimer += delta;
     }
 
-    startWander(mapKey)
+    startWander(mapKey, onSceneMap = false)
     {
         this.wanderTimer = HunterPathing.WANDER_MS;
         this.wanderDirTimer = HunterPathing.WANDER_DIR_MS;
         this.stuckTimer = 0;
         this.recentWanderDirs = [];
-        this.pickRandomDirection(mapKey);
+        this.pickRandomDirection(mapKey, onSceneMap);
     }
 
     /** 对话结束后的短暂游荡（时长由关卡逻辑传入） */
-    startGraceWander(mapKey, durationMs)
+    startGraceWander(mapKey, durationMs, onSceneMap = false)
     {
         this.wanderTimer = durationMs;
         this.wanderDirTimer = HunterPathing.WANDER_DIR_MS;
         this.stuckTimer = 0;
         this.recentWanderDirs = [];
-        this.pickRandomDirection(mapKey);
+        this.pickRandomDirection(mapKey, onSceneMap);
     }
 
-    pickRandomDirection(mapKey)
+    pickRandomDirection(mapKey, onSceneMap = false)
     {
         const dirs = [
             { dx: 1, dy: 0 },
@@ -198,23 +198,27 @@ export default class HunterPathing
             { dx: 0, dy: -1 }
         ];
 
-        const grid = NavigationGrid.get(mapKey);
         let available = dirs;
 
-        if (grid)
+        if (!onSceneMap)
         {
-            const open = dirs.filter(
-                dir =>
-                    !this.isDirectionBlocked(
-                        grid,
-                        dir.dx,
-                        dir.dy
-                    )
-            );
+            const grid = NavigationGrid.get(mapKey);
 
-            if (open.length > 0)
+            if (grid)
             {
-                available = open;
+                const open = dirs.filter(
+                    dir =>
+                        !this.isDirectionBlocked(
+                            grid,
+                            dir.dx,
+                            dir.dy
+                        )
+                );
+
+                if (open.length > 0)
+                {
+                    available = open;
+                }
             }
         }
 

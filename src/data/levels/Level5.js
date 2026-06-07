@@ -59,7 +59,7 @@ const level5 = {
         {
             name: 'sply',
             x: 380,
-            y: 220,
+            y: 496,
             mapKey: 'hall',
             type: 'neutral',
             moveSpeed: 1.2

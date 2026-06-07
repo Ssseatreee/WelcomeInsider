@@ -197,6 +197,8 @@ extends Phaser.Physics.Matter.Sprite
         this.entity.worldX = this.x;
         this.entity.worldY = this.y;
 
+        this.correctInvalidNpcPosition();
+
         if (
             this.entity.type === 'neutral'
             &&
@@ -249,6 +251,40 @@ extends Phaser.Physics.Matter.Sprite
         }
 
         this.applyFrame();
+    }
+
+    correctInvalidNpcPosition()
+    {
+        const mapKey = this.entity.currentMap;
+        const grid = NavigationGrid.get(mapKey);
+
+        if (
+            !grid
+            ||
+            grid.isValidNpcPosition(
+                this.entity.worldX,
+                this.entity.worldY,
+                HunterPathing.NPC_BODY_MARGIN
+            )
+        )
+        {
+            return;
+        }
+
+        HunterPathing.snapEntityToWalkableRegion(
+            this.entity,
+            mapKey
+        );
+
+        this.setPosition(
+            this.entity.worldX,
+            this.entity.worldY
+        );
+
+        this.setVelocity(0, 0);
+        this.entity.vx = 0;
+        this.entity.vy = 0;
+        this.entity.pathing?.reset();
     }
 
     syncFromEntity()

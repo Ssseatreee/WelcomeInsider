@@ -30,7 +30,7 @@ export default class Oren extends NPC
         this.seekingPortal = false;
         this.portalTarget = null;
 
-        this.pickWanderDirection();
+        this.pickWanderDirection(false);
     }
 
     convertToHunter()
@@ -64,19 +64,30 @@ export default class Oren extends NPC
         this.portalTarget = null;
         this.vx = 0;
         this.vy = 0;
-        this.pickWanderDirection();
+        this.pickWanderDirection(false);
     }
 
-    pickWanderDirection()
+    pickWanderDirection(onSceneMap = false)
     {
         this.seekingPortal = false;
         this.portalTarget = null;
 
-        const choice =
-            HunterPathing.pickCardinalWanderDir(
-                this,
-                this.currentMap
+        let choice;
+
+        if (onSceneMap)
+        {
+            choice = Phaser.Utils.Array.GetRandom(
+                HunterPathing.CARDINAL_DIRS
             );
+        }
+        else
+        {
+            choice =
+                HunterPathing.pickCardinalWanderDir(
+                    this,
+                    this.currentMap
+                );
+        }
 
         this.wanderDx = choice.x;
         this.wanderDy = choice.y;
@@ -133,7 +144,7 @@ export default class Oren extends NPC
         };
     }
 
-    updateStuckState(delta)
+    updateStuckState(delta, onSceneMap = false)
     {
         if (this.lastX === null)
         {
@@ -159,7 +170,7 @@ export default class Oren extends NPC
 
         if (this.stuckTimer >= Oren.STUCK_MS)
         {
-            this.pickWanderDirection();
+            this.pickWanderDirection(onSceneMap);
         }
     }
 
@@ -200,7 +211,7 @@ export default class Oren extends NPC
 
             if (!hopped)
             {
-                this.pickWanderDirection();
+                this.pickWanderDirection(onSceneMap);
             }
             else
             {
@@ -231,7 +242,7 @@ export default class Oren extends NPC
                     this.portalCooldown = 600;
                     this.seekingPortal = false;
                     this.portalTarget = null;
-                    this.pickWanderDirection();
+                    this.pickWanderDirection(true);
                 }
 
                 return;
@@ -271,7 +282,7 @@ export default class Oren extends NPC
                     this.portalCooldown = 600;
                     this.seekingPortal = false;
                     this.portalTarget = null;
-                    this.pickWanderDirection();
+                    this.pickWanderDirection(false);
                 }
 
                 this.vx = 0;
@@ -282,13 +293,14 @@ export default class Oren extends NPC
 
             this.seekingPortal = false;
             this.portalTarget = null;
-            this.pickWanderDirection();
+            this.pickWanderDirection(false);
         }
 
         if (onSceneMap)
         {
             this.vx = this.wanderDx * this.moveSpeed;
             this.vy = this.wanderDy * this.moveSpeed;
+            return;
         }
         else
         {
@@ -303,14 +315,14 @@ export default class Oren extends NPC
 
             if (!moved)
             {
-                this.pickWanderDirection();
+                this.pickWanderDirection(false);
             }
 
             this.vx = 0;
             this.vy = 0;
         }
 
-        this.updateStuckState(delta);
+        this.updateStuckState(delta, false);
 
         if (
             this.portalCooldown <= 0
@@ -319,7 +331,7 @@ export default class Oren extends NPC
         )
         {
             this.portalCooldown = 600;
-            this.pickWanderDirection();
+            this.pickWanderDirection(false);
         }
     }
 }

@@ -152,7 +152,8 @@ export default class NPC
         const movement =
             this.pathing.getBlindVelocity(
                 this.currentMap,
-                delta
+                delta,
+                onSceneMap
             );
 
         if (movement.vx !== 0 || movement.vy !== 0)
@@ -242,7 +243,8 @@ export default class NPC
                     targetX,
                     targetY,
                     this.currentMap,
-                    delta
+                    delta,
+                    true
                 )
                 : this.pathing.directVelocity(
                     targetX,
@@ -310,12 +312,16 @@ export default class NPC
             {
                 this.pathing.startGraceWander(
                     this.currentMap,
-                    graceRemaining
+                    graceRemaining,
+                    onSceneMap
                 );
             }
             else
             {
-                this.pathing.startWander(this.currentMap);
+                this.pathing.startWander(
+                    this.currentMap,
+                    onSceneMap
+                );
             }
         }
 
@@ -325,11 +331,13 @@ export default class NPC
                     this.worldX,
                     this.worldY,
                     this.currentMap,
-                    delta
+                    delta,
+                    true
                 )
                 : this.pathing.getBlindVelocity(
                     this.currentMap,
-                    delta
+                    delta,
+                    false
                 );
 
         if (movement.vx !== 0 || movement.vy !== 0)

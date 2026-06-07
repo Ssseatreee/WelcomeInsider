@@ -38,16 +38,27 @@ export default class Sply extends NPC
         this.lastY = null;
         this.vx = 0;
         this.vy = 0;
-        this.pickWanderDirection();
+        this.pickWanderDirection(false);
     }
 
-    pickWanderDirection()
+    pickWanderDirection(onSceneMap = false)
     {
-        const choice =
-            HunterPathing.pickCardinalWanderDir(
-                this,
-                this.wanderMapKey
+        let choice;
+
+        if (onSceneMap)
+        {
+            choice = Phaser.Utils.Array.GetRandom(
+                HunterPathing.CARDINAL_DIRS
             );
+        }
+        else
+        {
+            choice =
+                HunterPathing.pickCardinalWanderDir(
+                    this,
+                    this.wanderMapKey
+                );
+        }
 
         this.wanderDx = choice.x;
         this.wanderDy = choice.y;
@@ -61,7 +72,7 @@ export default class Sply extends NPC
         this.lastY = this.worldY;
     }
 
-    updateStuckState(delta)
+    updateStuckState(delta, onSceneMap = false)
     {
         if (this.lastX === null)
         {
@@ -87,7 +98,7 @@ export default class Sply extends NPC
 
         if (this.stuckTimer >= Sply.STUCK_MS)
         {
-            this.pickWanderDirection();
+            this.pickWanderDirection(onSceneMap);
         }
     }
 
@@ -111,14 +122,13 @@ export default class Sply extends NPC
 
         if (this.wanderTimer <= 0)
         {
-            this.pickWanderDirection();
+            this.pickWanderDirection(onSceneMap);
         }
 
         if (onSceneMap)
         {
             this.vx = this.wanderDx * this.moveSpeed;
             this.vy = this.wanderDy * this.moveSpeed;
-            this.updateStuckState(delta);
             return;
         }
 
@@ -133,10 +143,10 @@ export default class Sply extends NPC
 
         if (!moved)
         {
-            this.pickWanderDirection();
+            this.pickWanderDirection(false);
         }
 
-        this.updateStuckState(delta);
+        this.updateStuckState(delta, false);
 
         this.vx = 0;
         this.vy = 0;

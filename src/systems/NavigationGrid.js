@@ -181,6 +181,24 @@ export default class NavigationGrid
         return null;
     }
 
+    /** 坐标是否在 border 内围（无 border 层时不限制 tile） */
+    _isInPlayableTile(tx, ty)
+    {
+        const range = this._getBoundsTileRange();
+
+        if (!range)
+        {
+            return true;
+        }
+
+        return (
+            tx >= range.minTx
+            && tx <= range.maxTx
+            && ty >= range.minTy
+            && ty <= range.maxTy
+        );
+    }
+
     _tileRangeToWorldBounds(
         minTx,
         minTy,
@@ -189,16 +207,17 @@ export default class NavigationGrid
         margin
     )
     {
+        // 与 isPositionWalkable 一致：中心 ±margin 须落在 tile 范围内
         let minX = minTx * this.tileWidth + margin;
         let minY = minTy * this.tileHeight + margin;
 
         let maxX =
             (maxTx + 1) * this.tileWidth
-            - margin;
+            - margin * 2;
 
         let maxY =
             (maxTy + 1) * this.tileHeight
-            - margin;
+            - margin * 2;
 
         if (maxX < minX)
         {
@@ -427,8 +446,8 @@ export default class NavigationGrid
         return {
             minX: margin,
             minY: margin,
-            maxX: mapW - margin,
-            maxY: mapH - margin
+            maxX: mapW - margin * 2,
+            maxY: mapH - margin * 2
         };
     }
 
@@ -504,22 +523,146 @@ export default class NavigationGrid
                         );
 
                     if (
-                        this.isValidNpcPosition(
+                        !this._isInPlayableTile(
+                            tx + dx,
+                            ty + dy
+                        )
+                    )
+                    {
+                        continue;
+                    }
+
+                    const candidate =
+                        this.clampToWorldBounds(
                             world.x,
                             world.y,
+                            margin
+                        );
+
+                    if (
+                        this.isValidNpcPosition(
+                            candidate.x,
+                            candidate.y,
                             margin
                         )
                     )
                     {
-                        return world;
+                        return candidate;
                     }
                 }
             }
         }
 
+        const range = this._getBoundsTileRange();
+
+        if (range)
+        {
+            for (
+                let ty = range.minTy;
+                ty <= range.maxTy;
+                ty++
+            )
+            {
+                for (
+                    let tx = range.minTx;
+                    tx <= range.maxTx;
+                    tx++
+                )
+                {
+                    if (!this.isWalkable(tx, ty))
+                    {
+                        continue;
+                    }
+
+                    const world = this.tileToWorld(tx, ty);
+
+                    const candidate =
+                        this.clampToWorldBounds(
+                            world.x,
+                            world.y,
+                            margin
+                        );
+
+                    if (
+                        this.isValidNpcPosition(
+                            candidate.x,
+                            candidate.y,
+                            margin
+                        )
+                    )
+                    {
+                        return candidate;
+                    }
+                }
+            }
+        }
+
+        return this.findAnyValidNpcPosition(margin);
+    }
+
+    /** 兜底：仅在 border 内围 / 可走区矩形内找合法站位 */
+    findAnyValidNpcPosition(margin = NPC_BODY_MARGIN)
+    {
+        const range = this._getBoundsTileRange();
+
+        if (!range)
+        {
+            return {
+                x: this.tileWidth / 2,
+                y: this.tileHeight / 2
+            };
+        }
+
+        for (
+            let ty = range.minTy;
+            ty <= range.maxTy;
+            ty++
+        )
+        {
+            for (
+                let tx = range.minTx;
+                tx <= range.maxTx;
+                tx++
+            )
+            {
+                if (!this.isWalkable(tx, ty))
+                {
+                    continue;
+                }
+
+                const world = this.tileToWorld(tx, ty);
+
+                const candidate =
+                    this.clampToWorldBounds(
+                        world.x,
+                        world.y,
+                        margin
+                    );
+
+                if (
+                    this.isValidNpcPosition(
+                        candidate.x,
+                        candidate.y,
+                        margin
+                    )
+                )
+                {
+                    return candidate;
+                }
+            }
+        }
+
+        const cx = Math.floor(
+            (range.minTx + range.maxTx) / 2
+        );
+        const cy = Math.floor(
+            (range.minTy + range.maxTy) / 2
+        );
+        const world = this.tileToWorld(cx, cy);
+
         return this.clampToWorldBounds(
-            x,
-            y,
+            world.x,
+            world.y,
             margin
         );
     }
@@ -541,6 +684,11 @@ export default class NavigationGrid
         for (const [px, py] of points)
         {
             const tile = this.worldToTile(px, py);
+
+            if (!this._isInPlayableTile(tile.tx, tile.ty))
+            {
+                return false;
+            }
 
             if (!this.isWalkable(tile.tx, tile.ty))
             {

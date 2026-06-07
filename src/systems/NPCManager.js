@@ -50,19 +50,7 @@ export default class NPCManager
                 delta
             );
 
-            if (
-                offScene
-                &&
-                (
-                    npc.type === 'neutral'
-                    ||
-                    (
-                        npc.type === 'hunter'
-                        &&
-                        !npc.hasEmpathy
-                    )
-                )
-            )
+            if (offScene)
             {
                 HunterPathing.clampEntity(
                     npc,

@@ -40,8 +40,8 @@ const level3 = {
 
         {
             name: 'sply',
-            x: 380,
-            y: 220,
+            x: 240,
+            y: 240,
             mapKey: 'office_1',
             type: 'neutral',
             moveSpeed: 1.2
@@ -57,6 +57,12 @@ const level3 = {
                 type: 'surviveTime',
                 durationMs: 40000,
                 label: '坚持 40 秒不被抓捕'
+            },
+            {
+                id: 'talk_sply',
+                type: 'talkNpc',
+                npc: 'sply',
+                label: '与斯普莉雅对话'
             }
         ]
     },

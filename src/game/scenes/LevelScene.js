@@ -27,6 +27,7 @@ import LevelIntroOverlay from '../../systems/LevelIntroOverlay.js';
 import WorkStatusIndicator from '../../systems/WorkStatusIndicator.js';
 
 import mapDisplayNames from '../../data/mapDisplayNames.js';
+import { getLevelDayName } from '../../data/levelDayNames.js';
 import miniMapLayout from '../../data/miniMapLayout.js';
 import { createLevelHudVolumeControls } from '../../systems/VolumeSettingsPanel.js';
 import {
@@ -355,7 +356,7 @@ export default class LevelScene extends Phaser.Scene
         this.levelText = this.add.text(
             20,
             20,
-            `Level ${this.level}`,
+            getLevelDayName(this.level),
             withTextPadding({
                 fontSize: '28px',
                 color: '#ffffff'
@@ -2302,13 +2303,21 @@ export default class LevelScene extends Phaser.Scene
             );
         });
 
-        // 先更新 NPC 可见性/物理体，再卸载旧地图，避免残留碰撞体
-        this.refreshNPCSprites();
+        // 切图前只隐藏离开当前屏的 NPC；目标地图 NPC 等 loadMap 后再显示
+        this.npcSprites.forEach(sprite =>
+        {
+            if (sprite.entity.currentMap !== targetMap)
+            {
+                sprite.setOnMap(false);
+            }
+        });
 
         this.mapManager.clearCurrentMap();
         this.mapManager.loadMap(targetMap);
 
         this.npcManager.clampNPCsOnMap(targetMap);
+
+        this.refreshNPCSprites();
 
         this.npcSprites.forEach(sprite =>
         {
@@ -2344,8 +2353,6 @@ export default class LevelScene extends Phaser.Scene
         const depth = this.applyMapLayerDepths();
 
         this.player.setDepth(depth + 1);
-
-        this.refreshNPCSprites();
 
         this.npcSprites.forEach(sprite =>
         {

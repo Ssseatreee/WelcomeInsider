@@ -67,27 +67,21 @@ extends Phaser.Physics.Matter.Sprite
 
     setOnMap(onMap)
     {
-        // 始终同步可见性（构造时 _onMap 已是 false，不能因 early return 跳过 hide）
         this.setVisible(onMap);
         this.setActive(onMap);
 
         const world =
             this.scene?.matter?.world;
 
-        if (onMap === this._onMap)
-        {
-            return;
-        }
-
-        this._onMap = onMap;
-
-        if (!world || !this.body)
-        {
-            return;
-        }
-
         if (onMap)
         {
+            if (this._onMap)
+            {
+                return;
+            }
+
+            this._onMap = true;
+
             this.ensureEntityNavGrid();
 
             HunterPathing.snapEntityToWalkableRegion(
@@ -100,7 +94,13 @@ extends Phaser.Physics.Matter.Sprite
                 this.entity.worldY
             );
 
-            if (NPCSprite.usesPhysicsMovement(this.entity))
+            if (
+                NPCSprite.usesPhysicsMovement(this.entity)
+                &&
+                world
+                &&
+                this.body
+            )
             {
                 this.setVelocity(
                     this.entity.vx,
@@ -116,11 +116,17 @@ extends Phaser.Physics.Matter.Sprite
             }
 
             this.applyFrame(true);
+
+            return;
         }
-        else
+
+        if (this._onMap)
         {
-            this.entity.worldX = this.x;
-            this.entity.worldY = this.y;
+            if (NPCSprite.usesPhysicsMovement(this.entity))
+            {
+                this.entity.worldX = this.x;
+                this.entity.worldY = this.y;
+            }
 
             HunterPathing.snapEntityToWalkableRegion(
                 this.entity,
@@ -129,11 +135,13 @@ extends Phaser.Physics.Matter.Sprite
 
             this.setVelocity(0, 0);
 
-            if (world.has(this.body))
+            if (world?.has(this.body))
             {
                 world.remove(this.body);
             }
         }
+
+        this._onMap = false;
     }
 
     ensureEntityNavGrid()
@@ -189,16 +197,16 @@ extends Phaser.Physics.Matter.Sprite
         this.entity.worldX = this.x;
         this.entity.worldY = this.y;
 
-        if (NPCSprite.usesPhysicsMovement(this.entity))
+        if (
+            this.entity.type === 'neutral'
+            &&
+            typeof this.entity.updateStuckState
+            === 'function'
+        )
         {
-            HunterPathing.clampEntityIfInvalid(
-                this.entity,
-                this.entity.currentMap
-            );
-
-            this.setPosition(
-                this.entity.worldX,
-                this.entity.worldY
+            this.entity.updateStuckState(
+                this.scene.game.loop.delta,
+                true
             );
         }
 

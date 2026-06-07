@@ -44,7 +44,9 @@ export default class ItemObtainNotice
                     fontSize: '32px',
                     color: '#ffffff',
                     fontStyle: 'bold',
-                    align: 'center'
+                    align: 'center',
+                    stroke: '#000000',
+                    strokeThickness: 2
                 })
             );
 

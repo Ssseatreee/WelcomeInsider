@@ -389,7 +389,23 @@ export default class HunterPathing
         entity.worldX += movement.vx * frameScale;
         entity.worldY += movement.vy * frameScale;
 
-        HunterPathing.clampEntity(
+        const grid = NavigationGrid.get(entity.currentMap);
+        const margin = HunterPathing.NPC_BODY_MARGIN;
+
+        if (grid)
+        {
+            const bounded =
+                grid.clampToWorldBounds(
+                    entity.worldX,
+                    entity.worldY,
+                    margin
+                );
+
+            entity.worldX = bounded.x;
+            entity.worldY = bounded.y;
+        }
+
+        HunterPathing.clampEntityIfInvalid(
             entity,
             entity.currentMap
         );
@@ -426,29 +442,36 @@ export default class HunterPathing
         let x = entity.worldX;
         let y = entity.worldY;
 
-        if (!grid.isValidNpcPosition(x, y, margin))
-        {
-            const bounded =
-                grid.clampToWorldBounds(x, y, margin);
-
-            x = bounded.x;
-            y = bounded.y;
-
-            if (!grid.isValidNpcPosition(x, y, margin))
-            {
-                const snapped =
-                    grid.clampWorldPosition(x, y, margin);
-
-                x = snapped.x;
-                y = snapped.y;
-            }
-        }
-
-        const final =
+        const bounded =
             grid.clampToWorldBounds(x, y, margin);
 
-        entity.worldX = final.x;
-        entity.worldY = final.y;
+        x = bounded.x;
+        y = bounded.y;
+
+        if (!grid.isValidNpcPosition(x, y, margin))
+        {
+            const snapped =
+                grid.findNearestWalkableWorldPosition(
+                    x,
+                    y,
+                    margin
+                );
+
+            x = snapped.x;
+            y = snapped.y;
+        }
+
+        if (!grid.isValidNpcPosition(x, y, margin))
+        {
+            const snapped =
+                grid.findAnyValidNpcPosition(margin);
+
+            x = snapped.x;
+            y = snapped.y;
+        }
+
+        entity.worldX = x;
+        entity.worldY = y;
     }
 
     static clampEntityToMapPixels(entity, mapKey, margin)
@@ -462,12 +485,12 @@ export default class HunterPathing
         }
 
         entity.worldX = Math.min(
-            size.w - margin,
+            size.w - margin * 2,
             Math.max(margin, entity.worldX)
         );
 
         entity.worldY = Math.min(
-            size.h - margin,
+            size.h - margin * 2,
             Math.max(margin, entity.worldY)
         );
     }
@@ -484,13 +507,7 @@ export default class HunterPathing
         const margin = HunterPathing.NPC_BODY_MARGIN;
 
         if (
-            grid.isWithinWorldBounds(
-                entity.worldX,
-                entity.worldY,
-                margin
-            )
-            &&
-            grid.isPositionWalkable(
+            grid.isValidNpcPosition(
                 entity.worldX,
                 entity.worldY,
                 margin
@@ -507,7 +524,7 @@ export default class HunterPathing
     }
 
     /**
-     * 离屏游荡步进 — 先推进再校正，失败时分轴滑墙（对齐 Matter 体感）
+     * 离屏游荡步进 — 推进后强制吸附到 border 内围
      */
     static applyOffSceneWanderStep(
         entity,
@@ -525,17 +542,35 @@ export default class HunterPathing
         const prevX = entity.worldX;
         const prevY = entity.worldY;
         const speed = entity.moveSpeed;
+        const frameScale = delta / (1000 / 60);
+        const margin = HunterPathing.NPC_BODY_MARGIN;
+        const grid = NavigationGrid.get(mapKey);
 
         const tryMove = (vx, vy) =>
         {
             entity.worldX = prevX;
             entity.worldY = prevY;
 
-            HunterPathing.applyOffSceneStep(
-                entity,
-                { vx, vy, dx: dirX, dy: dirY },
-                delta
-            );
+            entity.worldX += vx * frameScale;
+            entity.worldY += vy * frameScale;
+
+            HunterPathing.clampEntity(entity, mapKey);
+
+            if (
+                grid
+                &&
+                !grid.isValidNpcPosition(
+                    entity.worldX,
+                    entity.worldY,
+                    margin
+                )
+            )
+            {
+                entity.worldX = prevX;
+                entity.worldY = prevY;
+
+                return false;
+            }
 
             return (
                 Math.hypot(
@@ -573,19 +608,16 @@ export default class HunterPathing
 
         if (!grid)
         {
-            return Phaser.Utils.Array.GetRandom(dirs);
+            return {
+                x: 0,
+                y: 0,
+                dir: entity.facing || 'down'
+            };
         }
 
         const step =
             entity.moveSpeed * (1000 / 60);
         const margin = HunterPathing.NPC_BODY_MARGIN;
-        const bounds = grid.getWorldBounds(margin);
-
-        const inBounds = (nextX, nextY) =>
-            nextX >= bounds.minX
-            && nextX <= bounds.maxX
-            && nextY >= bounds.minY
-            && nextY <= bounds.maxY;
 
         const open =
             dirs.filter((dir) =>
@@ -595,14 +627,10 @@ export default class HunterPathing
                 const nextY =
                     entity.worldY + dir.y * step;
 
-                return (
-                    inBounds(nextX, nextY)
-                    &&
-                    grid.isPositionWalkable(
-                        nextX,
-                        nextY,
-                        margin
-                    )
+                return grid.isValidNpcPosition(
+                    nextX,
+                    nextY,
+                    margin
                 );
             });
 
@@ -611,31 +639,10 @@ export default class HunterPathing
             return Phaser.Utils.Array.GetRandom(open);
         }
 
-        const tileFallback =
-            dirs.filter((dir) =>
-            {
-                const nextX =
-                    entity.worldX + dir.x * step;
-                const nextY =
-                    entity.worldY + dir.y * step;
-
-                if (!inBounds(nextX, nextY))
-                {
-                    return false;
-                }
-
-                const tile = grid.worldToTile(
-                    nextX,
-                    nextY
-                );
-
-                return grid.isWalkable(tile.tx, tile.ty);
-            });
-
-        return Phaser.Utils.Array.GetRandom(
-            tileFallback.length > 0
-                ? tileFallback
-                : dirs
-        );
+        return {
+            x: 0,
+            y: 0,
+            dir: entity.facing || 'down'
+        };
     }
 }

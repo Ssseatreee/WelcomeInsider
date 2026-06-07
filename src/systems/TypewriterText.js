@@ -11,7 +11,7 @@ const PAUSE_AFTER = {
 };
 
 /**
- * 逐字显示 Phaser Text 内容
+ * 逐字显示 Phaser Text 内容；超出 maxHeight 时清屏并从当前位置继续
  */
 export default class TypewriterText
 {
@@ -20,11 +20,14 @@ export default class TypewriterText
         this.scene = scene;
         this.text = textObject;
         this.charDelayMs = options.charDelayMs ?? 36;
+        this.maxHeight = options.maxHeight ?? null;
         this.fullText = '';
         this.displayIndex = 0;
+        this.pageStartIndex = 0;
         this.timer = null;
         this.isComplete = false;
         this.onComplete = null;
+        this.onTextChange = options.onTextChange ?? null;
     }
 
     start(fullText, onComplete)
@@ -33,6 +36,7 @@ export default class TypewriterText
 
         this.fullText = fullText ?? '';
         this.displayIndex = 0;
+        this.pageStartIndex = 0;
         this.isComplete = this.fullText.length === 0;
         this.onComplete = onComplete ?? null;
 
@@ -52,6 +56,90 @@ export default class TypewriterText
         const multiplier = PAUSE_AFTER[char] ?? 1;
 
         return this.charDelayMs * multiplier;
+    }
+
+    measureSliceHeight(start, end)
+    {
+        this.text.setText(this.fullText.slice(start, end));
+
+        return this.text.height;
+    }
+
+    /** 找到 endIndex 处能完整显示在 maxHeight 内的最早起始下标 */
+    findPageStartForEnd(endIndex)
+    {
+        if (!this.maxHeight || endIndex <= 0)
+        {
+            return 0;
+        }
+
+        if (
+            this.measureSliceHeight(0, endIndex)
+            <= this.maxHeight
+        )
+        {
+            return 0;
+        }
+
+        let low = 0;
+        let high = endIndex - 1;
+        let best = high;
+
+        while (low <= high)
+        {
+            const mid = (low + high) >> 1;
+
+            if (
+                this.measureSliceHeight(mid, endIndex)
+                <= this.maxHeight
+            )
+            {
+                best = mid;
+                high = mid - 1;
+            }
+            else
+            {
+                low = mid + 1;
+            }
+        }
+
+        const searchEnd = Math.min(best + 24, endIndex);
+
+        for (let i = best; i < searchEnd; i++)
+        {
+            if (this.fullText[i] === '\n')
+            {
+                const candidate = i + 1;
+
+                if (
+                    this.measureSliceHeight(
+                        candidate,
+                        endIndex
+                    )
+                    <= this.maxHeight
+                )
+                {
+                    return candidate;
+                }
+            }
+        }
+
+        return best;
+    }
+
+    refreshDisplay()
+    {
+        this.pageStartIndex =
+            this.findPageStartForEnd(this.displayIndex);
+
+        this.text.setText(
+            this.fullText.slice(
+                this.pageStartIndex,
+                this.displayIndex
+            )
+        );
+
+        this.onTextChange?.();
     }
 
     scheduleNextChar()
@@ -77,9 +165,7 @@ export default class TypewriterText
                 {
                     this.timer = null;
                     this.displayIndex += 1;
-                    this.text.setText(
-                        this.fullText.slice(0, this.displayIndex)
-                    );
+                    this.refreshDisplay();
                     this.scheduleNextChar();
                 }
             );
@@ -88,7 +174,8 @@ export default class TypewriterText
     finish()
     {
         this.clearTimer();
-        this.text.setText(this.fullText);
+        this.displayIndex = this.fullText.length;
+        this.refreshDisplay();
         this.isComplete = true;
 
         const callback = this.onComplete;
@@ -114,6 +201,7 @@ export default class TypewriterText
         this.clearTimer();
         this.fullText = '';
         this.displayIndex = 0;
+        this.pageStartIndex = 0;
         this.isComplete = false;
         this.onComplete = null;
     }

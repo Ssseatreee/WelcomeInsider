@@ -9,6 +9,7 @@ import {
     GAME_HEIGHT,
     PLAY_AREA_UI_CENTER_X
 } from '../game/layout.js';
+import { bindButtonSfx } from './Sfx.js';
 
 /**
  * @param {string | { npc?: string, name?: string, expression?: string, textureKey?: string }} portrait
@@ -188,6 +189,7 @@ export default class LevelIntroOverlay
         this.button.setOrigin(0.5);
         this.button.setScrollFactor(0);
         this.button.setInteractive({ useHandCursor: true });
+        bindButtonSfx(this.button, this.scene);
         this.container.add(this.button);
 
         this.button.on('pointerover', () =>

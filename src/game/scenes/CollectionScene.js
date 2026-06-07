@@ -30,6 +30,7 @@ import {
     withButtonTextStyle,
     withTextPadding
 } from '../../data/textStyle.js';
+import { bindButtonSfx } from '../../systems/Sfx.js';
 
 const SCALE = 1.5;
 
@@ -98,6 +99,8 @@ export default class CollectionScene extends Scene
             )
             .setOrigin(1, 1)
             .setInteractive({ useHandCursor: true });
+
+        bindButtonSfx(backButton, this);
 
         backButton.on('pointerup', () =>
         {
@@ -241,6 +244,7 @@ export default class CollectionScene extends Scene
 
         bg.setStrokeStyle(2, 0x555555, 0.9);
         bg.setInteractive({ useHandCursor: true });
+        bindButtonSfx(bg, this);
 
         let icon = null;
 
@@ -309,6 +313,7 @@ export default class CollectionScene extends Scene
                 );
 
             lockOverlay.setInteractive({ useHandCursor: true });
+            bindButtonSfx(lockOverlay, this);
 
             lockOverlay.on('pointerup', () =>
             {

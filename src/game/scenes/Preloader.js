@@ -1,5 +1,6 @@
 import { Scene } from 'phaser';
 import { transitionToScene } from '../../systems/CurtainTransition.js';
+import { SFX_FILES } from '../../data/sfxConfig.js';
 
 import createPlayerAnimations from '../../animations/playerAnimations';
 import createV2Animations from '../../animations/v2Animations';
@@ -597,6 +598,11 @@ export class Preloader extends Scene
             'bgm-warm-loop',
             `${bgmPath}/warm_loop.wav`
         );
+
+        Object.entries(SFX_FILES).forEach(([key, path]) =>
+        {
+            this.load.audio(key, path);
+        });
 
         const endingCgPath = './assets/CG/ending';
 

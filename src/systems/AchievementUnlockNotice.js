@@ -5,6 +5,7 @@ import {
     GAME_HEIGHT,
     HUD_WIDTH
 } from '../game/layout.js';
+import { playAchievementDing } from './Sfx.js';
 
 const DISPLAY_MS = 3200;
 const MARGIN = 16;
@@ -112,6 +113,7 @@ export default class AchievementUnlockNotice
         }
 
         this.titleText.setText(achievement.title);
+        playAchievementDing(this.scene);
         this.container.setVisible(true);
         this.container.setAlpha(0);
         this.container.y = this.anchorY + 12;

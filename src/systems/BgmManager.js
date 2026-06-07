@@ -14,11 +14,29 @@ const MENU_SCENE_KEYS = [
     'CollectionScene'
 ];
 
-const MENU_DELAY_MS = 500;
+const MENU_DELAY_MS = 300;
 
-const LEVEL_DELAY_MS = 500;
+const LEVEL_DELAY_MS = 300;
 
-const FADE_IN_MS = 800;
+/** 首次进入场景时的渐显；转场后不再二次渐显 */
+const FADE_IN_MS = 900;
+
+const ALL_BGM_KEYS = [
+    BGM_MENU,
+    BGM_LEVEL,
+    BGM_WARM_INTRO,
+    BGM_WARM_LOOP
+];
+
+function clamp01(value)
+{
+    return Math.max(0, Math.min(1, value));
+}
+
+function lerp(a, b, t)
+{
+    return a + (b - a) * t;
+}
 
 export default class BgmManager
 {
@@ -27,32 +45,56 @@ export default class BgmManager
         this.game = game;
         this.currentKey = null;
         this.music = null;
-        this.pendingTimer = null;
-        this.fadeTween = null;
-        this.fadeScene = null;
+        this.pendingTimeout = null;
+        this.introLoopTimeout = null;
+        this.fadeFrame = null;
+        this.fadeStartedAt = 0;
+        this.fadeFromVolume = 0;
+        this.fadeToVolume = 0;
+        this.fadeDurationMs = 0;
+        this.fadeOnComplete = null;
+        this.fadeGeneration = 0;
+        /** 由 BgmManager 维护的当前输出音量，不读 Phaser 内部值 */
+        this.outputVolume = 0;
+        this.isTransitioningOut = false;
+        this.pendingPlay = null;
+        /** 转场渐停后，下一条 BGM 直接切到目标音量 */
+        this.snapVolumeOnNextPlay = false;
     }
 
     cancelPending()
     {
-        if (this.pendingTimer)
+        if (this.pendingTimeout != null)
         {
-            this.pendingTimer.remove(false);
-            this.pendingTimer = null;
+            clearTimeout(this.pendingTimeout);
+            this.pendingTimeout = null;
         }
+
+        this.pendingPlay = null;
     }
 
-    cancelFadeTween()
+    cancelIntroLoopTimeout()
     {
-        if (this.fadeTween)
+        if (this.introLoopTimeout != null)
         {
-            this.fadeTween.stop();
-            this.fadeTween = null;
+            clearTimeout(this.introLoopTimeout);
+            this.introLoopTimeout = null;
         }
-
-        this.fadeScene = null;
     }
 
-    /** 两场景 BGM 相同则转场时不渐停（如主菜单 ↔ 收集物） */
+    cancelFade()
+    {
+        this.fadeGeneration += 1;
+
+        if (this.fadeFrame != null)
+        {
+            cancelAnimationFrame(this.fadeFrame);
+            this.fadeFrame = null;
+        }
+
+        this.fadeOnComplete = null;
+    }
+
     shouldFadeOnTransition(fromSceneKey, toSceneKey)
     {
         const fromBgm =
@@ -89,67 +131,188 @@ export default class BgmManager
         return null;
     }
 
-    /** 幕布转场开始时渐停当前 BGM */
+    forEachBgmSound(callback)
+    {
+        const mgr = this.game?.sound;
+
+        if (!mgr)
+        {
+            return;
+        }
+
+        const list = mgr.sounds;
+
+        if (!list)
+        {
+            return;
+        }
+
+        if (Array.isArray(list))
+        {
+            list.forEach(callback);
+            return;
+        }
+
+        if (typeof list.forEach === 'function')
+        {
+            list.forEach(callback);
+            return;
+        }
+
+        if (typeof list === 'object')
+        {
+            Object.values(list).forEach(callback);
+        }
+    }
+
+    destroyAllBgmInstances()
+    {
+        const mgr = this.game?.sound;
+
+        if (mgr)
+        {
+            for (const key of ALL_BGM_KEYS)
+            {
+                if (typeof mgr.stopByKey === 'function')
+                {
+                    mgr.stopByKey(key);
+                }
+
+                if (typeof mgr.removeByKey === 'function')
+                {
+                    mgr.removeByKey(key);
+                }
+            }
+
+            this.forEachBgmSound(sound =>
+            {
+                if (
+                    sound
+                    &&
+                    ALL_BGM_KEYS.includes(sound.key)
+                )
+                {
+                    sound.stop?.();
+                    sound.destroy?.();
+                }
+            });
+        }
+
+        this.music = null;
+        this.currentKey = null;
+        this.outputVolume = 0;
+    }
+
     fadeOutForTransition(
-        scene,
+        _scene,
         durationMs = CURTAIN_BGM_FADE_OUT_MS
     )
     {
         this.cancelPending();
 
         if (
-            !scene?.tweens
-            ||
             !this.music
             ||
             !this.isPlaying()
         )
         {
+            this.isTransitioningOut = false;
             return;
         }
 
-        this.cancelFadeTween();
+        this.isTransitioningOut = true;
 
-        this.fadeScene = scene;
-
-        this.fadeTween =
-            scene.tweens.add({
-                targets: this.music,
-                volume: 0,
-                duration: durationMs,
-                ease: 'Linear',
-                onComplete: () =>
-                {
-                    this.fadeTween = null;
-                    this.fadeScene = null;
-                    this.stop();
-                }
-            });
+        this.fadeVolumeTo(0, durationMs, () =>
+        {
+            this.isTransitioningOut = false;
+            this.snapVolumeOnNextPlay = true;
+            this.destroyAllBgmInstances();
+            this.flushPendingPlay();
+        });
     }
 
-    playMenu(scene, delayMs = MENU_DELAY_MS)
+    playMenu(_scene, delayMs = MENU_DELAY_MS)
     {
-        if (
-            this.currentKey === BGM_MENU
-            &&
-            this.isPlaying()
-        )
+        this.queuePlay(BGM_MENU, delayMs);
+    }
+
+    playLevel(_scene, delayMs = LEVEL_DELAY_MS)
+    {
+        this.queuePlay(BGM_LEVEL, delayMs);
+    }
+
+    queuePlay(key, delayMs)
+    {
+        this.pendingPlay = {
+            key,
+            readyAt: performance.now() + delayMs
+        };
+
+        this.tryStartPendingPlay();
+    }
+
+    tryStartPendingPlay()
+    {
+        if (!this.pendingPlay)
         {
             return;
         }
 
-        this.schedule(scene, BGM_MENU, delayMs);
+        if (this.isTransitioningOut)
+        {
+            return;
+        }
+
+        const waitMs =
+            this.pendingPlay.readyAt - performance.now();
+
+        if (waitMs > 0)
+        {
+            if (this.pendingTimeout != null)
+            {
+                clearTimeout(this.pendingTimeout);
+            }
+
+            this.pendingTimeout =
+                setTimeout(() =>
+                {
+                    this.pendingTimeout = null;
+                    this.tryStartPendingPlay();
+                }, waitMs);
+
+            return;
+        }
+
+        const { key } = this.pendingPlay;
+
+        this.pendingPlay = null;
+
+        if (this.pendingTimeout != null)
+        {
+            clearTimeout(this.pendingTimeout);
+            this.pendingTimeout = null;
+        }
+
+        this.startKey(key);
     }
 
-    playLevel(scene, delayMs = LEVEL_DELAY_MS)
+    flushPendingPlay()
     {
-        this.schedule(scene, BGM_LEVEL, delayMs);
+        if (!this.pendingPlay)
+        {
+            return;
+        }
+
+        this.tryStartPendingPlay();
     }
 
-    /** 结局：warm_intro 播一遍后循环 warm_loop */
-    playEndingWarm(scene, fadeInMs = FADE_IN_MS)
+    playEndingWarm(_scene, fadeInMs = FADE_IN_MS)
     {
         this.cancelPending();
+        this.cancelIntroLoopTimeout();
+        this.cancelFade();
+        this.destroyAllBgmInstances();
+        this.snapVolumeOnNextPlay = false;
 
         const hasIntro =
             this.game.cache.audio.exists(BGM_WARM_INTRO);
@@ -161,22 +324,22 @@ export default class BgmManager
             return;
         }
 
-        this.stop();
-
-        const targetVolume = this.getTargetVolume();
-
         if (!hasIntro)
         {
-            this.play(BGM_WARM_LOOP, scene, fadeInMs);
+            this.startKey(BGM_WARM_LOOP, fadeInMs);
             return;
         }
+
+        const targetVolume = this.getTargetVolume();
 
         this.music =
             this.game.sound.add(BGM_WARM_INTRO, {
                 loop: false,
-                volume: fadeInMs > 0 ? 0 : targetVolume
+                volume: 0
             });
 
+        this.outputVolume = 0;
+        this.applyVolumeToMusic();
         this.music.play();
         this.currentKey = BGM_WARM_INTRO;
 
@@ -190,61 +353,53 @@ export default class BgmManager
             }
 
             loopStarted = true;
+            this.cancelIntroLoopTimeout();
 
             if (this.currentKey !== BGM_WARM_INTRO)
             {
                 return;
             }
 
-            this.play(BGM_WARM_LOOP, scene, fadeInMs);
+            this.handoffToLoop();
         };
 
-        this.music.once('complete', startLoop);
+        if (typeof this.music.once === 'function')
+        {
+            this.music.once('complete', startLoop);
+        }
 
         const introDuration = this.music.duration;
 
         if (Number.isFinite(introDuration) && introDuration > 0)
         {
-            scene.time.delayedCall(
-                introDuration * 1000 + 50,
-                startLoop
-            );
+            this.introLoopTimeout =
+                setTimeout(
+                    startLoop,
+                    introDuration * 1000 + 50
+                );
         }
 
-        if (fadeInMs > 0 && scene?.tweens)
-        {
-            this.cancelFadeTween();
-            this.fadeScene = scene;
-
-            this.fadeTween =
-                scene.tweens.add({
-                    targets: this.music,
-                    volume: targetVolume,
-                    duration: fadeInMs,
-                    ease: 'Linear',
-                    onComplete: () =>
-                    {
-                        this.fadeTween = null;
-                        this.fadeScene = null;
-                    }
-                });
-        }
-        else if (this.music)
-        {
-            this.music.volume = targetVolume;
-        }
+        this.fadeVolumeTo(targetVolume, fadeInMs);
     }
 
-    schedule(scene, key, delayMs)
+    handoffToLoop()
     {
-        this.cancelPending();
+        const targetVolume = this.getTargetVolume();
 
-        this.pendingTimer =
-            scene.time.delayedCall(delayMs, () =>
-            {
-                this.pendingTimer = null;
-                this.play(key, scene);
+        this.cancelFade();
+        this.cancelIntroLoopTimeout();
+        this.destroyAllBgmInstances();
+
+        this.music =
+            this.game.sound.add(BGM_WARM_LOOP, {
+                loop: true,
+                volume: targetVolume
             });
+
+        this.outputVolume = targetVolume;
+        this.applyVolumeToMusic();
+        this.music.play();
+        this.currentKey = BGM_WARM_LOOP;
     }
 
     isPlaying()
@@ -257,32 +412,130 @@ export default class BgmManager
         return AudioSettings.getBgmVolume();
     }
 
+    applyVolumeToMusic()
+    {
+        if (!this.music)
+        {
+            return;
+        }
+
+        this.music.volume = this.outputVolume;
+    }
+
+    setMusicVolume(value)
+    {
+        this.outputVolume = clamp01(value);
+        this.applyVolumeToMusic();
+    }
+
     applyVolume()
     {
         if (
-            this.music
-            &&
-            this.isPlaying()
-            &&
-            !this.fadeTween
-        )
-        {
-            this.music.volume = this.getTargetVolume();
-        }
-    }
-
-    play(key, scene, fadeInMs = FADE_IN_MS)
-    {
-        if (
-            this.currentKey === key
-            &&
-            this.isPlaying()
+            !this.music
+            ||
+            !this.isPlaying()
+            ||
+            this.fadeFrame != null
         )
         {
             return;
         }
 
-        this.stop();
+        this.setMusicVolume(this.getTargetVolume());
+    }
+
+    fadeVolumeTo(targetVolume, durationMs, onComplete = null)
+    {
+        this.cancelFade();
+
+        if (!this.music)
+        {
+            onComplete?.();
+            return;
+        }
+
+        const generation = this.fadeGeneration;
+
+        this.fadeFromVolume = this.outputVolume;
+        this.fadeToVolume = clamp01(targetVolume);
+        this.fadeDurationMs = Math.max(0, durationMs);
+        this.fadeOnComplete = onComplete;
+        this.fadeStartedAt = performance.now();
+
+        if (this.fadeDurationMs <= 0)
+        {
+            this.setMusicVolume(this.fadeToVolume);
+
+            const callback = this.fadeOnComplete;
+
+            this.fadeOnComplete = null;
+            callback?.();
+            return;
+        }
+
+        const step = now =>
+        {
+            if (
+                generation !== this.fadeGeneration
+                ||
+                !this.music
+            )
+            {
+                this.fadeFrame = null;
+                return;
+            }
+
+            const t =
+                clamp01(
+                    (now - this.fadeStartedAt)
+                    / this.fadeDurationMs
+                );
+
+            this.setMusicVolume(
+                lerp(
+                    this.fadeFromVolume,
+                    this.fadeToVolume,
+                    t
+                )
+            );
+
+            if (t < 1)
+            {
+                this.fadeFrame = requestAnimationFrame(step);
+                return;
+            }
+
+            this.fadeFrame = null;
+            this.setMusicVolume(this.fadeToVolume);
+
+            const callback = this.fadeOnComplete;
+
+            this.fadeOnComplete = null;
+            callback?.();
+        };
+
+        this.fadeFrame = requestAnimationFrame(step);
+    }
+
+    startKey(key, fadeInMs = FADE_IN_MS)
+    {
+        if (
+            this.currentKey === key
+            &&
+            this.isPlaying()
+            &&
+            this.fadeFrame == null
+            &&
+            !this.isTransitioningOut
+        )
+        {
+            this.setMusicVolume(this.getTargetVolume());
+            return;
+        }
+
+        this.cancelFade();
+        this.cancelIntroLoopTimeout();
+        this.destroyAllBgmInstances();
 
         if (!this.game.cache.audio.exists(key))
         {
@@ -290,46 +543,40 @@ export default class BgmManager
         }
 
         const targetVolume = this.getTargetVolume();
+        const shouldSnap =
+            this.snapVolumeOnNextPlay
+            ||
+            fadeInMs <= 0;
+
+        this.snapVolumeOnNextPlay = false;
 
         this.music =
             this.game.sound.add(key, {
                 loop: true,
-                volume: fadeInMs > 0 ? 0 : targetVolume
+                volume: 0
             });
 
+        this.outputVolume = 0;
+        this.applyVolumeToMusic();
         this.music.play();
         this.currentKey = key;
 
-        if (fadeInMs > 0 && scene?.tweens)
+        if (shouldSnap)
         {
-            this.fadeScene = scene;
-
-            this.fadeTween =
-                scene.tweens.add({
-                    targets: this.music,
-                    volume: targetVolume,
-                    duration: fadeInMs,
-                    ease: 'Linear',
-                    onComplete: () =>
-                    {
-                        this.fadeTween = null;
-                        this.fadeScene = null;
-                    }
-                });
+            this.setMusicVolume(targetVolume);
+            return;
         }
+
+        this.fadeVolumeTo(targetVolume, fadeInMs);
     }
 
     stop()
     {
-        this.cancelFadeTween();
-
-        if (this.music)
-        {
-            this.music.stop();
-            this.music.destroy();
-            this.music = null;
-        }
-
-        this.currentKey = null;
+        this.cancelFade();
+        this.cancelIntroLoopTimeout();
+        this.cancelPending();
+        this.isTransitioningOut = false;
+        this.snapVolumeOnNextPlay = false;
+        this.destroyAllBgmInstances();
     }
 }

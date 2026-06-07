@@ -1,7 +1,6 @@
 import { Scene } from 'phaser';
 import * as Phaser from 'phaser';
 import TypewriterText from '../../systems/TypewriterText.js';
-import EndingRibbonBurst from '../../systems/EndingRibbonBurst.js';
 import {
     ENDING_EPILOG_LINES,
     ENDING_EPILOG_LINE_FADE_MS,
@@ -16,8 +15,7 @@ import {
     ENDING_BUTTON_FADE_IN_MS,
     ENDING_LAUGH_ALT_MS,
     ENDING_BUTTON_PULSE_MS,
-    ENDING_BGM_FADE_OUT_MS,
-    ENDING_RIBBON_BURST_MS
+    ENDING_BGM_FADE_OUT_MS
 } from '../../data/endingConfig.js';
 import {
     INTRO_TYPEWRITER_OPTIONS
@@ -33,9 +31,11 @@ import {
     withButtonTextStyle,
     withTextPadding
 } from '../../data/textStyle.js';
+import { bindButtonSfx, playKnockSfx } from '../../systems/Sfx.js';
 
 const PHASE = {
     EPILOG: 'epilog',
+    KNOCK: 'knock',
     WAIT_SPACE: 'waitSpace',
     CG: 'cg',
     EXITING: 'exiting'
@@ -58,7 +58,6 @@ export default class EndingScene extends Scene
         this.epilogLineGapTimer = null;
         this.laughShowingFirst = true;
         this.buttonPulseTween = null;
-        this.ribbonBurst = null;
 
         this.centerX = this.scale.width / 2;
         this.centerY = this.scale.height / 2;
@@ -341,6 +340,7 @@ export default class EndingScene extends Scene
         this.welcomeButton.setAlpha(0);
         this.welcomeButton.setVisible(false);
         this.welcomeButton.setInteractive({ useHandCursor: true });
+        bindButtonSfx(this.welcomeButton, this);
 
         this.welcomeButton.on('pointerover', () =>
         {
@@ -385,6 +385,18 @@ export default class EndingScene extends Scene
     onEpilogComplete()
     {
         if (this.phase !== PHASE.EPILOG)
+        {
+            return;
+        }
+
+        this.phase = PHASE.KNOCK;
+
+        playKnockSfx(this, () => this.onKnockComplete());
+    }
+
+    onKnockComplete()
+    {
+        if (this.phase !== PHASE.KNOCK)
         {
             return;
         }
@@ -636,23 +648,7 @@ export default class EndingScene extends Scene
         this.welcomeButton.setVisible(false);
         this.dialogueContainer.setAlpha(0.35);
 
-        this.ribbonBurst = new EndingRibbonBurst(this);
-
-        this.ribbonFinished = false;
-
-        this.ribbonBurst.play(
-            ENDING_RIBBON_BURST_MS,
-            () =>
-            {
-                if (this.ribbonFinished)
-                {
-                    return;
-                }
-
-                this.ribbonFinished = true;
-                this.fadeToMainMenu();
-            }
-        );
+        this.fadeToMainMenu();
     }
 
     fadeToMainMenu()
@@ -669,8 +665,6 @@ export default class EndingScene extends Scene
             ease: 'Sine.easeIn',
             onComplete: () =>
             {
-                this.ribbonBurst?.destroy();
-                this.ribbonBurst = null;
                 this.scene.start('MainMenuScene');
             }
         });

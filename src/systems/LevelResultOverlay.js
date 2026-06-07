@@ -8,6 +8,7 @@ import {
     PLAY_AREA_UI_CENTER_X,
     PLAY_AREA_WIDTH
 } from '../game/layout.js';
+import { bindButtonSfx } from './Sfx.js';
 
 export default class LevelResultOverlay
 {
@@ -117,6 +118,7 @@ export default class LevelResultOverlay
         this.button.setOrigin(0.5);
         this.button.setScrollFactor(0);
         this.button.setInteractive({ useHandCursor: true });
+        bindButtonSfx(this.button, this.scene);
         this.container.add(this.button);
 
         this.retryButton =
@@ -140,6 +142,7 @@ export default class LevelResultOverlay
         this.retryButton.setOrigin(0.5);
         this.retryButton.setScrollFactor(0);
         this.retryButton.setInteractive({ useHandCursor: true });
+        bindButtonSfx(this.retryButton, this.scene);
         this.retryButton.setVisible(false);
         this.container.add(this.retryButton);
 

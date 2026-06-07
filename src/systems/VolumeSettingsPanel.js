@@ -4,6 +4,7 @@ import {
     withButtonTextStyle,
     withTextPadding
 } from '../data/textStyle.js';
+import { bindButtonSfx } from './Sfx.js';
 
 class VolumeSlider
 {
@@ -338,6 +339,7 @@ export function createLevelHudVolumeControls(
         .setInteractive({ useHandCursor: true });
 
     styleHudButton(backButton);
+    bindButtonSfx(backButton, scene);
 
     const settingsButton =
         scene.add.text(
@@ -352,6 +354,7 @@ export function createLevelHudVolumeControls(
         .setInteractive({ useHandCursor: true });
 
     styleHudButton(settingsButton);
+    bindButtonSfx(settingsButton, scene);
 
     const volumePanel =
         new VolumeSettingsPanel(scene, {

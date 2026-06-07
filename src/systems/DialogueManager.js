@@ -21,6 +21,12 @@ import {
     withButtonTextStyle,
     withTextPadding
 } from '../data/textStyle.js';
+import { bindButtonSfx } from './Sfx.js';
+
+const DIALOG_BOX_HEIGHT = 180;
+
+/** 对话框内文字可视高度（上下各留 20px） */
+const DIALOG_MAX_TEXT_HEIGHT = DIALOG_BOX_HEIGHT - 40;
 
 export default class DialogueManager
 {
@@ -49,6 +55,8 @@ export default class DialogueManager
 
         /** 各角色最近一次说话时的表情 */
         this.lastExpressions = {};
+
+        this.dialogTextBaseY = DIALOGUE_TEXT_Y;
 
         const boxY = DIALOGUE_BOX_Y;
 
@@ -162,6 +170,7 @@ export default class DialogueManager
             choiceText.setDepth(260);
             choiceText.setVisible(false);
             choiceText.setInteractive({ useHandCursor: true });
+            bindButtonSfx(choiceText, scene);
 
             const index = i;
 
@@ -208,13 +217,23 @@ export default class DialogueManager
             scene.input.keyboard.createCursorKeys();
 
         this.dialogueTypewriter =
-            new TypewriterText(scene, this.text, TYPEWRITER_OPTIONS);
+            new TypewriterText(
+                scene,
+                this.text,
+                {
+                    ...TYPEWRITER_OPTIONS,
+                    maxHeight: DIALOG_MAX_TEXT_HEIGHT
+                }
+            );
 
         this.objectTypewriter =
             new TypewriterText(
                 scene,
                 this.objectDialogText,
-                TYPEWRITER_OPTIONS
+                {
+                    ...TYPEWRITER_OPTIONS,
+                    maxHeight: DIALOG_MAX_TEXT_HEIGHT
+                }
             );
     }
 
@@ -267,6 +286,16 @@ export default class DialogueManager
     playObjectDialogText(fullText)
     {
         this.objectTypewriter.start(fullText);
+    }
+
+    showDialogBox()
+    {
+        this.box.setVisible(true);
+    }
+
+    hideDialogBox()
+    {
+        this.box.setVisible(false);
     }
 
     handleDialogueSpaceAdvance()
@@ -351,17 +380,19 @@ export default class DialogueManager
             this.isShowingEffect
             &&
             this.effectPhase === 'message'
-            &&
-            Phaser.Input.Keyboard.JustDown(this.spaceKey)
         )
         {
-            if (!this.dialogueTypewriter.isComplete)
+            if (Phaser.Input.Keyboard.JustDown(this.spaceKey))
             {
-                this.dialogueTypewriter.skip();
-                return;
+                if (!this.dialogueTypewriter.isComplete)
+                {
+                    this.dialogueTypewriter.skip();
+                    return;
+                }
+
+                this.finishEffectAndEnd();
             }
 
-            this.finishEffectAndEnd();
             return;
         }
 
@@ -428,7 +459,11 @@ export default class DialogueManager
         this.text.setOrigin(0, 0);
         this.text.setPosition(
             this.box.x - 420,
-            this.box.y - 70
+            this.dialogTextBaseY
+        );
+        this.objectDialogText.setPosition(
+            this.box.x - 420,
+            this.dialogTextBaseY
         );
     }
 
@@ -660,7 +695,7 @@ export default class DialogueManager
             return false;
         }
 
-        this.box.setVisible(false);
+        this.hideDialogBox();
         this.objectDialogText.setVisible(false);
         this.objectTypewriter.stop();
         this.isShowingObjectDialogue = false;
@@ -707,13 +742,13 @@ export default class DialogueManager
                 24
             );
 
-        this.box.setVisible(true);
+        this.resetDialogueTextLayout();
+        this.showDialogBox();
 
         this.objectDialogText.setVisible(true);
+        this.isShowingObjectDialogue = true;
 
         this.playObjectDialogText(wrappedText);
-
-        this.isShowingObjectDialogue = true;
     }
 
     wrapChineseText(text, maxCharsPerLine = 24)
@@ -809,7 +844,7 @@ export default class DialogueManager
         this.effectPhase = null;
         this.isPlaying = false;
 
-        this.box.setVisible(false);
+        this.hideDialogBox();
 
         this.text.setVisible(false);
         this.effectImage.setVisible(false);

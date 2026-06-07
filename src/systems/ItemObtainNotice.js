@@ -1,11 +1,12 @@
-import * as Phaser from 'phaser';
 import {
     GAME_HEIGHT,
     PLAY_AREA_UI_CENTER_X
 } from '../game/layout.js';
 import { withTextPadding } from '../data/textStyle.js';
+import { playCollectSfx } from './Sfx.js';
 
 const DISPLAY_MS = 2000;
+const FADE_MS = 180;
 
 export default class ItemObtainNotice
 {
@@ -14,6 +15,7 @@ export default class ItemObtainNotice
         this.scene = scene;
         this.isShowing = false;
         this.hideTimer = null;
+        this.fadeTimer = null;
         this.onComplete = null;
 
         this.container =
@@ -74,9 +76,11 @@ export default class ItemObtainNotice
             return;
         }
 
-        this.clearTimer();
+        this.clearTimers();
         this.onComplete = onComplete;
         this.isShowing = true;
+
+        playCollectSfx(this.scene);
 
         this.messageText.setText(message);
 
@@ -103,7 +107,7 @@ export default class ItemObtainNotice
         this.scene.tweens.add({
             targets: this.container,
             alpha: 1,
-            duration: 180,
+            duration: FADE_MS,
             ease: 'Sine.easeOut'
         });
 
@@ -116,31 +120,61 @@ export default class ItemObtainNotice
 
     hide()
     {
-        this.clearTimer();
+        if (!this.isShowing)
+        {
+            return;
+        }
+
+        this.clearTimers();
 
         const callback = this.onComplete;
+
         this.onComplete = null;
+
+        this.scene.tweens.killTweensOf(this.container);
+
+        this.fadeTimer =
+            this.scene.time.delayedCall(
+                FADE_MS,
+                () => this.finishHide(callback)
+            );
 
         this.scene.tweens.add({
             targets: this.container,
             alpha: 0,
-            duration: 180,
+            duration: FADE_MS,
             ease: 'Sine.easeIn',
-            onComplete: () =>
-            {
-                this.container.setVisible(false);
-                this.isShowing = false;
-                callback?.();
-            }
+            onComplete: () => this.finishHide(callback)
         });
     }
 
-    clearTimer()
+    finishHide(callback)
+    {
+        if (!this.isShowing)
+        {
+            return;
+        }
+
+        this.clearTimers();
+
+        this.container.setVisible(false);
+        this.container.setAlpha(0);
+        this.isShowing = false;
+        callback?.();
+    }
+
+    clearTimers()
     {
         if (this.hideTimer)
         {
             this.hideTimer.remove();
             this.hideTimer = null;
+        }
+
+        if (this.fadeTimer)
+        {
+            this.fadeTimer.remove();
+            this.fadeTimer = null;
         }
 
         this.scene.tweens.killTweensOf(this.container);

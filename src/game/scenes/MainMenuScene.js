@@ -24,6 +24,7 @@ import {
 } from '../../data/textStyle.js';
 
 import MenuTitleTypewriterSequence from '../../systems/MenuTitleTypewriterSequence.js';
+import { bindButtonSfx } from '../../systems/Sfx.js';
 
 
 
@@ -997,6 +998,8 @@ export default class MainMenuScene extends Scene
         .setOrigin(0.5)
 
         .setInteractive({ useHandCursor: true });
+
+        bindButtonSfx(button, this);
 
 
 

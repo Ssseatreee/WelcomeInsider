@@ -450,21 +450,20 @@ export default class LevelScene extends Phaser.Scene
             this.npcManager.getNPCsInMap(this.currentMap)
         );
 
-        finishEnterCurtain(
-            this,
-            this._curtainHandle
-        );
-
         this.game.bgmManager?.playLevel(this);
 
         this.maybeShowLevelIntro();
         }
+        catch (err)
+        {
+            console.error('[LevelScene] create failed:', err);
+        }
         finally
         {
-            if (this.input.enabled === false)
-            {
-                this.input.enabled = true;
-            }
+            finishEnterCurtain(
+                this,
+                this._curtainHandle
+            );
         }
     }
 

@@ -36,8 +36,12 @@ export default {
         detailFontSize: '13px',
         help: {
             label: '帮助',
-            rowHeight: 36,
-            gap: 8
+            rowHeight: 44,
+            gap: 10,
+            fontSize: '18px',
+            accentColor: 0xe8b84a,
+            bgColor: 0x3a2e1c,
+            bgAlpha: 0.94
         }
     },
 

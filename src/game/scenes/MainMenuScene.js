@@ -157,6 +157,9 @@ const MENU_BUTTON_HINT_STYLE = withTextPadding({
     fontStyle: 'italic'
 });
 
+/** 主菜单标题与按钮距右边缘的内边距 */
+const UI_RIGHT_MARGIN = 80;
+
 
 
 export default class MainMenuScene extends Scene
@@ -628,7 +631,8 @@ export default class MainMenuScene extends Scene
 
     {
 
-        const cx = this.centerX;
+        const uiRightX =
+            this.scale.width - UI_RIGHT_MARGIN;
 
         const ui = this.uiRoot;
 
@@ -638,7 +642,7 @@ export default class MainMenuScene extends Scene
 
             this.titleText = this.add.text(
 
-                cx,
+                uiRightX,
 
                 120,
 
@@ -658,7 +662,7 @@ export default class MainMenuScene extends Scene
 
                 })
 
-            ).setOrigin(0.5)
+            ).setOrigin(1, 0.5)
 
         );
 
@@ -668,7 +672,7 @@ export default class MainMenuScene extends Scene
 
             this.subtitleText = this.add.text(
 
-                cx,
+                uiRightX,
 
                 180,
 
@@ -686,7 +690,7 @@ export default class MainMenuScene extends Scene
 
                 })
 
-            ).setOrigin(0.5)
+            ).setOrigin(1, 0.5)
 
         );
 
@@ -708,7 +712,7 @@ export default class MainMenuScene extends Scene
 
         this.addMenuButton(
 
-            cx,
+            uiRightX,
 
             280,
 
@@ -744,7 +748,7 @@ export default class MainMenuScene extends Scene
 
         this.addMenuButton(
 
-            cx,
+            uiRightX,
 
             350,
 
@@ -774,7 +778,7 @@ export default class MainMenuScene extends Scene
 
         this.addMenuButton(
 
-            cx,
+            uiRightX,
 
             420,
 
@@ -796,7 +800,7 @@ export default class MainMenuScene extends Scene
 
         this.addMenuButton(
 
-            cx,
+            uiRightX,
 
             490,
 
@@ -826,7 +830,7 @@ export default class MainMenuScene extends Scene
         this.volumeSettings =
             new VolumeSettingsPanel(this, {
 
-                centerX: cx,
+                centerX: uiRightX - 170,
 
                 topY: 548,
 
@@ -914,7 +918,7 @@ export default class MainMenuScene extends Scene
 
         if (hint)
         {
-            hintOffsetX = button.displayWidth / 2 - 4;
+            hintOffsetX = -4;
             hintOffsetY = -button.displayHeight / 2 - 8;
 
             hintText =
@@ -995,7 +999,7 @@ export default class MainMenuScene extends Scene
 
         )
 
-        .setOrigin(0.5)
+        .setOrigin(1, 0.5)
 
         .setInteractive({ useHandCursor: true });
 

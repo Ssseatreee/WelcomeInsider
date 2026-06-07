@@ -593,6 +593,17 @@ export default class LevelScene extends Phaser.Scene
             );
         }
 
+        if (this.itemPanel?.helpButtonBg)
+        {
+            this.cameras.main.ignore(
+                this.itemPanel.helpButtonBg
+            );
+
+            this.hudCamera?.ignore(
+                this.itemPanel.helpButtonBg
+            );
+        }
+
         if (this.itemPanel?.helpTooltipOverlay)
         {
             this.hudCamera?.ignore(

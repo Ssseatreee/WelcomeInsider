@@ -185,6 +185,10 @@ export default class ItemInventoryPanel
     createHelpButton(helpConfig)
     {
         const label = helpConfig.label ?? '帮助';
+        const fontSize = helpConfig.fontSize ?? '18px';
+        const accentColor = helpConfig.accentColor ?? 0xe8b84a;
+        const bgColor = helpConfig.bgColor ?? 0x3a2e1c;
+        const bgAlpha = helpConfig.bgAlpha ?? 0.94;
         const helpCenterX =
             this.panelLeft + this.panelWidth / 2;
         const helpCenterY =
@@ -193,21 +197,39 @@ export default class ItemInventoryPanel
             + this.helpGap
             + this.helpRowHeight / 2;
 
+        this.helpButtonBg =
+            this.scene.add.rectangle(
+                helpCenterX,
+                helpCenterY,
+                this.panelWidth,
+                this.helpRowHeight,
+                bgColor,
+                bgAlpha
+            );
+
+        this.helpButtonBg.setStrokeStyle(2, accentColor);
+        this.helpButtonBg.setScrollFactor(0);
+        this.helpButtonBg.setDepth(595);
+
         const buttonStyle = withButtonTextStyle({
-            fontSize: '16px',
-            color: '#f5f0e8',
-            backgroundColor: 'rgba(20, 16, 12, 0.55)',
+            fontSize,
+            color: '#fff8e8',
+            fontStyle: 'bold',
+            stroke: '#1a1208',
+            strokeThickness: 2,
+            backgroundColor: undefined,
             padding: {
-                left: 14,
-                right: 14,
-                top: 10,
-                bottom: 8
+                left: 4,
+                right: 4,
+                top: 2,
+                bottom: 0
             }
         });
 
         const buttonHover = {
-            backgroundColor: 'rgba(48, 38, 28, 0.72)',
-            color: '#fff8ee'
+            color: '#ffffff',
+            stroke: '#1a1208',
+            strokeThickness: 2
         };
 
         this.helpButton =
@@ -220,28 +242,42 @@ export default class ItemInventoryPanel
 
         this.helpButton.setOrigin(0.5);
         this.helpButton.setScrollFactor(0);
-        this.helpButton.setDepth(596);
-        this.helpButton.setInteractive({
+        this.helpButton.setDepth(597);
+
+        this.helpButtonBg.setInteractive({
             useHandCursor: true
         });
 
-        bindButtonSfx(this.helpButton, this.scene);
+        bindButtonSfx(this.helpButtonBg, this.scene);
 
-        this.helpButton.on('pointerover', () =>
+        const showHelp = () =>
         {
+            this.helpButtonBg.setFillStyle(0x524028, 0.98);
+            this.helpButtonBg.setStrokeStyle(2, 0xffd56a);
             this.helpButton.setStyle(buttonHover);
             this.showHelpTooltip();
-        });
+        };
 
-        this.helpButton.on('pointerout', () =>
+        const hideHelp = () =>
         {
+            this.helpButtonBg.setFillStyle(bgColor, bgAlpha);
+            this.helpButtonBg.setStrokeStyle(2, accentColor);
             this.helpButton.setStyle({
-                backgroundColor:
-                    buttonStyle.backgroundColor,
-                color: buttonStyle.color
+                color: buttonStyle.color,
+                stroke: buttonStyle.stroke,
+                strokeThickness: buttonStyle.strokeThickness
             });
             this.hideHelpTooltip();
+        };
+
+        this.helpButtonBg.on('pointerover', showHelp);
+        this.helpButtonBg.on('pointerout', hideHelp);
+        this.helpButton.setInteractive({
+            useHandCursor: true
         });
+        this.helpButton.on('pointerover', showHelp);
+        this.helpButton.on('pointerout', hideHelp);
+        bindButtonSfx(this.helpButton, this.scene);
 
         this.helpTooltipOverlay =
             this.scene.add.container(0, 0);

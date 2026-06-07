@@ -466,12 +466,12 @@ const dialogues = {
                         },
                         {
                             speaker: 'sply',
-                            expression: 'biyan_smile',
-                            text:'“嗯，不错。”'
+                            expression: 'smile',
+                            text:'“我要的是点券啊！不过也行吧。”'
                         },
                         {
                             speaker: 'sply',
-                            expression: 'smile',
+                            expression: 'biyan_smile',
                             text:'“那我就当没看见你咯。”'
                         },
                         {
@@ -503,7 +503,7 @@ const dialogues = {
                         {
                             speaker: 'sply',
                             expression: 'biyan_bad',
-                            text: "那就公事公办~"
+                            text: "那就公事公办咯。"
                         }
                     ]
                 }

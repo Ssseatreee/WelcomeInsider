@@ -31,6 +31,12 @@ const NON_GROUND_LAYER_NAMES = new Set([
     'top2'
 ]);
 
+/** 用于计算 playable 区域外框（取 border 层 tile 的内侧） */
+const BORDER_LAYER_NAMES = [
+    'border',
+    'border1'
+];
+
 export default class NavigationGrid
 {
     constructor(map, layers, tileWidth, tileHeight)
@@ -44,6 +50,224 @@ export default class NavigationGrid
         this.blocked = new Uint8Array(this.width * this.height);
 
         this._buildFromLayers(layers);
+        this._computeWalkableTileBounds();
+        this._computeBorderInnerTileBounds(layers);
+    }
+
+    /** border 层 tile 外接矩形向内缩 1 格（ playable 区域） */
+    _computeBorderInnerTileBounds(layers)
+    {
+        this.borderInnerMinTx = null;
+        this.borderInnerMinTy = null;
+        this.borderInnerMaxTx = null;
+        this.borderInnerMaxTy = null;
+
+        let borderMinTx = null;
+        let borderMinTy = null;
+        let borderMaxTx = null;
+        let borderMaxTy = null;
+
+        for (const name of BORDER_LAYER_NAMES)
+        {
+            const layer = layers[name];
+
+            if (!layer?.getTileAt)
+            {
+                continue;
+            }
+
+            for (let ty = 0; ty < this.height; ty++)
+            {
+                for (let tx = 0; tx < this.width; tx++)
+                {
+                    const tile = layer.getTileAt(tx, ty);
+
+                    if (!tile || tile.index <= 0)
+                    {
+                        continue;
+                    }
+
+                    if (
+                        borderMinTx === null
+                        ||
+                        tx < borderMinTx
+                    )
+                    {
+                        borderMinTx = tx;
+                    }
+
+                    if (
+                        borderMaxTx === null
+                        ||
+                        tx > borderMaxTx
+                    )
+                    {
+                        borderMaxTx = tx;
+                    }
+
+                    if (
+                        borderMinTy === null
+                        ||
+                        ty < borderMinTy
+                    )
+                    {
+                        borderMinTy = ty;
+                    }
+
+                    if (
+                        borderMaxTy === null
+                        ||
+                        ty > borderMaxTy
+                    )
+                    {
+                        borderMaxTy = ty;
+                    }
+                }
+            }
+        }
+
+        if (borderMinTx === null)
+        {
+            return;
+        }
+
+        this.borderInnerMinTx = borderMinTx + 1;
+        this.borderInnerMinTy = borderMinTy + 1;
+        this.borderInnerMaxTx = borderMaxTx - 1;
+        this.borderInnerMaxTy = borderMaxTy - 1;
+
+        if (this.borderInnerMinTx > this.borderInnerMaxTx)
+        {
+            this.borderInnerMinTx =
+                this.borderInnerMaxTx =
+                    borderMinTx;
+        }
+
+        if (this.borderInnerMinTy > this.borderInnerMaxTy)
+        {
+            this.borderInnerMinTy =
+                this.borderInnerMaxTy =
+                    borderMinTy;
+        }
+    }
+
+    hasBorderInnerRegion()
+    {
+        return this.borderInnerMinTx !== null;
+    }
+
+    _getBoundsTileRange()
+    {
+        if (this.hasBorderInnerRegion())
+        {
+            return {
+                minTx: this.borderInnerMinTx,
+                minTy: this.borderInnerMinTy,
+                maxTx: this.borderInnerMaxTx,
+                maxTy: this.borderInnerMaxTy
+            };
+        }
+
+        if (this.hasWalkableRegion())
+        {
+            return {
+                minTx: this.walkableMinTx,
+                minTy: this.walkableMinTy,
+                maxTx: this.walkableMaxTx,
+                maxTy: this.walkableMaxTy
+            };
+        }
+
+        return null;
+    }
+
+    _tileRangeToWorldBounds(
+        minTx,
+        minTy,
+        maxTx,
+        maxTy,
+        margin
+    )
+    {
+        let minX = minTx * this.tileWidth + margin;
+        let minY = minTy * this.tileHeight + margin;
+
+        let maxX =
+            (maxTx + 1) * this.tileWidth
+            - margin;
+
+        let maxY =
+            (maxTy + 1) * this.tileHeight
+            - margin;
+
+        if (maxX < minX)
+        {
+            const cx =
+                (minTx + maxTx + 1)
+                * this.tileWidth
+                / 2;
+
+            minX = cx;
+            maxX = cx;
+        }
+
+        if (maxY < minY)
+        {
+            const cy =
+                (minTy + maxTy + 1)
+                * this.tileHeight
+                / 2;
+
+            minY = cy;
+            maxY = cy;
+        }
+
+        return { minX, minY, maxX, maxY };
+    }
+
+    /** 可走格子的 tile 坐标外接矩形（忽略未绘制区域） */
+    _computeWalkableTileBounds()
+    {
+        this.walkableMinTx = null;
+        this.walkableMinTy = null;
+        this.walkableMaxTx = null;
+        this.walkableMaxTy = null;
+
+        for (let ty = 0; ty < this.height; ty++)
+        {
+            for (let tx = 0; tx < this.width; tx++)
+            {
+                if (!this.isWalkable(tx, ty))
+                {
+                    continue;
+                }
+
+                if (this.walkableMinTx === null || tx < this.walkableMinTx)
+                {
+                    this.walkableMinTx = tx;
+                }
+
+                if (this.walkableMaxTx === null || tx > this.walkableMaxTx)
+                {
+                    this.walkableMaxTx = tx;
+                }
+
+                if (this.walkableMinTy === null || ty < this.walkableMinTy)
+                {
+                    this.walkableMinTy = ty;
+                }
+
+                if (this.walkableMaxTy === null || ty > this.walkableMaxTy)
+                {
+                    this.walkableMaxTy = ty;
+                }
+            }
+        }
+    }
+
+    hasWalkableRegion()
+    {
+        return this.walkableMinTx !== null;
     }
 
     static getOrCreate(map, layers, force = false)
@@ -184,6 +408,19 @@ export default class NavigationGrid
 
     getWorldBounds(margin = NPC_BODY_MARGIN)
     {
+        const range = this._getBoundsTileRange();
+
+        if (range)
+        {
+            return this._tileRangeToWorldBounds(
+                range.minTx,
+                range.minTy,
+                range.maxTx,
+                range.maxTy,
+                margin
+            );
+        }
+
         const mapW = this.width * this.tileWidth;
         const mapH = this.height * this.tileHeight;
 
@@ -223,9 +460,18 @@ export default class NavigationGrid
         );
     }
 
+    isValidNpcPosition(x, y, margin = NPC_BODY_MARGIN)
+    {
+        return (
+            this.isWithinWorldBounds(x, y, margin)
+            &&
+            this.isPositionWalkable(x, y, margin)
+        );
+    }
+
     findNearestWalkableWorldPosition(x, y, margin = NPC_BODY_MARGIN)
     {
-        if (this.isPositionWalkable(x, y, margin))
+        if (this.isValidNpcPosition(x, y, margin))
         {
             return { x, y };
         }
@@ -258,7 +504,7 @@ export default class NavigationGrid
                         );
 
                     if (
-                        this.isPositionWalkable(
+                        this.isValidNpcPosition(
                             world.x,
                             world.y,
                             margin

@@ -10,8 +10,8 @@ const level2 = {
     [
         {
             name: 'v2',
-            x: 500,
-            y: 300,
+            x: 560,
+            y: 496,
             mapKey: 'hall',
             type: 'hunter',
             hasEmpathy: true,
@@ -20,8 +20,8 @@ const level2 = {
 
         {
             name: 'federico',
-            x: 500,
-            y: 200,
+            x: 656,
+            y: 496,
             mapKey: 'hall',
             type: 'hunter',
             hasEmpathy: false,
@@ -30,8 +30,8 @@ const level2 = {
 
         {
             name: 'lemuen',
-            x: 500,
-            y: 300,
+            x: 752,
+            y: 496,
             mapKey: 'hall',
             type: 'hunter',
             hasEmpathy: true,

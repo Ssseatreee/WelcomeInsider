@@ -397,6 +397,18 @@ export default class HunterPathing
 
     static clampEntity(entity, mapKey)
     {
+        HunterPathing.snapEntityToWalkableRegion(
+            entity,
+            mapKey
+        );
+    }
+
+    /**
+     * 将 NPC 压入可走格外接矩形，并吸附到最近可走格
+     * （回图、离屏校正、切图后统一使用）
+     */
+    static snapEntityToWalkableRegion(entity, mapKey)
+    {
         const grid = NavigationGrid.get(mapKey);
         const margin = HunterPathing.NPC_BODY_MARGIN;
 
@@ -411,36 +423,32 @@ export default class HunterPathing
             return;
         }
 
-        const bounded =
-            grid.clampToWorldBounds(
-                entity.worldX,
-                entity.worldY,
-                margin
-            );
+        let x = entity.worldX;
+        let y = entity.worldY;
 
-        entity.worldX = bounded.x;
-        entity.worldY = bounded.y;
-
-        if (
-            grid.isPositionWalkable(
-                entity.worldX,
-                entity.worldY,
-                margin
-            )
-        )
+        if (!grid.isValidNpcPosition(x, y, margin))
         {
-            return;
+            const bounded =
+                grid.clampToWorldBounds(x, y, margin);
+
+            x = bounded.x;
+            y = bounded.y;
+
+            if (!grid.isValidNpcPosition(x, y, margin))
+            {
+                const snapped =
+                    grid.clampWorldPosition(x, y, margin);
+
+                x = snapped.x;
+                y = snapped.y;
+            }
         }
 
-        const clamped =
-            grid.clampWorldPosition(
-                entity.worldX,
-                entity.worldY,
-                margin
-            );
+        const final =
+            grid.clampToWorldBounds(x, y, margin);
 
-        entity.worldX = clamped.x;
-        entity.worldY = clamped.y;
+        entity.worldX = final.x;
+        entity.worldY = final.y;
     }
 
     static clampEntityToMapPixels(entity, mapKey, margin)
@@ -473,18 +481,29 @@ export default class HunterPathing
             return;
         }
 
+        const margin = HunterPathing.NPC_BODY_MARGIN;
+
         if (
+            grid.isWithinWorldBounds(
+                entity.worldX,
+                entity.worldY,
+                margin
+            )
+            &&
             grid.isPositionWalkable(
                 entity.worldX,
                 entity.worldY,
-                HunterPathing.NPC_BODY_MARGIN
+                margin
             )
         )
         {
             return;
         }
 
-        HunterPathing.clampEntity(entity, mapKey);
+        HunterPathing.snapEntityToWalkableRegion(
+            entity,
+            mapKey
+        );
     }
 
     /**

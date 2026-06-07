@@ -85,7 +85,7 @@ export default class NPCManager
                 continue;
             }
 
-            HunterPathing.clampEntity(
+            HunterPathing.snapEntityToWalkableRegion(
                 npc,
                 mapKey
             );

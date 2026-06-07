@@ -2254,6 +2254,8 @@ export default class LevelScene extends Phaser.Scene
     {
         this.currentMap = targetMap;
 
+        this.mapManager.warmNavigationGrid(targetMap);
+
         this.npcManager.clampNPCsOnMap(targetMap);
 
         // 离屏地图 Matter 已卸载，预热导航网格并校正游荡 NPC 位置
@@ -2283,6 +2285,26 @@ export default class LevelScene extends Phaser.Scene
 
         this.mapManager.clearCurrentMap();
         this.mapManager.loadMap(targetMap);
+
+        this.npcManager.clampNPCsOnMap(targetMap);
+
+        this.npcSprites.forEach(sprite =>
+        {
+            if (sprite.entity.currentMap !== targetMap)
+            {
+                return;
+            }
+
+            HunterPathing.snapEntityToWalkableRegion(
+                sprite.entity,
+                targetMap
+            );
+
+            sprite.setPosition(
+                sprite.entity.worldX,
+                sprite.entity.worldY
+            );
+        });
 
         const targetPortal =
             this.mapManager.portals.find(

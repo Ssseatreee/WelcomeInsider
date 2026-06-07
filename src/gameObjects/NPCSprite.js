@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import HunterPathing from '../systems/HunterPathing.js';
+import NavigationGrid from '../systems/NavigationGrid.js';
 
 export default class NPCSprite
 extends Phaser.Physics.Matter.Sprite
@@ -87,29 +88,31 @@ extends Phaser.Physics.Matter.Sprite
 
         if (onMap)
         {
-            if (NPCSprite.usesPhysicsMovement(this.entity))
-            {
-                HunterPathing.clampEntity(
-                    this.entity,
-                    this.entity.currentMap
-                );
-            }
+            this.ensureEntityNavGrid();
+
+            HunterPathing.snapEntityToWalkableRegion(
+                this.entity,
+                this.entity.currentMap
+            );
 
             this.setPosition(
                 this.entity.worldX,
                 this.entity.worldY
             );
 
-            this.setVelocity(
-                this.entity.vx,
-                this.entity.vy
-            );
-
-            this.setFixedRotation();
-
-            if (!world.has(this.body))
+            if (NPCSprite.usesPhysicsMovement(this.entity))
             {
-                world.add(this.body);
+                this.setVelocity(
+                    this.entity.vx,
+                    this.entity.vy
+                );
+
+                this.setFixedRotation();
+
+                if (!world.has(this.body))
+                {
+                    world.add(this.body);
+                }
             }
 
             this.applyFrame(true);
@@ -119,7 +122,7 @@ extends Phaser.Physics.Matter.Sprite
             this.entity.worldX = this.x;
             this.entity.worldY = this.y;
 
-            HunterPathing.clampEntity(
+            HunterPathing.snapEntityToWalkableRegion(
                 this.entity,
                 this.entity.currentMap
             );
@@ -131,6 +134,22 @@ extends Phaser.Physics.Matter.Sprite
                 world.remove(this.body);
             }
         }
+    }
+
+    ensureEntityNavGrid()
+    {
+        const mapKey = this.entity.currentMap;
+
+        if (
+            !mapKey
+            ||
+            NavigationGrid.get(mapKey)
+        )
+        {
+            return;
+        }
+
+        this.scene?.mapManager?.warmNavigationGrid(mapKey);
     }
 
     preUpdate(time, delta)

@@ -29,7 +29,7 @@ export const DIALOGUE_LEFT_PORTRAIT_X_FULL =
     DIALOGUE_BOX_CENTER_X_FULL - 320;
 
 /** 成就页立绘相对对话位置的额外左移 */
-export const COLLECTION_PORTRAIT_OFFSET_X = -200;
+export const COLLECTION_PORTRAIT_OFFSET_X = -260;
 
 /** 成就页立绘缩放（大于游戏内对话的 1.3） */
 export const COLLECTION_PORTRAIT_SCALE = 1.8;

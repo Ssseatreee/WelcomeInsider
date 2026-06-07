@@ -65,7 +65,7 @@ export default class CollectionScene extends Scene
         this._curtainTransitioning = false;
         this._returningToMenu = false;
 
-        this.cameras.main.setBackgroundColor('#1a1a1a');
+        this.cameras.main.setBackgroundColor('#262626');
 
         // this.add.text(
         //     TOTAL_WIDTH / 2,

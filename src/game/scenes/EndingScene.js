@@ -391,6 +391,7 @@ export default class EndingScene extends Scene
 
         this.phase = PHASE.KNOCK;
 
+        this.unlockAudio();
         playKnockSfx(this, () => this.onKnockComplete());
     }
 
@@ -419,6 +420,7 @@ export default class EndingScene extends Scene
             line.setAlpha(1);
         });
 
+        this.unlockAudio();
         this.onEpilogComplete();
     }
 
@@ -646,17 +648,34 @@ export default class EndingScene extends Scene
         this.stopButtonPulse();
 
         this.welcomeButton.setVisible(false);
-        this.dialogueContainer.setAlpha(0.35);
+        this.welcomeButton.disableInteractive();
+        this.dialogueBox.disableInteractive();
 
-        this.fadeToMainMenu();
-    }
+        this.tweens.killTweensOf(this.dialogueContainer);
+        this.tweens.killTweensOf(this.fadeOverlay);
+        this.tweens.killTweensOf([
+            this.cgContainer,
+            this.cgBackground
+        ]);
 
-    fadeToMainMenu()
-    {
         this.game.bgmManager?.fadeOutForTransition(
             this,
             ENDING_BGM_FADE_OUT_MS
         );
+
+        this.tweens.add({
+            targets: this.dialogueContainer,
+            alpha: 0,
+            duration: ENDING_FADE_TO_MENU_MS,
+            ease: 'Sine.easeIn'
+        });
+
+        this.tweens.add({
+            targets: [this.cgContainer, this.cgBackground],
+            alpha: 0,
+            duration: ENDING_FADE_TO_MENU_MS,
+            ease: 'Sine.easeIn'
+        });
 
         this.tweens.add({
             targets: this.fadeOverlay,

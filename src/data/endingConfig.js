@@ -23,7 +23,7 @@ export const ENDING_DIALOGUE_TEXT = '“你也可以选择先休息一下，博�
 /** 关卡结束 → 结局渐暗（与关卡 BGM 渐停同步） */
 export const ENDING_FADE_MS = 2800;
 
-/** 结局 → 主菜单渐暗 */
+/** 结局 → 主菜单渐暗（与对话框渐隐同步） */
 export const ENDING_FADE_TO_MENU_MS = 2800;
 
 /** CG 渐亮时长（较缓） */

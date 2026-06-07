@@ -118,10 +118,21 @@ export function playKnockSfx(scene, onComplete)
         return null;
     }
 
+    if (!game.cache?.audio?.exists?.(SFX.KNOCK))
+    {
+        onComplete?.();
+        return null;
+    }
+
+    const meta = game.cache.audio.get(SFX.KNOCK);
+    const duration = Number(meta?.duration) || 0;
+    const seek =
+        duration > SFX_KNOCK_START_SEC + 0.05
+            ? SFX_KNOCK_START_SEC
+            : 0;
+
     const sound =
-        game.sound.add(SFX.KNOCK, {
-            volume: AudioSettings.getSfxVolume()
-        });
+        AudioSettings.playSfx(game, SFX.KNOCK, { seek });
 
     if (!sound)
     {
@@ -157,7 +168,6 @@ export function playKnockSfx(scene, onComplete)
             sound.stop();
         }
 
-        sound.destroy();
         onComplete?.();
     };
 
@@ -166,18 +176,9 @@ export function playKnockSfx(scene, onComplete)
         sound.once('complete', finish);
     }
 
-    sound.play({ seek: SFX_KNOCK_START_SEC });
-
-    const totalSec =
-        Number(sound.duration)
-        || Number(
-            game.cache?.audio?.get?.(SFX.KNOCK)?.duration
-        )
-        || 0;
-
     const remainingSec =
-        totalSec > SFX_KNOCK_START_SEC
-            ? totalSec - SFX_KNOCK_START_SEC
+        duration > seek
+            ? duration - seek
             : 4;
 
     const fallbackMs =

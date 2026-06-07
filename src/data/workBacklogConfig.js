@@ -33,7 +33,12 @@ export default {
         gridTopOffset: 20,
         labelHeight: 24,
         labelFontSize: '14px',
-        detailFontSize: '13px'
+        detailFontSize: '13px',
+        help: {
+            label: '帮助',
+            rowHeight: 36,
+            gap: 8
+        }
     },
 
     barWidth: 260,

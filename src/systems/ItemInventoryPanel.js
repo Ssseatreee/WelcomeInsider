@@ -1,4 +1,5 @@
 import workBacklogConfig from '../data/workBacklogConfig.js';
+import gameRulesText from '../data/gameRulesText.js';
 import { resolveItem } from '../data/items.js';
 import GameState from './GameState.js';
 import * as Phaser from 'phaser';
@@ -7,7 +8,11 @@ import {
     HUD_WIDTH,
     PLAY_AREA_WIDTH
 } from '../game/layout.js';
-import { withTextPadding } from '../data/textStyle.js';
+import {
+    withButtonTextStyle,
+    withTextPadding
+} from '../data/textStyle.js';
+import { bindButtonSfx } from './Sfx.js';
 
 export default class ItemInventoryPanel
 {
@@ -33,6 +38,9 @@ export default class ItemInventoryPanel
         const labelFontSize = itemPanel.labelFontSize ?? '14px';
         const detailFontSize = itemPanel.detailFontSize ?? '13px';
         const gridTopOffset = itemPanel.gridTopOffset ?? 0;
+        const helpConfig = itemPanel.help ?? {};
+        const helpRowHeight = helpConfig.rowHeight ?? 36;
+        const helpGap = helpConfig.gap ?? 8;
 
         this.panelLeft =
             panelOffsetLeft
@@ -46,7 +54,14 @@ export default class ItemInventoryPanel
 
         this.panelWidth = panelWidth;
         this.panelHeight =
-            GAME_HEIGHT - this.panelTop - 12;
+            GAME_HEIGHT
+            - this.panelTop
+            - 12
+            - helpRowHeight
+            - helpGap;
+
+        this.helpRowHeight = helpRowHeight;
+        this.helpGap = helpGap;
 
         this.columns = columns;
         this.iconSize = iconSize;
@@ -162,7 +177,185 @@ export default class ItemInventoryPanel
         this.floatingDetailText.setScrollFactor(0);
         this.detailOverlay.add(this.floatingDetailText);
 
+        this.createHelpButton(helpConfig);
+
         this.refresh();
+    }
+
+    createHelpButton(helpConfig)
+    {
+        const label = helpConfig.label ?? '帮助';
+        const helpCenterX =
+            this.panelLeft + this.panelWidth / 2;
+        const helpCenterY =
+            this.panelTop
+            + this.panelHeight
+            + this.helpGap
+            + this.helpRowHeight / 2;
+
+        const buttonStyle = withButtonTextStyle({
+            fontSize: '16px',
+            color: '#f5f0e8',
+            backgroundColor: 'rgba(20, 16, 12, 0.55)',
+            padding: {
+                left: 14,
+                right: 14,
+                top: 10,
+                bottom: 8
+            }
+        });
+
+        const buttonHover = {
+            backgroundColor: 'rgba(48, 38, 28, 0.72)',
+            color: '#fff8ee'
+        };
+
+        this.helpButton =
+            this.scene.add.text(
+                helpCenterX,
+                helpCenterY,
+                label,
+                buttonStyle
+            );
+
+        this.helpButton.setOrigin(0.5);
+        this.helpButton.setScrollFactor(0);
+        this.helpButton.setDepth(596);
+        this.helpButton.setInteractive({
+            useHandCursor: true
+        });
+
+        bindButtonSfx(this.helpButton, this.scene);
+
+        this.helpButton.on('pointerover', () =>
+        {
+            this.helpButton.setStyle(buttonHover);
+            this.showHelpTooltip();
+        });
+
+        this.helpButton.on('pointerout', () =>
+        {
+            this.helpButton.setStyle({
+                backgroundColor:
+                    buttonStyle.backgroundColor,
+                color: buttonStyle.color
+            });
+            this.hideHelpTooltip();
+        });
+
+        this.helpTooltipOverlay =
+            this.scene.add.container(0, 0);
+
+        this.helpTooltipOverlay.setScrollFactor(0);
+        this.helpTooltipOverlay.setDepth(1501);
+        this.helpTooltipOverlay.setVisible(false);
+
+        this.helpTooltipBg =
+            this.scene.add.rectangle(
+                0,
+                0,
+                this.detailWrapWidth,
+                10,
+                0x1a1a1a,
+                0.98
+            );
+
+        this.helpTooltipBg.setStrokeStyle(1, 0x555555);
+        this.helpTooltipBg.setScrollFactor(0);
+        this.helpTooltipOverlay.add(this.helpTooltipBg);
+
+        this.helpTooltipText =
+            this.scene.add.text(
+                0,
+                0,
+                gameRulesText,
+                withTextPadding({
+                    fontSize: this.detailFontSize,
+                    color: '#dddddd',
+                    align: 'left',
+                    wordWrap: {
+                        width: this.detailWrapWidth - 24,
+                        useAdvancedWrap: true
+                    },
+                    lineSpacing: 4
+                })
+            );
+
+        this.helpTooltipText.setOrigin(0.5, 0);
+        this.helpTooltipText.setScrollFactor(0);
+        this.helpTooltipOverlay.add(this.helpTooltipText);
+    }
+
+    showHelpTooltip()
+    {
+        this.scene.tweens.killTweensOf([
+            this.helpTooltipBg,
+            this.helpTooltipText
+        ]);
+
+        this.helpTooltipText.setWordWrapWidth(
+            this.detailWrapWidth - 24,
+            true
+        );
+
+        const textPadding = 20;
+        const tooltipHeight =
+            this.helpTooltipText.height + textPadding * 2;
+
+        const tooltipX =
+            PLAY_AREA_WIDTH
+            - this.detailWrapWidth / 2
+            - 16;
+
+        let tooltipTop =
+            this.helpButton.y
+            - tooltipHeight
+            - 12;
+
+        tooltipTop = Phaser.Math.Clamp(
+            tooltipTop,
+            12,
+            GAME_HEIGHT - tooltipHeight - 12
+        );
+
+        const centerY = tooltipTop + tooltipHeight / 2;
+
+        this.helpTooltipText.setPosition(
+            tooltipX,
+            tooltipTop + textPadding
+        );
+
+        this.helpTooltipBg.setPosition(tooltipX, centerY);
+        this.helpTooltipBg.setSize(
+            this.detailWrapWidth,
+            tooltipHeight
+        );
+
+        this.helpTooltipOverlay.setVisible(true);
+        this.helpTooltipBg.setAlpha(1);
+        this.helpTooltipText.setAlpha(1);
+    }
+
+    hideHelpTooltip()
+    {
+        this.scene.tweens.killTweensOf([
+            this.helpTooltipBg,
+            this.helpTooltipText
+        ]);
+
+        this.scene.tweens.add({
+            targets: [
+                this.helpTooltipBg,
+                this.helpTooltipText
+            ],
+            alpha: 0,
+            duration: 120,
+            ease: 'Sine.easeIn',
+            onComplete: () =>
+            {
+                this.helpTooltipOverlay.setVisible(false);
+            }
+        });
     }
 
     createSlotView(index)

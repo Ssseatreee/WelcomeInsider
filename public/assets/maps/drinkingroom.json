@@ -502,7 +502,7 @@
         {
          "columns":7,
          "firstgid":1,
-         "image":"E:\/1-\u9690\u73b0\u7684\u804c\u573a\u65e5\u8bb0\uff1f\/\u573a\u666f\/border.png",
+         "image":"..\/tilesets\/border.png",
          "imageheight":128,
          "imagewidth":224,
          "margin":0,
@@ -1442,13 +1442,13 @@
          "tiles":[
                 {
                  "id":0,
-                 "image":"E:\/1-\u9690\u73b0\u7684\u804c\u573a\u65e5\u8bb0\uff1f\/\u573a\u666f\/free-office-pixel-art\/cabinet.png",
+                 "image":"..\/tilesets\/office_essential\/cabinet.png",
                  "imageheight":64,
                  "imagewidth":64
                 }, 
                 {
                  "id":1,
-                 "image":"E:\/1-\u9690\u73b0\u7684\u804c\u573a\u65e5\u8bb0\uff1f\/\u573a\u666f\/free-office-pixel-art\/Chair.png",
+                 "image":"..\/tilesets\/office_essential\/Chair.png",
                  "imageheight":16,
                  "imagewidth":16
                 }, 
@@ -1460,49 +1460,49 @@
                 }, 
                 {
                  "id":3,
-                 "image":"E:\/1-\u9690\u73b0\u7684\u804c\u573a\u65e5\u8bb0\uff1f\/\u573a\u666f\/free-office-pixel-art\/desk.png",
+                 "image":"..\/tilesets\/office_essential\/desk.png",
                  "imageheight":32,
                  "imagewidth":64
                 }, 
                 {
                  "id":4,
-                 "image":"E:\/1-\u9690\u73b0\u7684\u804c\u573a\u65e5\u8bb0\uff1f\/\u573a\u666f\/free-office-pixel-art\/desk-with-pc.png",
+                 "image":"..\/tilesets\/office_essential\/desk-with-pc.png",
                  "imageheight":64,
                  "imagewidth":64
                 }, 
                 {
                  "id":5,
-                 "image":"E:\/1-\u9690\u73b0\u7684\u804c\u573a\u65e5\u8bb0\uff1f\/\u573a\u666f\/free-office-pixel-art\/PC1.png",
+                 "image":"..\/tilesets\/office_essential\/PC1.png",
                  "imageheight":32,
                  "imagewidth":32
                 }, 
                 {
                  "id":6,
-                 "image":"E:\/1-\u9690\u73b0\u7684\u804c\u573a\u65e5\u8bb0\uff1f\/\u573a\u666f\/free-office-pixel-art\/PC2.png",
+                 "image":"..\/tilesets\/office_essential\/PC2.png",
                  "imageheight":32,
                  "imagewidth":32
                 }, 
                 {
                  "id":7,
-                 "image":"E:\/1-\u9690\u73b0\u7684\u804c\u573a\u65e5\u8bb0\uff1f\/\u573a\u666f\/free-office-pixel-art\/plant.png",
+                 "image":"..\/tilesets\/office_essential\/plant.png",
                  "imageheight":32,
                  "imagewidth":32
                 }, 
                 {
                  "id":8,
-                 "image":"E:\/1-\u9690\u73b0\u7684\u804c\u573a\u65e5\u8bb0\uff1f\/\u573a\u666f\/free-office-pixel-art\/printer.png",
+                 "image":"..\/tilesets\/office_essential\/printer.png",
                  "imageheight":32,
                  "imagewidth":64
                 }, 
                 {
                  "id":9,
-                 "image":"E:\/1-\u9690\u73b0\u7684\u804c\u573a\u65e5\u8bb0\uff1f\/\u573a\u666f\/free-office-pixel-art\/Trash.png",
+                 "image":"..\/tilesets\/office_essential\/Trash.png",
                  "imageheight":16,
                  "imagewidth":16
                 }, 
                 {
                  "id":10,
-                 "image":"E:\/1-\u9690\u73b0\u7684\u804c\u573a\u65e5\u8bb0\uff1f\/\u573a\u666f\/free-office-pixel-art\/water-cooler.png",
+                 "image":"..\/tilesets\/office_essential\/water-cooler.png",
                  "imageheight":32,
                  "imagewidth":16
                 }],
@@ -1511,7 +1511,7 @@
         {
          "columns":9,
          "firstgid":1855,
-         "image":"E:\/1-\u9690\u73b0\u7684\u804c\u573a\u65e5\u8bb0\uff1f\/\u573a\u666f\/drinkingroom.png",
+         "image":"..\/tilesets\/drinkingroom.png",
          "imageheight":384,
          "imagewidth":288,
          "margin":0,

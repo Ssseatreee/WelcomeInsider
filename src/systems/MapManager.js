@@ -17,11 +17,12 @@ export default class MapManager {
         this.navigationGrid = null;
     }
 
-    collectTilesets(map)
+    collectTilesets(map, mapKey)
     {
         const tilesets = [];
+        const rawTilesets = this.getRawTilesets(mapKey);
 
-        map.tilesets.forEach(ts =>
+        map.tilesets.forEach((ts) =>
         {
             if (ts.source && !ts.image && !ts.tiles?.length)
             {
@@ -33,15 +34,49 @@ export default class MapManager {
 
             let tileset = null;
 
-            if (this.isCollectionTileset(ts))
+            if (
+                !this.isImagePathTileset(ts)
+                && this.isCollectionTileset(ts, rawTilesets)
+            )
             {
-                this.normalizeCollectionTileImages(ts);
+                this.hydrateCollectionTileset(ts, rawTilesets);
+                this.normalizeCollectionTileImages(
+                    ts,
+                    rawTilesets
+                );
                 tileset = map.addTilesetImage(ts.name);
+            }
+            else if (this.isImagePathTileset(ts))
+            {
+                const textureKey =
+                    this.resolveTextureKeyFromPath(ts.name);
+
+                if (
+                    !textureKey
+                    || !this.scene.textures.exists(textureKey)
+                )
+                {
+                    console.warn(
+                        `Missing image tileset texture for "${ts.name}"`
+                    );
+                }
+
+                tileset = map.addTilesetImage(
+                    ts.name,
+                    textureKey,
+                    ts.tileWidth,
+                    ts.tileHeight,
+                    ts.margin,
+                    ts.spacing
+                );
             }
             else
             {
                 const textureKey =
-                    this.resolveTilesetTextureKey(ts.name);
+                    this.resolveTilesetTextureKey(
+                        ts,
+                        rawTilesets
+                    );
 
                 if (!this.scene.textures.exists(textureKey))
                 {
@@ -52,7 +87,11 @@ export default class MapManager {
 
                 tileset = map.addTilesetImage(
                     ts.name,
-                    textureKey
+                    textureKey,
+                    ts.tileWidth,
+                    ts.tileHeight,
+                    ts.margin,
+                    ts.spacing
                 );
             }
 
@@ -65,6 +104,18 @@ export default class MapManager {
         return tilesets;
     }
 
+    getRawTilesets(mapKey)
+    {
+        const entry = this.scene.cache.tilemap.get(mapKey);
+
+        if (!entry?.data?.tilesets)
+        {
+            return [];
+        }
+
+        return entry.data.tilesets;
+    }
+
     /**
      * 为离屏 NPC 预建导航网格（不渲染、不生成 Matter 碰撞体）
      */
@@ -73,7 +124,7 @@ export default class MapManager {
         const map =
             this.scene.make.tilemap({ key: mapKey });
 
-        const tilesets = this.collectTilesets(map);
+        const tilesets = this.collectTilesets(map, mapKey);
         const layers = {};
 
         map.layers.forEach(layerData =>
@@ -126,7 +177,7 @@ export default class MapManager {
         // 创建 tilemap
         this.map = this.scene.make.tilemap({ key: mapKey });
 
-        const tilesets = this.collectTilesets(this.map);
+        const tilesets = this.collectTilesets(this.map, mapKey);
         
 
         // 计算偏移
@@ -290,8 +341,31 @@ export default class MapManager {
         return this.map ? this.map.heightInPixels : 0;
     }
 
-    resolveTilesetTextureKey(name)
+    resolveTilesetTextureKey(tsOrName, rawTilesets = [])
     {
+        const name =
+            typeof tsOrName === 'string'
+                ? tsOrName
+                : tsOrName.name;
+
+        const imagePath =
+            this.getTilesetImagePath(
+                tsOrName,
+                rawTilesets
+            )
+            || (this.isImagePathString(name) ? name : null);
+
+        if (imagePath)
+        {
+            const textureKey =
+                this.resolveTextureKeyFromPath(imagePath);
+
+            if (textureKey)
+            {
+                return textureKey;
+            }
+        }
+
         const prefixed = `tileset-${name}`;
 
         if (this.scene.textures.exists(prefixed))
@@ -307,27 +381,182 @@ export default class MapManager {
         return prefixed;
     }
 
-    isCollectionTileset(ts)
+    isImagePathTileset(ts)
     {
-        return Boolean(
-            ts.tiles?.some(tile => tile.image)
+        return this.isImagePathString(ts?.name);
+    }
+
+    isImagePathString(value)
+    {
+        if (typeof value !== 'string')
+        {
+            return false;
+        }
+
+        return (
+            /[\\/]/.test(value)
+            && /\.(png|jpe?g|webp)$/i.test(value)
         );
     }
 
-    normalizeCollectionTileImages(ts)
+    resolveTextureKeyFromPath(imagePath)
     {
-        ts.tiles.forEach(tile => {
+        if (typeof imagePath !== 'string')
+        {
+            return null;
+        }
 
-            if (!tile.image)
+        const fileName =
+            imagePath
+                .replace(/\\/g, '/')
+                .split('/')
+                .pop();
+
+        if (!fileName)
+        {
+            return null;
+        }
+
+        if (this.scene.textures.exists(fileName))
+        {
+            return fileName;
+        }
+
+        const imageBase =
+            fileName.replace(/\.(png|jpe?g|webp)$/i, '');
+        const tilesetKey = `tileset-${imageBase}`;
+
+        if (this.scene.textures.exists(tilesetKey))
+        {
+            return tilesetKey;
+        }
+
+        return null;
+    }
+
+    getTilesetImagePath(tsOrName, rawTilesets = [])
+    {
+        if (typeof tsOrName === 'string')
+        {
+            return null;
+        }
+
+        if (typeof tsOrName.image === 'string')
+        {
+            return tsOrName.image;
+        }
+
+        if (this.isImagePathString(tsOrName.name))
+        {
+            return tsOrName.name;
+        }
+
+        const rawMatch = rawTilesets.find(entry =>
+            entry.firstgid === tsOrName.firstgid
+            || entry.name === tsOrName.name
+        );
+
+        if (typeof rawMatch?.image === 'string')
+        {
+            return rawMatch.image;
+        }
+
+        return null;
+    }
+
+    textureKeyFromImagePath(imagePath)
+    {
+        return this.resolveTextureKeyFromPath(imagePath);
+    }
+
+    hydrateCollectionTileset(ts, rawTilesets = [])
+    {
+        const raw = rawTilesets.find(entry =>
+            entry.firstgid === ts.firstgid
+            || entry.name === ts.name
+        );
+
+        if (!raw?.tiles?.length)
+        {
+            return;
+        }
+
+        const needsHydration =
+            !ts.tiles?.length
+            || !ts.tiles.some(tile =>
+                typeof tile.image === 'string'
+            );
+
+        if (needsHydration)
+        {
+            ts.tiles = raw.tiles.map(tile => ({ ...tile }));
+        }
+    }
+
+    isCollectionTileset(ts, rawTilesets = [])
+    {
+        if (ts.tiles?.some(tile => tile.image))
+        {
+            return true;
+        }
+
+        const raw = rawTilesets.find(entry =>
+            entry.firstgid === ts.firstgid
+            || entry.name === ts.name
+        );
+
+        return Boolean(
+            raw?.tiles?.some(tile => tile.image)
+        );
+    }
+
+    normalizeCollectionTileImages(ts, rawTilesets = [])
+    {
+        const raw = rawTilesets.find(entry =>
+            entry.firstgid === ts.firstgid
+            || entry.name === ts.name
+        );
+        const rawTiles = raw?.tiles || [];
+
+        ts.tiles.forEach(tile =>
+        {
+            let imagePath = null;
+
+            if (typeof tile.image === 'string')
+            {
+                imagePath = tile.image;
+            }
+            else
+            {
+                const rawTile =
+                    rawTiles.find(entry => entry.id === tile.id);
+
+                if (typeof rawTile?.image === 'string')
+                {
+                    imagePath = rawTile.image;
+                }
+            }
+
+            if (!imagePath)
             {
                 return;
             }
 
-            tile.image =
-                tile.image
+            const fileName =
+                imagePath
                     .replace(/\\/g, '/')
                     .split('/')
                     .pop();
+
+            tile.image = fileName;
+
+            if (!this.scene.textures.exists(fileName))
+            {
+                console.warn(
+                    `Missing collection tile texture "${fileName}"`
+                    + ` for tileset "${ts.name}"`
+                );
+            }
         });
     }
 }

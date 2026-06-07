@@ -479,6 +479,11 @@ export class Preloader extends Scene
         );
 
         this.load.image(
+            'tileset-office_1',
+            './assets/tilesets/office_1.png'
+        );
+
+        this.load.image(
             'tileset-border',
             './assets/tilesets/border.png'
         );
@@ -497,7 +502,6 @@ export class Preloader extends Scene
         const officeEssentialImages = [
             'cabinet.png',
             'Chair.png',
-            'coffee-maker.png',
             'desk.png',
             'desk-with-pc.png',
             'PC1.png',
@@ -515,6 +519,11 @@ export class Preloader extends Scene
                 `./assets/tilesets/office_essential/${fileName}`
             );
         });
+
+        this.load.image(
+            'coffee-maker.png',
+            './assets/tilesets/coffee-maker.png'
+        );
 
         const beginningCgPath =
             './assets/CG/beginning';

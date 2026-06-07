@@ -14,7 +14,7 @@ const itemRegistry = {
         name: '甜甜圈',
         textureKey: 'item-donut',
         description:
-            '休息室长桌上的甜品。糖霜亮晶晶的，让人想偷吃一口。'
+            '休息室长桌上的甜品。可以自己吃，也可以端给同事。'
     },
 
     drone: {
@@ -23,7 +23,7 @@ const itemRegistry = {
         textureKey: 'item-drone',
         effectMessage: '小地图上可看见所有人员',
         description:
-            '斯普莉雅给的无人机。无论是否有共感，都能在小地图上看到所有人员。'
+            '借助斯普莉雅的无人机能够在小地图上看到所有人员，无论对方是否有共感。'
     },
 
     splyRefuse: {

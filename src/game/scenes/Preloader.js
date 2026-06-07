@@ -15,11 +15,8 @@ const BAR_HEIGHT = 32;
 const BAR_FILL_INSET = 4;
 const UI_ICON_SCALE = 0.18;
 
-/** 预加载界面至少停留时长（毫秒） */
-const MIN_PRELOAD_MS = 3500;
-
-/** 进度条追赶速度，越小越慢 */
-const PROGRESS_CATCHUP = 1.8;
+/** 文件加载占进度条比例，余量留给 create 阶段（动画注册等） */
+const LOAD_PROGRESS_WEIGHT = 0.92;
 
 export class Preloader extends Scene
 {
@@ -70,16 +67,13 @@ export class Preloader extends Scene
 
         this.runnerSwapped = false;
         this.barLeft = barLeft;
-
-        this.loadProgress = 0;
-        this.displayProgress = 0;
-        this.assetsReady = false;
         this.transitioning = false;
-        this.preloadStartedAt = 0;
 
         this.load.on('progress', (progress) =>
         {
-            this.loadProgress = progress;
+            this.applyProgressDisplay(
+                progress * LOAD_PROGRESS_WEIGHT
+            );
         });
     }
 
@@ -102,60 +96,6 @@ export class Preloader extends Scene
             this.runnerIcon.setTexture('ui-right');
             this.runnerSwapped = true;
         }
-    }
-
-    update(_time, delta)
-    {
-        if (!this.preloadStartedAt)
-        {
-            this.preloadStartedAt = this.time.now;
-        }
-
-        const dt = delta / 1000;
-        const diff =
-            this.loadProgress - this.displayProgress;
-
-        this.displayProgress +=
-            diff * Math.min(1, PROGRESS_CATCHUP * dt);
-
-        if (
-            this.loadProgress >= 1
-            &&
-            this.displayProgress > 0.998
-        )
-        {
-            this.displayProgress = 1;
-        }
-
-        this.applyProgressDisplay(this.displayProgress);
-
-        if (this.assetsReady)
-        {
-            this.tryFinishPreload();
-        }
-    }
-
-    tryFinishPreload()
-    {
-        if (
-            this.transitioning
-            ||
-            this.displayProgress < 1
-        )
-        {
-            return;
-        }
-
-        const elapsed =
-            this.time.now - this.preloadStartedAt;
-
-        if (elapsed < MIN_PRELOAD_MS)
-        {
-            return;
-        }
-
-        this.transitioning = true;
-        transitionToScene(this, 'MainMenuScene');
     }
 
     preload ()
@@ -633,21 +573,36 @@ export class Preloader extends Scene
 
     create ()
     {
-        //  When all the assets have loaded, it's often worth creating global objects here that the rest of the game can use.
-        //  For example, you can define global animations here, so we can use them in other scenes.
-        //player animations
-        createPlayerAnimations(this.anims);
-        //v2 animations
-        createV2Animations(this.anims);
-        //federico animations
-        createFedericoAnimations(this.anims);
-        //lemuen animations
-        createLemuenAnimations(this.anims);
-        createAzeAnimations(this.anims);
-        createOrenAnimations(this.anims);
-        createSplyAnimations(this.anims);
+        const postLoadSteps = [
+            () => createPlayerAnimations(this.anims),
+            () => createV2Animations(this.anims),
+            () => createFedericoAnimations(this.anims),
+            () => createLemuenAnimations(this.anims),
+            () => createAzeAnimations(this.anims),
+            () => createOrenAnimations(this.anims),
+            () => createSplyAnimations(this.anims)
+        ];
 
-        this.loadProgress = 1;
-        this.assetsReady = true;
+        const createWeight = 1 - LOAD_PROGRESS_WEIGHT;
+
+        postLoadSteps.forEach((step, index) =>
+        {
+            step();
+
+            this.applyProgressDisplay(
+                LOAD_PROGRESS_WEIGHT
+                + createWeight
+                * (index + 1)
+                / postLoadSteps.length
+            );
+        });
+
+        if (this.transitioning)
+        {
+            return;
+        }
+
+        this.transitioning = true;
+        transitionToScene(this, 'MainMenuScene');
     }
 }

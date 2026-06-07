@@ -7,10 +7,15 @@ import {
 } from '../game/layout.js';
 import { playAchievementDing } from './Sfx.js';
 
-const DISPLAY_MS = 3200;
+const DISPLAY_MS = 3000;
+const FADE_IN_MS = 220;
+const FADE_OUT_MS = 480;
 const MARGIN = 16;
-const PANEL_W = 280;
-const PANEL_H = 72;
+const PANEL_W = 260;
+const PANEL_H = 64;
+const ICON_PAD = 12;
+const ICON_SIZE = 48;
+const TEXT_GAP = 10;
 
 export default class AchievementUnlockNotice
 {
@@ -48,16 +53,24 @@ export default class AchievementUnlockNotice
         this.panel.setStrokeStyle(2, 0xffcc66, 0.9);
         this.container.add(this.panel);
 
+        const iconCenterX =
+            -PANEL_W + ICON_PAD + ICON_SIZE / 2;
+        const rowCenterY = -PANEL_H / 2;
+
         this.icon =
-            scene.add.image(-PANEL_W + 28, -36, 'achievement-goodSenior');
+            scene.add.image(
+                iconCenterX,
+                rowCenterY,
+                'achievement-goodSenior'
+            );
 
         this.icon.setOrigin(0.5);
         this.container.add(this.icon);
 
         this.titleText =
             scene.add.text(
-                -PANEL_W + 56,
-                -52,
+                -PANEL_W + ICON_PAD + ICON_SIZE + TEXT_GAP,
+                rowCenterY,
                 '',
                 withTextPadding({
                     fontSize: '20px',
@@ -66,22 +79,8 @@ export default class AchievementUnlockNotice
                 })
             );
 
-        this.titleText.setOrigin(0, 0);
+        this.titleText.setOrigin(0, 0.5);
         this.container.add(this.titleText);
-
-        this.subtitleText =
-            scene.add.text(
-                -PANEL_W + 56,
-                -28,
-                '成就解锁',
-                withTextPadding({
-                    fontSize: '15px',
-                    color: '#cccccc'
-                })
-            );
-
-        this.subtitleText.setOrigin(0, 0);
-        this.container.add(this.subtitleText);
     }
 
     show(achievementId, onComplete = null)
@@ -104,7 +103,7 @@ export default class AchievementUnlockNotice
         )
         {
             this.icon.setTexture(achievement.textureKey);
-            this.fitIcon(this.icon, 44);
+            this.fitIcon(this.icon, ICON_SIZE);
             this.icon.setVisible(true);
         }
         else
@@ -122,7 +121,7 @@ export default class AchievementUnlockNotice
             targets: this.container,
             alpha: 1,
             y: this.anchorY,
-            duration: 220,
+            duration: FADE_IN_MS,
             ease: 'Back.easeOut'
         });
 
@@ -140,8 +139,7 @@ export default class AchievementUnlockNotice
         this.scene.tweens.add({
             targets: this.container,
             alpha: 0,
-            y: this.anchorY + 8,
-            duration: 180,
+            duration: FADE_OUT_MS,
             ease: 'Sine.easeIn',
             onComplete: () =>
             {

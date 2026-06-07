@@ -19,3 +19,6 @@ export const SFX_FILES = {
 
 /** 敲门音效从第几秒开始播放 */
 export const SFX_KNOCK_START_SEC = 5;
+
+/** 按钮音效从第几秒开始播放 */
+export const SFX_BUTTON_START_SEC = 0.03;

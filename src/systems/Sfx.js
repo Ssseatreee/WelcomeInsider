@@ -1,5 +1,5 @@
 import AudioSettings from './AudioSettings.js';
-import { SFX, SFX_KNOCK_START_SEC } from '../data/sfxConfig.js';
+import { SFX, SFX_KNOCK_START_SEC, SFX_BUTTON_START_SEC } from '../data/sfxConfig.js';
 
 export { SFX };
 
@@ -95,7 +95,9 @@ export function bindButtonSfx(target, scene)
 
     target.on('pointerdown', () =>
     {
-        playSfx(scene, SFX.BUTTON);
+        playSfx(scene, SFX.BUTTON, {
+            seek: SFX_BUTTON_START_SEC
+        });
     });
 
     return target;

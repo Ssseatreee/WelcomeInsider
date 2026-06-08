@@ -836,6 +836,48 @@ export default class LevelScene extends Phaser.Scene
         ];
     }
 
+    canOfferBetrayOren()
+    {
+        return (
+            GameState.getFlag('orenMet')
+            &&
+            !GameState.getFlag('orenBetrayed')
+        );
+    }
+
+    appendBetrayOrenChoice(lines, npcName)
+    {
+        if (!this.canOfferBetrayOren())
+        {
+            return lines;
+        }
+
+        const aboutOren =
+            dialogues[npcName]?.aboutOren;
+
+        if (!aboutOren?.length)
+        {
+            return lines;
+        }
+
+        return [
+            ...lines,
+            {
+                choices: [
+                    {
+                        label: '出卖奥伦，换取一次机会',
+                        effect: 'betrayOren',
+                        lines: aboutOren
+                    },
+                    {
+                        label: '保持沉默',
+                        lines: []
+                    }
+                ]
+            }
+        ];
+    }
+
     applyBetrayOren()
     {
         GameState.setFlag('orenBetrayed', true);
@@ -865,9 +907,10 @@ export default class LevelScene extends Phaser.Scene
 
         if (this.currentDialogNPC)
         {
+            // 下次被抓按第二次抓住处理（对话 + 结算）
             this.npcCatchCount[
                 this.currentDialogNPC.npcName
-            ] = 0;
+            ] = 1;
         }
 
         this.grantedSecondChance = true;
@@ -881,42 +924,18 @@ export default class LevelScene extends Phaser.Scene
 
     buildSecondCatchDialogue(npcName)
     {
-        const lines =
-            dialogues[npcName]?.secondCatch ?? [];
+        return this.appendBetrayOrenChoice(
+            dialogues[npcName]?.secondCatch ?? [],
+            npcName
+        );
+    }
 
-        if (
-            !GameState.getFlag('orenMet')
-            ||
-            GameState.getFlag('orenBetrayed')
-        )
-        {
-            return lines;
-        }
-
-        const aboutOren =
-            dialogues[npcName]?.aboutOren;
-
-        if (!aboutOren?.length)
-        {
-            return lines;
-        }
-
-        return [
-            ...lines,
-            {
-                choices: [
-                    {
-                        label: '出卖奥伦，换取一次机会',
-                        effect: 'betrayOren',
-                        lines: aboutOren
-                    },
-                    {
-                        label: '保持沉默',
-                        lines: []
-                    }
-                ]
-            }
-        ];
+    buildBusyCatchDialogue(npcName)
+    {
+        return this.appendBetrayOrenChoice(
+            dialogues[npcName]?.busyCatch ?? [],
+            npcName
+        );
     }
 
     revertHunterSpeedBoost()
@@ -1168,16 +1187,17 @@ export default class LevelScene extends Phaser.Scene
             return true;
         }
 
+        if (this.grantedSecondChance)
+        {
+            this.grantedSecondChance = false;
+            this.currentCatchIsBusy = false;
+            return false;
+        }
+
         if (this.currentCatchIsBusy)
         {
             this.failLevel();
             return true;
-        }
-
-        if (this.grantedSecondChance)
-        {
-            this.grantedSecondChance = false;
-            return false;
         }
 
         const catchCount =
@@ -1806,9 +1826,14 @@ export default class LevelScene extends Phaser.Scene
         const isBusy =
             this.workBacklog?.isFull() ?? false;
 
-        this.currentCatchIsBusy = isBusy;
+        const useBusyCatch =
+            isBusy
+            &&
+            !GameState.getFlag('orenBetrayed');
 
-        if (isBusy)
+        this.currentCatchIsBusy = useBusyCatch;
+
+        if (useBusyCatch)
         {
             dialogueKey = 'busyCatch';
         }
@@ -1841,8 +1866,13 @@ export default class LevelScene extends Phaser.Scene
             dialogue =
                 this.buildSecondCatchDialogue(npcName);
         }
+        else if (dialogueKey === 'busyCatch')
+        {
+            dialogue =
+                this.buildBusyCatchDialogue(npcName);
+        }
 
-        if (!dialogue && isBusy)
+        if (!dialogue && useBusyCatch)
         {
             dialogue =
                 dialogues[npcName]?.secondCatch;
@@ -2219,8 +2249,19 @@ export default class LevelScene extends Phaser.Scene
                 npc.npcName === 'oren'
             )
             {
-                npc.removed =
-                    !GameState.getFlag('orenBetrayed');
+                if (GameState.isOrenBetrayedCommitted())
+                {
+                    if (npc.convertToHunter)
+                    {
+                        npc.convertToHunter();
+                    }
+
+                    npc.removed = false;
+                }
+                else
+                {
+                    npc.removed = true;
+                }
             }
             else if (
                 applyGoneFlags
@@ -2238,14 +2279,9 @@ export default class LevelScene extends Phaser.Scene
                 npc.npcName === 'oren'
             )
             {
-                if (GameState.getFlag('orenBetrayed'))
+                if (GameState.flags.orenBetrayed)
                 {
-                    if (npc.convertToHunter)
-                    {
-                        npc.convertToHunter();
-                    }
-
-                    npc.removed = false;
+                    npc.removed = true;
                 }
                 else if (GameState.getFlag('orenGone'))
                 {

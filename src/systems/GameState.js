@@ -11,6 +11,8 @@ export const LEVEL_FLAG_KEYS = [
     'orenGone',
     'orenMet',
     'workClearedOnce',
+    /** 本关内出卖奥伦：重试/失败不保留；通关后写入 campaignFlags */
+    'orenBetrayed',
     /** 本关内斯普莉雅告密：重试/失败不保留；通关后写入 campaignFlags */
     'federicoAware'
 ];
@@ -425,6 +427,12 @@ const GameState = {
             ||
             this.campaignFlags.federicoAware
         );
+    },
+
+    /** 出卖奥伦是否已通关写入，仅下一关及以后作为追捕者 */
+    isOrenBetrayedCommitted()
+    {
+        return Boolean(this.campaignFlags.orenBetrayed);
     },
 
     setFlag(key, value = true)

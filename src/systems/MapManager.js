@@ -239,7 +239,8 @@ export default class MapManager {
             if (!this.topLayer) this.topLayer = [];
 
             // 所有以 top 开头的图层都加入 topLayer
-            if (/^top\d*$/.test(name)) {
+            if (/^top/i.test(name))
+            {
                 this.topLayer.push(layer);
             }
             // if (name === 'Walls') this.wallLayer = layer;
@@ -323,7 +324,7 @@ export default class MapManager {
         this.portals = [];
         this.objects = [];
         this.wallLayer = null;
-        this.topLayer = null;
+        this.topLayer = [];
         this.currentMapKey = null;
         this.navigationGrid = null;
     }

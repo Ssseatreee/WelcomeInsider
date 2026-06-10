@@ -2438,36 +2438,54 @@ export default class LevelScene extends Phaser.Scene
         );
     }
 
+    static isTopMapLayer(layerName)
+    {
+        return /^top/i.test(layerName);
+    }
+
     applyMapLayerDepths()
     {
-        let depth = 0;
+        let groundDepth = 0;
+        const topLayers = [];
 
-        Object.values(this.mapManager.layers).forEach(layer =>
+        for (const [layerName, layer] of Object.entries(
+            this.mapManager.layers
+        ))
         {
-            if (layer.name === 'border')
+            if (!layer || layerName === 'border')
             {
-                return;
+                continue;
             }
 
-            layer.setDepth(depth);
-            depth += 1;
+            if (LevelScene.isTopMapLayer(layerName))
+            {
+                topLayers.push(layer);
+                continue;
+            }
+
+            layer.setDepth(groundDepth);
+            groundDepth += 1;
+        }
+
+        const playerDepth = groundDepth;
+        let abovePlayerDepth = playerDepth + 1;
+
+        topLayers.forEach(layer =>
+        {
+            layer.setDepth(abovePlayerDepth);
+            abovePlayerDepth += 1;
         });
 
-        if (this.mapManager.topLayer)
+        const borderLayer =
+            this.mapManager.layers['border'];
+
+        if (borderLayer)
         {
-            this.mapManager.topLayer.forEach(
-                layer => layer.setDepth(depth + 10)
-            );
+            borderLayer.setDepth(abovePlayerDepth);
         }
 
-        if (this.mapManager.layers['border'])
-        {
-            this.mapManager.layers['border'].setDepth(
-                depth + 10
-            );
-        }
-
-        return depth;
+        // 调用方使用 depth + 1 作为玩家/NPC 深度
+        return playerDepth - 1;
     }
 
     refreshNPCSprites()

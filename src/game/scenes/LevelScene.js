@@ -2019,13 +2019,27 @@ export default class LevelScene extends Phaser.Scene
         return prop ? prop.value : null;
     }
 
-    /** 地图物体 getAchievement 属性须为成就 id 字符串（如 peoplesRep） */
+    /** 地图物体 getAchievement：成就 id 字符串，或布尔 true（告示板 → peoplesRep） */
     resolveMapAchievementId(obj)
     {
         const value =
             this.getProperty(obj, 'getAchievement');
 
-        return typeof value === 'string' ? value : null;
+        if (
+            typeof value === 'string'
+            &&
+            value.length > 0
+        )
+        {
+            return value;
+        }
+
+        if (value === true)
+        {
+            return 'peoplesRep';
+        }
+
+        return null;
     }
 
     createBackButton()

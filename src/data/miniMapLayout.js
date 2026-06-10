@@ -5,6 +5,8 @@
  *   office  ──┼─ left ── drinkingroom ── right
  *             │                      ╱
  *            hall ──────────────────╱
+ *              │
+ *           toilet
  */
 export default {
     panelWidth: 372,
@@ -22,7 +24,8 @@ export default {
         left: { w: 128, h: 896 },
         right: { w: 960, h: 1280 },
         office: { w: 384, h: 384 },
-        office_1: { w: 384, h: 384 }
+        office_1: { w: 384, h: 384 },
+        toilet: { w: 96, h: 192 }
     },
 
     maps: {
@@ -34,6 +37,8 @@ export default {
         office: { x: 17, y: 194, w: 56, h: 63 },
 
         hall: { x: 92, y: 357, w: 213, h: 83 },
+
+        toilet: { x: 128, y: 448, w: 48, h: 36 },
 
         right: { x: 269, y: 92, w: 71, h: 269 }
     }
